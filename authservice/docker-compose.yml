@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: authservice-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: authdb
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: authuser
+      MYSQL_PASSWORD: authpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: authservice-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  authservice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: authservice:latest
+    container_name: authservice-app
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      # Spring datasource
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/authdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: authuser
+      SPRING_DATASOURCE_PASSWORD: authpass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect
+      # Redis host/port (Spring Boot auto-config will pick these)
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # App port
+      SERVER_PORT: 8005
+    ports:
+      - "8005:8005"
+
+volumes:
+  mysql_data:
+
+

@@ -6,7 +6,6 @@ import com.se347.userservice.entities.UserProfile;
 import com.se347.userservice.repositories.UserProfileRepository;
 import com.se347.userservice.exceptions.ResourceNotFoundException;
 import com.se347.userservice.services.UserProfileService;
-import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
@@ -32,7 +31,15 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .address(request.getAddress())
                 .build();
 
+        profile.onCreate();
         userProfileRepository.save(profile);
+        return mapToResponse(profile);
+    }
+
+    public UserProfileResponseDto getProfileByEmail(String email) {
+        UserProfile profile = userProfileRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
         return mapToResponse(profile);
     }
 
@@ -53,7 +60,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         profile.setBio(request.getBio());
         profile.setPhoneNumber(request.getPhoneNumber());
         profile.setAddress(request.getAddress());
-
+        profile.onUpdate();
         userProfileRepository.save(profile);
         return mapToResponse(profile);
     }

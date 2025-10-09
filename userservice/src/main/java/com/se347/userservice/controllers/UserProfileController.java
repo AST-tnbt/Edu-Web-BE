@@ -24,6 +24,13 @@ public class UserProfileController {
         return ResponseEntity.ok(userProfileService.createProfile(request));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponseDto> getCurrentProfile(
+            @RequestHeader("X-User-Email") String email
+    ) {
+        return ResponseEntity.ok(userProfileService.getProfileByEmail(email));
+    }
+
     @GetMapping("/{userId}")
     public ResponseEntity<UserProfileResponseDto> getProfile(@PathVariable UUID userId) {
         return ResponseEntity.ok(userProfileService.getProfileByUserId(userId));

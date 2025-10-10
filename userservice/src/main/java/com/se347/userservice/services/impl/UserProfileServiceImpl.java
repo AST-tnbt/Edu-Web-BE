@@ -22,6 +22,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     public UserProfileResponseDto createProfile(UserProfileRequestDto request) {
+        System.out.println("Request userId: " + request.getUserId());
+        
         UserProfile profile = UserProfile.builder()
                 .userId(request.getUserId())
                 .fullName(request.getFullName())
@@ -31,17 +33,22 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .address(request.getAddress())
                 .build();
 
+        System.out.println("Profile userId before save: " + profile.getUserId());
+        
         profile.onCreate();
         userProfileRepository.save(profile);
+        
+        System.out.println("Profile userId after save: " + profile.getUserId());
+        
         return mapToResponse(profile);
     }
 
-    public UserProfileResponseDto getProfileByEmail(String email) {
-        UserProfile profile = userProfileRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    // public UserProfileResponseDto getProfileByEmail(String email) {
+    //     UserProfile profile = userProfileRepository.findByEmail(email)
+    //             .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
-        return mapToResponse(profile);
-    }
+    //     return mapToResponse(profile);
+    // }
 
     @Override
     public UserProfileResponseDto getProfileByUserId(UUID userId) {

@@ -87,6 +87,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         redisTokenService.saveToken("refresh:" + userPrincipal.getUsername(), refreshToken, jwtConfig.getRefreshTokenExpiration());
 
         return new LoginResponseDto(
+                userPrincipal.getId(),
                 accessToken,
                 refreshToken,
                 "Bearer",
@@ -108,6 +109,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String newAccessToken = tokenProvider.generateAccessToken(userPrincipal);
 
         return new LoginResponseDto(
+                userPrincipal.getId(),
                 newAccessToken,
                 refreshToken,
                 "Bearer",

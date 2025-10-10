@@ -3,7 +3,6 @@ package com.se347.userservice.controllers;
 import com.se347.userservice.dtos.UserProfileRequestDto;
 import com.se347.userservice.dtos.UserProfileResponseDto;
 import com.se347.userservice.services.UserProfileService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,9 +25,9 @@ public class UserProfileController {
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponseDto> getCurrentProfile(
-            @RequestHeader("X-User-Email") String email
+            @RequestHeader("X-User-Id") UUID userId
     ) {
-        return ResponseEntity.ok(userProfileService.getProfileByEmail(email));
+        return ResponseEntity.ok(userProfileService.getProfileByUserId(userId));
     }
 
     @GetMapping("/{userId}")

@@ -16,10 +16,10 @@ import java.time.LocalDate;
 public class UserProfile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(nullable = false)
     private UUID userId;
 
-    @Column(length = 100)
+    @Column(nullable = false, length = 100)
     private String fullName;
 
     @Column(length = 255)

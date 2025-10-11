@@ -11,9 +11,14 @@ docker run -d --name authservice-mysql -e MYSQL_DATABASE=authdb -e MYSQL_ROOT_PA
 - Body (raw JSON):
 ```
 {
-  "email": "{{email}}",
-  "password": "{{password}}"
+  "email": "example@gmail.com",
+  "password": "12345",
+  "passwordConfirm": "12345"
 }
+```
+- Response (String):
+```
+Signup successful for user: example@gmail.com
 ```
 
 2) Login
@@ -22,8 +27,19 @@ docker run -d --name authservice-mysql -e MYSQL_DATABASE=authdb -e MYSQL_ROOT_PA
 - Body (raw JSON):
 ```
 {
-  "email": "{{email}}",
-  "password": "{{password}}"
+    "email": "example@gmail.com",
+    "password": "12345"
+}
+```
+- Response (raw JSON):
+```
+{
+    "userId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsInJvbGVzIjpbIlNUVURFTlQiXSwiaWF0IjoxNzYwMTQ5NDcwLCJleHAiOjE3NjAyMzU4NzB9.L9Rg4dmOtzWtL9EbXwF6zB6GiW2yc1uLfaOW91UzJLo",
+    "refreshToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsImlhdCI6MTc2MDE0OTQ3MCwiZXhwIjoxNzYwNTgxNDcwfQ.um6ljpblLhK8IPxFY8uDpYt__GUS7hhNmE6Ie5rKwsw",
+    "tokenType": "Bearer",
+    "email": "example@gmail.com",
+    "role": "[STUDENT]"
 }
 ```
 
@@ -33,10 +49,27 @@ docker run -d --name authservice-mysql -e MYSQL_DATABASE=authdb -e MYSQL_ROOT_PA
 - Body (raw JSON):
 ```
 {
-  "refreshToken": "{{refreshToken}}"
+  "refreshToken": "{Lấy refreshToken}"
 }
 ```
+- Response (raw JSON):
+```
+{
+"userId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
+"accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsInJvbGVzIjpbIlNUVURFTlQiXSwiaWF0IjoxNzYwMTQ5NjIwLCJleHAiOjE3NjAyMzYwMjB9.2MOMEcC7MGUNCBFB54cD6KdJuaVm4J3gVQBrHnZEhQI",
+"refreshToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsImlhdCI6MTc2MDE0OTQ3MCwiZXhwIjoxNzYwNTgxNDcwfQ.um6ljpblLhK8IPxFY8uDpYt__GUS7hhNmE6Ie5rKwsw",
+"tokenType": "Bearer",
+"email": "example@gmail.com",
+"role": "[STUDENT]"
+}
+```
+
 4) Logout
 - Method: POST
 - URL: {{baseUrl}}/api/auth/logout
 - Headers: Authorization: Bearer {{accessToken}}
+
+- Response (String):
+```
+Logged out successfully
+```

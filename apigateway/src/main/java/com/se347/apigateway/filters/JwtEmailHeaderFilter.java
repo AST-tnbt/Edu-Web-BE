@@ -1,4 +1,4 @@
-package com.eduweb.apigateway.filters;
+package com.se347.apigateway.filters;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

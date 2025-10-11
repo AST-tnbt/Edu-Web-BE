@@ -62,6 +62,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new RuntimeException("Email already registered");
         }
 
+        // Kiểm tra password và passwordConfirm có trùng hay không
+        if (!signupRequest.getPassword().equals(signupRequest.getPasswordConfirm())) {
+            throw new RuntimeException("Password and PasswordConfirm not exist");
+        }
+
         User user = User.builder()
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))

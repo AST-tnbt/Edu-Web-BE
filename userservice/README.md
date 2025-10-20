@@ -1,10 +1,4 @@
-## Chạy MySQL bằng Docker
-
-```bash
-docker run -d --name userservice-mysql -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=userservice -e MYSQL_USER=userservice -e MYSQL_PASSWORD=userservice -p 3308:3306 -v userservice_mysql_data:/var/lib/mysql mysql:8.0
-```
-
-## API Endpoints
+# API Endpoints
 Base URL: `http://localhost:8006/api/users/profiles`
 
 1) Tạo hồ sơ người dùng
@@ -16,7 +10,7 @@ Base URL: `http://localhost:8006/api/users/profiles`
   "fullName": "Nguyen Van A",
   "avatarUrl": "https://example.com/a.jpg",
   "bio": "Hello there",
-  "phoneNumber": "+84 901234567",
+  "phoneNumber": "+84901234567",
   "address": "Hanoi, Vietnam"
 }
 ```

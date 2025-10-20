@@ -4,7 +4,9 @@ import com.se347.userservice.dtos.UserProfileRequestDto;
 import com.se347.userservice.dtos.UserProfileResponseDto;
 import com.se347.userservice.entities.UserProfile;
 import com.se347.userservice.repositories.UserProfileRepository;
-import com.se347.userservice.exceptions.ResourceNotFoundException;
+import com.se347.userservice.exceptions.UserException;
+import com.se347.userservice.exceptions.BusinessException;
+import com.se347.userservice.exceptions.ExceptionUtils;
 import com.se347.userservice.services.UserProfileService;
 
 import java.util.UUID;
@@ -22,7 +24,13 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     public UserProfileResponseDto createProfile(UserProfileRequestDto request) {
-        System.out.println("Request userId: " + request.getUserId());
+        // Validate input
+        validateCreateProfileRequest(request);
+        
+        // Check if profile already exists
+        if (userProfileRepository.findByUserId(request.getUserId()).isPresent()) {
+            throw new UserException.UserProfileAlreadyExistsException(request.getUserId().toString());
+        }
         
         UserProfile profile = UserProfile.builder()
                 .userId(request.getUserId())
@@ -33,14 +41,13 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .address(request.getAddress())
                 .build();
 
-        System.out.println("Profile userId before save: " + profile.getUserId());
-        
-        profile.onCreate();
-        userProfileRepository.save(profile);
-        
-        System.out.println("Profile userId after save: " + profile.getUserId());
-        
-        return mapToResponse(profile);
+        try {
+            profile.onCreate();
+            userProfileRepository.save(profile);
+            return mapToResponse(profile);
+        } catch (Exception e) {
+            throw new BusinessException.DependencyException("Database", "Failed to save user profile", e);
+        }
     }
 
     // public UserProfileResponseDto getProfileByEmail(String email) {
@@ -52,24 +59,83 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     public UserProfileResponseDto getProfileByUserId(UUID userId) {
+        // Validate input
+        ExceptionUtils.validateNotNull(userId, "userId");
+        
         UserProfile profile = userProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for userId: " + userId));
+                .orElseThrow(() -> new UserException.UserProfileNotFoundException(userId.toString()));
+        
         return mapToResponse(profile);
     }
 
     @Override
     public UserProfileResponseDto updateProfile(UUID userId, UserProfileRequestDto request) {
+        // Validate input
+        ExceptionUtils.validateNotNull(userId, "userId");
+        validateUpdateProfileRequest(request);
+        
         UserProfile profile = userProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for userId: " + userId));
+                .orElseThrow(() -> new UserException.UserProfileNotFoundException(userId.toString()));
 
+        // Update fields
         profile.setFullName(request.getFullName());
         profile.setAvatarUrl(request.getAvatarUrl());
         profile.setBio(request.getBio());
         profile.setPhoneNumber(request.getPhoneNumber());
         profile.setAddress(request.getAddress());
         profile.onUpdate();
-        userProfileRepository.save(profile);
-        return mapToResponse(profile);
+        
+        try {
+            userProfileRepository.save(profile);
+            return mapToResponse(profile);
+        } catch (Exception e) {
+            throw new BusinessException.DependencyException("Database", "Failed to update user profile", e);
+        }
+    }
+
+    /**
+     * Validate create profile request
+     */
+    private void validateCreateProfileRequest(UserProfileRequestDto request) {
+        ExceptionUtils.validateNotNull(request, "request");
+        ExceptionUtils.validateNotNull(request.getUserId(), "userId");
+        ExceptionUtils.validateRequired(request.getFullName(), "fullName");
+        ExceptionUtils.validateStringLength(request.getFullName(), "fullName", 2, 100);
+        
+        if (request.getPhoneNumber() != null) {
+            ExceptionUtils.validatePhoneNumber(request.getPhoneNumber(), "phoneNumber");
+        }
+        
+        if (request.getBio() != null) {
+            ExceptionUtils.validateStringLength(request.getBio(), "bio", 0, 500);
+        }
+        
+        if (request.getAddress() != null) {
+            ExceptionUtils.validateStringLength(request.getAddress(), "address", 0, 200);
+        }
+    }
+    
+    /**
+     * Validate update profile request
+     */
+    private void validateUpdateProfileRequest(UserProfileRequestDto request) {
+        ExceptionUtils.validateNotNull(request, "request");
+        
+        if (request.getFullName() != null) {
+            ExceptionUtils.validateStringLength(request.getFullName(), "fullName", 2, 100);
+        }
+        
+        if (request.getPhoneNumber() != null) {
+            ExceptionUtils.validatePhoneNumber(request.getPhoneNumber(), "phoneNumber");
+        }
+        
+        if (request.getBio() != null) {
+            ExceptionUtils.validateStringLength(request.getBio(), "bio", 0, 500);
+        }
+        
+        if (request.getAddress() != null) {
+            ExceptionUtils.validateStringLength(request.getAddress(), "address", 0, 200);
+        }
     }
 
     private UserProfileResponseDto mapToResponse(UserProfile profile) {

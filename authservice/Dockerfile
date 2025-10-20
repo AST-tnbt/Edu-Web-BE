@@ -1,31 +1,39 @@
-# ====== Build stage ======
-FROM maven:3.9.8-eclipse-temurin-21 AS build
+# Multi-stage build for Auth Service
+FROM maven:3.9.6-eclipse-temurin-21-alpine as builder
 
-WORKDIR /workspace
-
-# Copy only the module to leverage Docker layer caching
-COPY pom.xml ./pom.xml
-RUN --mount=type=cache,target=/root/.m2 mvn -q -e -B -DskipTests dependency:go-offline
-
-COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -q -e -B -DskipTests package
-
-# ====== Runtime stage ======
-FROM eclipse-temurin:21-jre
-
+# Set working directory
 WORKDIR /app
 
-ENV JAVA_OPTS=""
+# Copy pom.xml first for better caching
+COPY pom.xml .
 
-# Copy built jar
-COPY --from=build /workspace/target/*.jar /app/app.jar
+# Download dependencies
+RUN mvn dependency:go-offline -B
 
-# Default port
+# Copy source code
+COPY src src
+
+# Build the application
+RUN mvn clean package -DskipTests
+
+# Runtime stage
+FROM eclipse-temurin:21-jre-alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Set working directory
+WORKDIR /app
+
+# Copy the built jar from builder stage
+COPY --from=builder /app/target/*.jar app.jar
+
+# Expose port
 EXPOSE 8005
 
-# Healthcheck optional (expects actuator if enabled)
-# HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:8005/actuator/health || exit 1
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8005/actuator/health || exit 1
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
-
-
+# Run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]

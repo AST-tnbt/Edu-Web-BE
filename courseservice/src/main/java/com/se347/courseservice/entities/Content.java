@@ -6,6 +6,8 @@ import com.se347.courseservice.enums.ContentStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;
+import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "contents")
@@ -38,4 +40,21 @@ public class Content {
 
     @Column(nullable = false, updatable = false)
     private ContentStatus status;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false, updatable = true)
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

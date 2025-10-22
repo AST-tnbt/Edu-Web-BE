@@ -7,10 +7,13 @@ import com.se347.courseservice.enums.ContentType;
 import com.se347.courseservice.entities.Content;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface ContentRepository extends JpaRepository<Content, Long> {
-    List<Content> findByLessonId(Long lessonId);
+public interface ContentRepository extends JpaRepository<Content, UUID> {
+    List<Content> findByContentId(UUID contentId);
+    List<Content> findByLessonId(UUID lessonId);
+    List<Content> findByCourseId(UUID courseId);
     List<Content> findByTitleContaining(String title);
     List<Content> findByContentType(ContentType contentType);
 }

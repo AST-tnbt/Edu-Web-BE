@@ -13,11 +13,13 @@ import com.se347.courseservice.enums.CourseLevel;
 @AllArgsConstructor
 @Builder
 public class CourseRequestDto {
+    private UUID courseId;
     private String title;
     private String description;
     private String thumbnailUrl;
     private BigDecimal price;
     private CourseLevel level;
+    private UUID categoryId;
     private String categoryName;
     private UUID instructorId;
 }

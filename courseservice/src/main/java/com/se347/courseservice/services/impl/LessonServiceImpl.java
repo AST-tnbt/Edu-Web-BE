@@ -44,17 +44,17 @@ public class LessonServiceImpl implements LessonService {
             throw new CourseException.InvalidRequestException("Order index must be greater than 0");
         }
         
-        if (lessonRepository.existsByCourseIdAndTitle(UUID.fromString(request.getCourseId()), request.getTitle())) {
+        if (lessonRepository.existsByCourseIdAndTitle(request.getCourseId(), request.getTitle())) {
             throw new CourseException.InvalidRequestException("Lesson with title '" + request.getTitle() + "' already exists for course '" + request.getCourseId() + "'");
         }
 
-        if (!courseService.courseExists(UUID.fromString(request.getCourseId()))) {
-            throw new CourseException.CourseNotFoundException(request.getCourseId());
+        if (!courseService.courseExists(request.getCourseId())) {
+            throw new CourseException.CourseNotFoundException(request.getCourseId().toString());
         }
 
         Lesson lesson = Lesson.builder()
             .title(request.getTitle())
-            .courseId(UUID.fromString(request.getCourseId()))
+            .courseId(request.getCourseId())
             .orderIndex(request.getOrderIndex())
             .build();
 
@@ -64,18 +64,18 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
-    public LessonResponseDto getLessonById(String lessonId) {
+    public LessonResponseDto getLessonById(UUID lessonId) {
         if (lessonId == null) {
             throw new CourseException.InvalidRequestException("Lesson ID cannot be null");
         }
 
-        Lesson lesson = lessonRepository.findById(UUID.fromString(lessonId))
-            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId));
+        Lesson lesson = lessonRepository.findById(lessonId)
+            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId.toString()));
         return mapToResponse(lesson);
     }
 
     @Override
-    public LessonResponseDto updateLesson(String lessonId, LessonRequestDto request) {
+    public LessonResponseDto updateLesson(UUID lessonId, LessonRequestDto request) {
 
         if (request == null) {
             throw new CourseException.InvalidRequestException("Request cannot be null");
@@ -93,19 +93,19 @@ public class LessonServiceImpl implements LessonService {
             throw new CourseException.InvalidRequestException("Course ID cannot be null");
         }
 
-        if (lessonRepository.existsByCourseIdAndTitle(UUID.fromString(request.getCourseId()), request.getTitle())) {
+        if (lessonRepository.existsByCourseIdAndTitle(request.getCourseId(), request.getTitle())) {
             throw new CourseException.InvalidRequestException("Lesson with title '" + request.getTitle() + "' already exists for course '" + request.getCourseId() + "'");
         }
 
-        if (!courseService.courseExists(UUID.fromString(request.getCourseId()))) {
-            throw new CourseException.CourseNotFoundException(request.getCourseId());
+        if (!courseService.courseExists(request.getCourseId())) {
+            throw new CourseException.CourseNotFoundException(request.getCourseId().toString());
         }
 
-        Lesson existingLesson = lessonRepository.findById(UUID.fromString(lessonId))
-            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId));
+        Lesson existingLesson = lessonRepository.findById(lessonId)
+            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId.toString()));
 
         existingLesson.setTitle(request.getTitle());
-        existingLesson.setCourseId(UUID.fromString(request.getCourseId()));
+        existingLesson.setCourseId(request.getCourseId());
         existingLesson.setOrderIndex(request.getOrderIndex());
         existingLesson.onUpdate();
         lessonRepository.save(existingLesson);
@@ -114,13 +114,13 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
-    public List<LessonResponseDto> getLessonsByCourseId(String courseId){
+    public List<LessonResponseDto> getLessonsByCourseId(UUID courseId){
 
         if (courseId == null) {
             throw new CourseException.InvalidRequestException("Course ID cannot be null");
         }
 
-        List<Lesson> lessons = lessonRepository.findByCourseId(UUID.fromString(courseId));
+        List<Lesson> lessons = lessonRepository.findByCourseId(courseId);
         return lessons.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());
@@ -128,9 +128,9 @@ public class LessonServiceImpl implements LessonService {
 
     private LessonResponseDto mapToResponse(Lesson lesson) {
         return LessonResponseDto.builder()
-            .lessonId(lesson.getLessonId().toString())
+            .lessonId(lesson.getLessonId())
             .title(lesson.getTitle())
-            .courseId(lesson.getCourseId().toString())
+            .courseId(lesson.getCourseId())
             .orderIndex(lesson.getOrderIndex())
             .createdAt(lesson.getCreatedAt())
             .updatedAt(lesson.getUpdatedAt())

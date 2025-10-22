@@ -125,6 +125,31 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             .collect(Collectors.toList());
     }
 
+    // @Override
+    // public EnrollmentResponseDto updateStatusOrPaymentStatusOfEnrollment(UUID enrollmentId,EnrollmentRequestDto request) {
+    //     Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+    //         .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException(enrollmentId.toString()));
+        
+    //     request.forEach((key, value) -> {
+    //         if (key.equals("enrollmentStatus")) {
+    //             enrollment.setEnrollmentStatus((EnrollmentStatus) value);
+    //         } else if (key.equals("paymentStatus")) {
+    //             enrollment.setPaymentStatus((PaymentStatus) value);
+    //         }
+    //     });
+        
+    //     return mapToResponse(enrollmentRepository.save(enrollment));
+    // }
+
+    // @Override
+    // public EnrollmentResponseDto updatePaymentStatusOfEnrollment(UUID enrollmentId, PaymentStatus status) {
+    //     Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+    //         .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException(enrollmentId.toString()));
+    //     enrollment.setPaymentStatus(status);
+    //     enrollment.onUpdate();
+    //     return mapToResponse(enrollmentRepository.save(enrollment));
+    // }
+
     private EnrollmentResponseDto mapToResponse(Enrollment enrollment) {
         return EnrollmentResponseDto.builder()
             .enrollmentId(enrollment.getEnrollmentId())

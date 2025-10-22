@@ -55,9 +55,9 @@ public class EnrollmentController {
     //     return ResponseEntity.ok(enrollmentService.updateEnrollmentStatus(enrollmentId, request));
     // }
 
-    // @PatchMapping("enrollments/{enrollmentId}/progress")
-    // public ResponseEntity<EnrollmentResponseDto> updateEnrollmentProgress(@PathVariable UUID enrollmentId, @RequestBody EnrollmentRequestDto request) {
-    //     return ResponseEntity.ok(enrollmentService.updateEnrollmentProgress(enrollmentId, request));
+    // @PactchMapping("enrollments/{enrollmentId}/payment-status")
+    // public ResponseEntity<EnrollmentResponseDto> updateEnrollmentPaymentStatus(@PathVariable UUID enrollmentId, @RequestBody EnrollmentRequestDto request) {
+    //     return ResponseEntity.ok(enrollmentService.updateEnrollmentPaymentStatus(enrollmentId, request));
     // }
 
     @PutMapping("enrollments/{enrollmentId}")

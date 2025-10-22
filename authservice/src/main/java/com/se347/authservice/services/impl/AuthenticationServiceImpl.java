@@ -4,6 +4,7 @@ import com.se347.authservice.configs.JwtConfig;
 import com.se347.authservice.dtos.LoginRequestDto;
 import com.se347.authservice.dtos.LoginResponseDto;
 import com.se347.authservice.dtos.RefreshTokenRequestDto;
+import com.se347.authservice.dtos.LogoutRequestDto;
 import com.se347.authservice.dtos.SignupRequestDto;
 import com.se347.authservice.entities.User;
 import com.se347.authservice.enums.Role;
@@ -62,6 +63,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new RuntimeException("Email already registered");
         }
 
+        // Kiểm tra password và passwordConfirm có trùng hay không
+        if (!signupRequest.getPassword().equals(signupRequest.getPasswordConfirm())) {
+            throw new RuntimeException("Password and PasswordConfirm not exist");
+        }
+
         User user = User.builder()
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
@@ -87,6 +93,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         redisTokenService.saveToken("refresh:" + userPrincipal.getUsername(), refreshToken, jwtConfig.getRefreshTokenExpiration());
 
         return new LoginResponseDto(
+                userPrincipal.getId(),
                 accessToken,
                 refreshToken,
                 "Bearer",
@@ -102,12 +109,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new RuntimeException("Invalid or expired refresh token");
         }
 
+        if (redisTokenService.isBlacklisted(refreshToken)) {
+            throw new RuntimeException("Refresh token is blacklisted or expired");
+        }
+
         String email = tokenProvider.getUsernameFromToken(refreshToken);
         UserPrincipal userPrincipal = (UserPrincipal) customUserDetailsService.loadUserByUsername(email);
 
         String newAccessToken = tokenProvider.generateAccessToken(userPrincipal);
 
         return new LoginResponseDto(
+                userPrincipal.getId(),
                 newAccessToken,
                 refreshToken,
                 "Bearer",
@@ -116,29 +128,47 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         );
     }
 
-    public String logout(HttpServletRequest request) {
+    public String logout(HttpServletRequest request, LogoutRequestDto logoutRequest) {
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Missing or invalid Authorization header");
         }
+        
+        if (redisTokenService.isBlacklisted(header.substring(7))) {
+            throw new RuntimeException("Access token is blacklisted or expired");
+        }
 
         String accessToken = header.substring(7); // Bỏ "Bearer "
+        String refreshToken = logoutRequest.getRefreshToken();
 
-        // Kiểm tra token hợp lệ
+        // Kiểm tra access token hợp lệ
         if (!tokenProvider.validateToken(accessToken)) {
             throw new SecurityException("Invalid or expired access token");
         }
 
-        // Tính thời gian còn lại của token
-        long remainingMillis = tokenProvider.getRemainingTime(accessToken);
+        // Tính thời gian còn lại của access token
+        long accessTokenRemainingMillis = tokenProvider.getRemainingTime(accessToken);
 
-        // Đưa vào blacklist trong Redis
-        redisTokenService.blacklistToken(accessToken, remainingMillis);
+        // Đưa access token vào blacklist trong Redis
+        redisTokenService.blacklistToken(accessToken, accessTokenRemainingMillis);
 
-        // Xóa cache access token trong Redis (nếu có)
+        // Xử lý refresh token nếu có
+        if (refreshToken != null && !refreshToken.trim().isEmpty()) {
+            // Kiểm tra refresh token hợp lệ
+            if (tokenProvider.validateToken(refreshToken)) {
+                // Tính thời gian còn lại của refresh token
+                long refreshTokenRemainingMillis = tokenProvider.getRemainingTime(refreshToken);
+                
+                // Đưa refresh token vào blacklist trong Redis
+                redisTokenService.blacklistToken(refreshToken, refreshTokenRemainingMillis);
+            }
+        }
+
+        // Xóa cache tokens trong Redis (nếu có)
         String username = tokenProvider.getUsernameFromToken(accessToken);
         redisTokenService.deleteToken("access:" + username);
+        redisTokenService.deleteToken("refresh:" + username);
 
         return "Logged out successfully";
     }

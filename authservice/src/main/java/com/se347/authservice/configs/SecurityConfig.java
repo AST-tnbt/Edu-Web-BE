@@ -3,6 +3,7 @@ package com.se347.authservice.configs;
 import com.se347.authservice.securities.JwtAuthenticationFilter;
 import com.se347.authservice.securities.JwtTokenProvider;
 import com.se347.authservice.securities.CustomUserDetailsService;
+import com.se347.authservice.securities.HmacValidationFilter;
 import com.se347.authservice.services.RedisTokenService;
 
 import org.springframework.context.annotation.Bean;
@@ -21,16 +22,15 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
     private final RedisTokenService redisTokenService;
+    private final HmacValidationFilter hmacValidationFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    SecurityConfig(JwtTokenProvider jwtTokenProvider, CustomUserDetailsService customUserDetailsService, RedisTokenService redisTokenService){
+    SecurityConfig(JwtTokenProvider jwtTokenProvider, CustomUserDetailsService customUserDetailsService, RedisTokenService redisTokenService, HmacValidationFilter hmacValidationFilter, JwtAuthenticationFilter jwtAuthenticationFilter){
         this.jwtTokenProvider = jwtTokenProvider;
         this.customUserDetailsService = customUserDetailsService;
         this.redisTokenService = redisTokenService;
-    }
-
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(jwtTokenProvider, customUserDetailsService, redisTokenService);
+        this.hmacValidationFilter = hmacValidationFilter;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
     @Bean
@@ -38,10 +38,13 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/signup").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(hmacValidationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -1,6 +1,7 @@
 package com.se347.authservice.controllers;
 
 import com.se347.authservice.dtos.LoginRequestDto;
+import com.se347.authservice.dtos.LogoutRequestDto;
 import com.se347.authservice.dtos.RefreshTokenRequestDto;
 import com.se347.authservice.dtos.SignupRequestDto;
 import com.se347.authservice.entities.User;
@@ -38,7 +39,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-            return ResponseEntity.ok(authenticationService.logout(request));
+    public ResponseEntity<?> logout(HttpServletRequest request, @RequestBody LogoutRequestDto logoutRequest) {
+            return ResponseEntity.ok(authenticationService.logout(request, logoutRequest));
     }
 }

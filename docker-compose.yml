@@ -1,0 +1,220 @@
+services:
+  # ===========================================
+  # Infrastructure Services
+  # ===========================================
+  
+  mysql_auth:
+    image: mysql:8.0
+    container_name: eduweb-mysql-auth
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${AUTH_DB_NAME}
+      MYSQL_USER: ${AUTH_DB_USERNAME}
+      MYSQL_PASSWORD: ${AUTH_DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_auth_data:/var/lib/mysql
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  mysql_user:
+    image: mysql:8.0
+    container_name: eduweb-mysql-user
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${USER_DB_NAME}
+      MYSQL_USER: ${USER_DB_USERNAME}
+      MYSQL_PASSWORD: ${USER_DB_PASSWORD}
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_user_data:/var/lib/mysql
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: eduweb-redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 3s
+      retries: 5
+      interval: 5s
+      start_period: 20s 
+
+  # ===========================================
+  # Application Services
+  # ===========================================
+
+  eureka-server:
+    build: ./eurekaserver
+    container_name: eduweb-eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 30s
+
+  authservice:
+    build: ./authservice
+    container_name: eduweb-auth
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=authservice
+      - SERVER_PORT=8005
+      
+      # Database config
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql_auth:3306/authdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=${AUTH_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${AUTH_DB_PASSWORD}
+      
+      # Redis config
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      
+      # JWT config
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
+      - JWT_ISSUER=${JWT_ISSUER}
+      
+      # HMAC config
+      - GATEWAY_HMAC_SECRET=${GATEWAY_HMAC_SECRET}
+      - GATEWAY_HMAC_ENABLED=${GATEWAY_HMAC_ENABLED}
+      
+      # Eureka config
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-authservice}
+
+    ports:
+      - "8005:8005"
+    depends_on:
+      mysql_auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+
+  userservice:
+    build: ./userservice
+    container_name: eduweb-user
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=userservice
+      - SERVER_PORT=8006
+      
+      # Database config
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql_user:3306/usersdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=${USER_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${USER_DB_PASSWORD}
+      
+      # HMAC config
+      - GATEWAY_HMAC_SECRET=${GATEWAY_HMAC_SECRET}
+      - GATEWAY_HMAC_ENABLED=${GATEWAY_HMAC_ENABLED}
+      
+      # Eureka config
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-userservice}
+    ports:
+      - "8006:8006"
+    depends_on:
+      mysql_user:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+
+  apigateway:
+    build: ./apigateway
+    container_name: eduweb-gateway
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=apigateway
+      - SERVER_PORT=8080
+      
+      # JWT config
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      
+      # HMAC config
+      - GATEWAY_HMAC_SECRET=${GATEWAY_HMAC_SECRET}
+      - GATEWAY_HMAC_ENABLED=${GATEWAY_HMAC_ENABLED}
+      
+      # Redis config
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      
+      # Eureka config - QUAN TRỌNG!
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-apigateway}
+      
+      # Rate limiting config
+      - RATE_LIMIT_REPLENISH_RATE=${RATE_LIMIT_REPLENISH_RATE:-10}
+      - RATE_LIMIT_BURST_CAPACITY=${RATE_LIMIT_BURST_CAPACITY:-20}
+      - RATE_LIMIT_REQUESTED_TOKENS=${RATE_LIMIT_REQUESTED_TOKENS:-1}
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      # authservice:
+      #   condition: service_healthy
+      # userservice:
+      #   condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 90s
+
+volumes:
+  mysql_auth_data:
+  mysql_user_data:
+  redis_data:
+
+networks:
+  eduweb-network:
+    driver: bridge

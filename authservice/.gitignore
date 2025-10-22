@@ -31,3 +31,27 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Maven ###
+.mvn/
+mvnw
+mvnw.cmd
+
+### Logs ###
+*.log
+logs/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Application specific ###
+application-local.properties
+application-dev.properties
+application-prod.properties
+
+### Docker ###
+.dockerignore
+
+# Environment files
+.env

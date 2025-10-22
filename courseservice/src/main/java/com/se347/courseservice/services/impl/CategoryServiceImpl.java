@@ -106,23 +106,23 @@ public class CategoryServiceImpl implements CategoryService {
         return mapToResponse(existingCategory);
     }
 
-    @Override
-    public void deleteCategory(String categoryName) {
-        if (categoryName == null || categoryName.trim().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Category name cannot be null or empty");
-        }
+    // @Override
+    // public void deleteCategory(String categoryName) {
+    //     if (categoryName == null || categoryName.trim().isEmpty()) {
+    //         throw new CourseException.InvalidRequestException("Category name cannot be null or empty");
+    //     }
 
-        // Cannot delete predefined categories
-        if (CourseCategory.isValidCategory(categoryName)) {
-            throw new CourseException.InvalidRequestException("Cannot delete predefined category: " + categoryName);
-        }
+    //     // Cannot delete predefined categories
+    //     if (CourseCategory.isValidCategory(categoryName)) {
+    //         throw new CourseException.InvalidRequestException("Cannot delete predefined category: " + categoryName);
+    //     }
 
-        if (!categoryRepository.existsById(categoryName)) {
-            throw new CourseException.CategoryNotFoundException(categoryName);
-        }
+    //     if (!categoryRepository.existsById(categoryName)) {
+    //         throw new CourseException.CategoryNotFoundException(categoryName);
+    //     }
 
-        categoryRepository.deleteById(categoryName);
-    }
+    //     categoryRepository.deleteById(categoryName);
+    // }
 
     @Override
     public List<CategoryResponseDto> getAllCategories() {

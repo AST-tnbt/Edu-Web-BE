@@ -9,7 +9,9 @@ public interface CategoryService {
     CategoryResponseDto createCategory(CategoryRequestDto request);
     CategoryResponseDto getCategoryByName(String categoryName);
     CategoryResponseDto updateCategory(String categoryName, CategoryRequestDto request);
-    void deleteCategory(String categoryName);
+
+    // void deleteCategory(String categoryName);
+    
     List<CategoryResponseDto> getAllCategories();
     List<CategoryResponseDto> searchCategoriesByName(String name);
     

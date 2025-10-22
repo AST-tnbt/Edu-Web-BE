@@ -1,6 +1,6 @@
-package com.se347.userservice.configs;
+package com.se347.courseservice.configs;
 
-import com.se347.userservice.securities.HmacValidationFilter;
+import com.se347.courseservice.securities.HmacValidationFilter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

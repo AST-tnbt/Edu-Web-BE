@@ -17,6 +17,7 @@ target/
 .settings
 .springBeans
 .sts4-cache
+.cursor/
 
 # Build
 build/
@@ -51,6 +52,6 @@ application-prod.properties
 HELP.md
 
 # Maven wrapper
- .mvn/
- mvnw
- mvnw.cmd
+.mvn/
+mvnw
+mvnw.cmd

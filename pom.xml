@@ -11,11 +11,13 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>core</module>
         <module>apigateway</module>
         <module>eurekaserver</module>
         <module>authservice</module>
         <module>userservice</module>
         <module>apigateway</module>
+        <module>contentservice</module>
     </modules>
 
     <name>EduWeb Backend</name>

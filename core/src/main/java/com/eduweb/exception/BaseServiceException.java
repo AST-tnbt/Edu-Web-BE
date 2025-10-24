@@ -1,8 +1,12 @@
-package com.se347.contentservice.exception;
+package com.eduweb.exception;
 
-import com.se347.contentservice.exception.models.ErrorResponse;
+import com.eduweb.model.ErrorResponse;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.http.HttpStatus;
 
+@Getter
+@Setter
 public abstract class BaseServiceException extends RuntimeException {
 
     private final String errorCode;
@@ -12,14 +16,6 @@ public abstract class BaseServiceException extends RuntimeException {
         super(message);
         this.errorCode = errorCode;
         this.status = status;
-    }
-
-    public String getErrorCode() {
-        return errorCode;
-    }
-
-    public HttpStatus getStatus() {
-        return status;
     }
 
     public ErrorResponse toErrorResponse(String path) {

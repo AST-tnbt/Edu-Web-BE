@@ -2,7 +2,7 @@ package com.se347.contentservice.controllers;
 
 import com.se347.contentservice.entities.ContentFile;
 import com.se347.contentservice.services.ContentFileService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.se347.contentservice.services.ContentFileServiceImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

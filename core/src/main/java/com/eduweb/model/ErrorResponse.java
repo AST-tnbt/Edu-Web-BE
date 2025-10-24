@@ -1,4 +1,4 @@
-package com.se347.contentservice.exception.models;
+package com.eduweb.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;

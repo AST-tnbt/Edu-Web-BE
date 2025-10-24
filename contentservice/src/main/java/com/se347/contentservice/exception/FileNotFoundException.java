@@ -1,6 +1,6 @@
-package com.se347.contentservice.exception.custom;
+package com.se347.contentservice.exception;
 
-import com.se347.contentservice.exception.BaseServiceException;
+import com.eduweb.exception.BaseServiceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 

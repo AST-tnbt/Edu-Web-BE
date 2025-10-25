@@ -36,8 +36,8 @@ Lưu trữ thông tin về files đã upload và processed.
 
 | Column        | Type         | Description                              |
 |---------------|--------------|------------------------------------------|
-| `id`          | BIGINT (PK)  | Mã định danh file                        |
-| `content_id`  | BIGINT (FK)  | Liên kết đến content trong CourseService |
+| `id`          | UUID (PK)    | Mã định danh file                        |
+| `content_id`  | UUID (FK)    | Liên kết đến content trong CourseService |
 | `file_name`   | VARCHAR(255) | Tên file gốc                            |
 | `file_path`   | VARCHAR(500) | Đường dẫn file trong storage            |
 | `file_size`   | BIGINT       | Kích thước file (bytes)                  |
@@ -45,168 +45,6 @@ Lưu trữ thông tin về files đã upload và processed.
 | `status`      | ENUM         | Trạng thái (`UPLOADING`, `PROCESSING`, `READY`, `ERROR`) |
 | `created_at`  | TIMESTAMP    | Ngày tạo                                 |
 | `updated_at`  | TIMESTAMP    | Ngày cập nhật                            |
-
-### 2. `video_processing_jobs`
-Theo dõi các job xử lý video.
-
-| Column        | Type         | Description                              |
-|---------------|--------------|------------------------------------------|
-| `id`          | BIGINT (PK)  | Mã định danh job                         |
-| `content_file_id` | BIGINT (FK) | Liên kết đến content_files              |
-| `job_type`    | ENUM         | Loại job (`TRANSCODE`, `THUMBNAIL`, `SUBTITLE`) |
-| `status`      | ENUM         | Trạng thái (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`) |
-| `progress`    | INT          | Tiến độ xử lý (%)                       |
-| `result_url`  | VARCHAR(500) | URL kết quả sau xử lý                   |
-| `error_message` | TEXT        | Thông báo lỗi (nếu có)                  |
-| `created_at`  | TIMESTAMP    | Ngày tạo job                            |
-| `completed_at`| TIMESTAMP    | Ngày hoàn thành                         |
-
-### 3. `content_access_logs`
-Log truy cập content để analytics.
-
-| Column        | Type         | Description                              |
-|---------------|--------------|------------------------------------------|
-| `id`          | BIGINT (PK)  | Mã định danh log                         |
-| `content_id`  | BIGINT       | ID content được truy cập                |
-| `user_id`     | UUID         | ID người dùng truy cập                   |
-| `access_type` | ENUM         | Loại truy cập (`STREAM`, `DOWNLOAD`, `PREVIEW`) |
-| `ip_address`  | VARCHAR(45)  | IP address người dùng                   |
-| `user_agent`  | TEXT         | User agent string                       |
-| `accessed_at` | TIMESTAMP    | Thời gian truy cập                      |
-
----
-
-## 🏗️ Service Architecture
-
-### 1. Controller Layer
-Cung cấp các API RESTful cho ContentService:
-- `FileUploadController` — Upload và quản lý files
-- `ContentStreamController` — Streaming content
-- `ProcessingController` — Quản lý video processing jobs
-- `AnalyticsController` — Media analytics và reports
-
-### 2. Service Layer
-Chứa logic nghiệp vụ của ContentService:
-- `FileStorageService`: Quản lý upload/download, storage optimization
-- `VideoProcessingService`: Xử lý video với FFmpeg
-- `ContentDeliveryService`: CDN integration, streaming protocols
-- `AnalyticsService`: Content engagement analytics
-
-### 3. Repository Layer
-Chịu trách nhiệm truy vấn và giao tiếp với cơ sở dữ liệu (JPA).
-
-Ví dụ:
-```java
-public interface ContentFileRepository extends JpaRepository<ContentFile, Long> {
-    List<ContentFile> findByContentId(Long contentId);
-    List<ContentFile> findByStatus(ProcessingStatus status);
-}
-```
-
-### 4. Integration Layer
-Giao tiếp với các services khác:
-- `CourseServiceClient`: Lấy metadata content từ CourseService
-- `EnrollmentServiceClient`: Kiểm tra quyền truy cập
-- `UserServiceClient`: Lấy thông tin người dùng
-
----
-
-## 🔐 Authorization Flow
-
-### 1. Access Control
-- **Content Access**: Kiểm tra enrollment qua EnrollmentService
-- **Upload Permission**: Chỉ instructor của course mới upload được
-- **Processing Jobs**: Chỉ owner của content mới quản lý được
-
-### 2. Security Measures
-- **Signed URLs**: Sử dụng signed URLs cho content delivery
-- **Time-limited Access**: Content URLs có thời hạn
-- **IP Restrictions**: Có thể giới hạn theo IP (tùy chọn)
-
----
-
-## 🔄 Interaction with Other Services
-
-| Service | Purpose | Communication |
-|---------|---------|---------------|
-| **CourseService** | Lấy metadata content, cập nhật content_url | HTTP/REST + Events |
-| **EnrollmentService** | Kiểm tra quyền truy cập content | HTTP/REST |
-| **AuthService** | Xác thực JWT, kiểm tra role | HTTP/REST |
-| **UserService** | Lấy thông tin người dùng | HTTP/REST |
-| **Gateway** | Định tuyến API, load balancing | HTTP/REST |
-
----
-
-## 📝 Example Workflow
-
-### 1. Instructor upload video
-1. Instructor gửi `POST /api/contents/{id}/upload` → ContentService
-2. ContentService validate file và tạo ContentFile record
-3. ContentService upload file lên S3/MinIO
-4. ContentService tạo video processing job
-5. ContentService thông báo CourseService về content_url mới
-
-### 2. Video processing
-1. Background worker nhận processing job
-2. FFmpeg transcode video thành multiple qualities
-3. Generate thumbnails và preview images
-4. Update job status và result URLs
-5. Notify CourseService về completion
-
-### 3. Student xem video
-1. Student request content → ContentService
-2. ContentService kiểm tra enrollment qua EnrollmentService
-3. ContentService generate signed URL cho streaming
-4. Student stream content từ CDN
-5. Log access cho analytics
-
----
-
-## 🛠️ Tech Stack
-
-### Core Technologies
-- **Spring Boot 3.x**
-- **Spring Data JPA**
-- **PostgreSQL** (metadata storage)
-- **Redis** (caching, job queues)
-
-### File Storage & Processing
-- **AWS S3** hoặc **MinIO** (file storage)
-- **FFmpeg** (video processing)
-- **ImageMagick** (image processing)
-- **RabbitMQ/Kafka** (async processing)
-
-### Content Delivery
-- **AWS CloudFront** hoặc **CloudFlare** (CDN)
-- **HLS/DASH** (streaming protocols)
-- **Signed URLs** (secure access)
-
-### Monitoring & Analytics
-- **Prometheus** (metrics)
-- **Grafana** (dashboards)
-- **ELK Stack** (logging)
-
----
-
-## 🚀 Future Extensions
-
-### Advanced Processing
-- AI-powered content analysis
-- Automatic subtitle generation
-- Content quality assessment
-- Smart thumbnail selection
-
-### Enhanced Delivery
-- Adaptive bitrate streaming
-- Global CDN optimization
-- Mobile-optimized delivery
-- Offline content support
-
-### Analytics & Insights
-- Content engagement heatmaps
-- Learning behavior analysis
-- Performance optimization recommendations
-- A/B testing for content delivery
 
 ---
 
@@ -216,30 +54,37 @@ Giao tiếp với các services khác:
 
 #### Upload File
 ```http
-POST /api/contents/{contentId}/upload
+POST /api/content-files/upload/{contentId}
 Authorization: Bearer {jwt_token}
 Content-Type: multipart/form-data
 ```
 **Request Body:**
 ```
-file: [binary file data]
+file: [pdf/mp4]
 ```
 
-#### Get File Info
+#### Get File
 ```http
-GET /api/files/{fileId}
+GET /api/content-files/{fileId}
 Authorization: Bearer {jwt_token}
 ```
 
-#### Download File
+#### Get list file of content
 ```http
-GET /api/files/{fileId}/download
+GET /api/content-files/list/{contentId}
 Authorization: Bearer {jwt_token}
+```
+
+#### Update File 
+```http
+PATCH /api/content-files/{fileId}
+Authorization: Bearer {jwt_token}
+Request body: fileName or status
 ```
 
 #### Delete File
 ```http
-DELETE /api/files/{fileId}
+DELETE /api/content-files/{fileId}
 Authorization: Bearer {jwt_token}
 ```
 

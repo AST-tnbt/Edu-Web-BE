@@ -1,5 +1,6 @@
 package com.se347.contentservice.services;
 
+import com.se347.contentservice.dtos.ContentFileUpdateRequest;
 import com.se347.contentservice.entities.ContentFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,4 +40,6 @@ public interface ContentFileService {
      * @param id the file ID
      */
     void deleteFile(UUID id);
+
+    ContentFile updateFile(UUID id, ContentFileUpdateRequest request);
 }

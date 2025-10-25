@@ -1,5 +1,6 @@
 package com.se347.contentservice.services;
 
+import com.se347.contentservice.dtos.ContentFileUpdateRequest;
 import com.se347.contentservice.entities.ContentFile;
 import com.se347.contentservice.enums.FileStatus;
 import com.se347.contentservice.exception.FileNotFoundException;
@@ -93,6 +94,19 @@ public class ContentFileServiceImpl implements ContentFileService {
         }
 
         repository.delete(file);
+    }
+
+    @Override
+    public ContentFile updateFile(UUID id, ContentFileUpdateRequest request) {
+        ContentFile file = repository.findById(id)
+                .orElseThrow(() -> new FileNotFoundException("File not found: " + id));
+        if (request.getFileName() != null) {
+            file.setFileName(request.getFileName());
+        }
+        if (request.getStatus() != null) {
+            file.setStatus(request.getStatus());
+        }
+        return repository.save(file);
     }
 
     @PostConstruct

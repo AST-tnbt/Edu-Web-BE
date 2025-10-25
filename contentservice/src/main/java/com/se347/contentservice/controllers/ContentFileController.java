@@ -1,5 +1,6 @@
 package com.se347.contentservice.controllers;
 
+import com.se347.contentservice.dtos.ContentFileUpdateRequest;
 import com.se347.contentservice.entities.ContentFile;
 import com.se347.contentservice.services.ContentFileService;
 import com.se347.contentservice.services.ContentFileServiceImpl;
@@ -59,6 +60,20 @@ public class ContentFileController {
         service.deleteFile(id);
         return ResponseEntity.noContent().build();
     }
+
+    // =====================================
+    // Update File
+    // only for file name and status
+    // =====================================
+    @PatchMapping("/{id}")
+    public ResponseEntity<ContentFile> updateFile(
+            @PathVariable UUID id,
+            @RequestBody ContentFileUpdateRequest request
+    ) {
+        ContentFile updated = service.updateFile(id, request);
+        return ResponseEntity.ok(updated);
+    }
+
 }
 
 

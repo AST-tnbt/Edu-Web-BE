@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import jakarta.persistence.PrePersist;
 
 @Entity
 @Table(name = "users")
@@ -28,31 +29,38 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-    @Builder.Default
     @Column(nullable = false)
-    private String status = "ACTIVE";
+    private String status;
 
-    @Builder.Default
     @Column(nullable = false)
-    private boolean accountNonExpired = true;
+    private boolean accountNonExpired;
 
-    @Builder.Default
     @Column(nullable = false)
-    private boolean accountNonLocked = true;
+    private boolean accountNonLocked;
 
-    @Builder.Default
     @Column(nullable = false)
-    private boolean credentialsNonExpired = true;
+    private boolean credentialsNonExpired;
 
-    @Builder.Default
     @Column(nullable = false)
-    private boolean enabled = true;
+    private boolean enabled;
 
-    @Builder.Default
+    @Column
+    private boolean firstLogin;
+
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
-    @Builder.Default
     @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

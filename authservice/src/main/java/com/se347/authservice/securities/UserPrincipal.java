@@ -53,6 +53,10 @@ public class UserPrincipal implements UserDetails {
         return user.getId();
     }
 
+    public boolean isFirstLogin()  {
+        return user.isFirstLogin();
+    }
+
     public String getRole() {
         return user.getRole().name();
     }

@@ -28,6 +28,7 @@ public class UserProfile {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    @Column
     private LocalDate dateOfBirth;
 
     @Column(length = 20)
@@ -36,7 +37,13 @@ public class UserProfile {
     @Column(length = 255)
     private String address;
 
+    @Column
+    private boolean profileCompleted;
+
+    @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(updatable = true)
     private LocalDateTime updatedAt;
 
     @PrePersist

@@ -1,20 +1,20 @@
 package com.se347.authservice.services.impl;
 
 import com.se347.authservice.configs.JwtConfig;
-import com.se347.authservice.dtos.LoginRequestDto;
-import com.se347.authservice.dtos.LoginResponseDto;
-import com.se347.authservice.dtos.RefreshTokenRequestDto;
-import com.se347.authservice.dtos.LogoutRequestDto;
-import com.se347.authservice.dtos.SignupRequestDto;
+import com.se347.authservice.dtos.*;
 import com.se347.authservice.entities.User;
 import com.se347.authservice.enums.Role;
+import com.se347.authservice.publishers.AuthenticationEventPublisher;
 import com.se347.authservice.repositories.UserRepository;
 import com.se347.authservice.securities.CustomUserDetailsService;
 import com.se347.authservice.securities.JwtTokenProvider;
 import com.se347.authservice.securities.UserPrincipal;
 import com.se347.authservice.services.AuthenticationService;
 import com.se347.authservice.services.RedisTokenService;
+
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -47,7 +48,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Autowired
     private final JwtConfig jwtConfig;
 
-    public AuthenticationServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtTokenProvider tokenProvider, CustomUserDetailsService customUserDetailsService, RedisTokenService redisTokenService, JwtConfig jwtConfig) {
+    @Autowired
+    private final AuthenticationEventPublisher userCreatedPublisher;
+    
+    public AuthenticationServiceImpl(UserRepository userRepository, 
+                                    PasswordEncoder passwordEncoder, 
+                                    AuthenticationManager authenticationManager, 
+                                    JwtTokenProvider tokenProvider, 
+                                    CustomUserDetailsService customUserDetailsService, 
+                                    RedisTokenService redisTokenService, 
+                                    JwtConfig jwtConfig, 
+                                    AuthenticationEventPublisher userCreatedPublisher) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -55,8 +66,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         this.customUserDetailsService = customUserDetailsService;
         this.redisTokenService = redisTokenService;
         this.jwtConfig = jwtConfig;
+        this.userCreatedPublisher = userCreatedPublisher;
     }
 
+    @Transactional
+    @Override
     public User signup(SignupRequestDto signupRequest) {
         // Kiểm tra email tồn tại
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
@@ -72,11 +86,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
                 .role(Role.STUDENT) // mặc định role USER
+                .firstLogin(true)
+                .accountNonExpired(true)
+                .accountNonLocked(true)
+                .credentialsNonExpired(true)
+                .enabled(true)
                 .build();
-
-        return userRepository.save(user);
+        user.onCreate();
+    
+        User createdUser = userRepository.save(user);
+        
+        // Gửi event đến RabbitMQ
+        userCreatedPublisher.publishUserCreatedEvent(createdUser);
+        return createdUser;
     }
 
+    @Override
     public LoginResponseDto authenticate(LoginRequestDto loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -98,11 +123,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 refreshToken,
                 "Bearer",
                 userPrincipal.getUsername(),
-                userPrincipal.getAuthorities().toString()
+                userPrincipal.getAuthorities().toString(),
+                userPrincipal.isFirstLogin()
         );
     }
 
-    public LoginResponseDto refreshToken(RefreshTokenRequestDto refreshTokenRequest) {
+    @Override
+    public RefreshTokenResponseDto refreshToken(RefreshTokenRequestDto refreshTokenRequest) {
         String refreshToken = refreshTokenRequest.getRefreshToken();
 
         if (!tokenProvider.validateToken(refreshToken)) {
@@ -118,16 +145,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String newAccessToken = tokenProvider.generateAccessToken(userPrincipal);
 
-        return new LoginResponseDto(
-                userPrincipal.getId(),
-                newAccessToken,
-                refreshToken,
-                "Bearer",
-                userPrincipal.getUsername(),
-                userPrincipal.getAuthorities().toString()
-        );
+        return new RefreshTokenResponseDto(newAccessToken);
     }
 
+    @Override
     public String logout(HttpServletRequest request, LogoutRequestDto logoutRequest) {
         String header = request.getHeader("Authorization");
 
@@ -171,5 +192,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         redisTokenService.deleteToken("refresh:" + username);
 
         return "Logged out successfully";
+    }
+
+    @Override
+    public void setUserFirstLoginFalse(UUID userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setFirstLogin(false);
+        userRepository.save(user);
     }
 }

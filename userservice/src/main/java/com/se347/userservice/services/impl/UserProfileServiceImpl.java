@@ -65,7 +65,6 @@ public class UserProfileServiceImpl implements UserProfileService {
     public UserProfileResponseDto createProfileDefault(UserCreatedEventDto userCreatedEvent) {
         UserProfile profile = UserProfile.builder()
                 .userId(userCreatedEvent.getUserId())
-                .fullName(userCreatedEvent.getEmail())
                 .profileCompleted(false)
                 .build();
         profile.onCreate();
@@ -119,6 +118,11 @@ public class UserProfileServiceImpl implements UserProfileService {
         } catch (Exception e) {
             throw new BusinessException.DependencyException("Database", "Failed to update user profile", e);
         }
+    }
+
+    @Override
+    public boolean existsByUserId(UUID userId) {
+        return userProfileRepository.existsByUserId(userId);
     }
 
     /**

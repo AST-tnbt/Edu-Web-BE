@@ -15,7 +15,7 @@ public class UserProfileEventPublisherImpl implements UserProfileEventPublisher 
     @Autowired
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${app.rabbitmq.exchange.user_profile}")
+    @Value("${app.rabbitmq.exchange.auth_user}")
     private String authAndUserExchangeName;
 
     @Value("${app.rabbitmq.routing-key.user-profile-completed}")

@@ -11,9 +11,13 @@ import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import java.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AuthenticationListenerServiceImpl implements AuthenticationListenerService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationListenerServiceImpl.class);
 
     @Autowired
     private final UserProfileService userProfileService;
@@ -22,26 +26,28 @@ public class AuthenticationListenerServiceImpl implements AuthenticationListener
         this.userProfileService = userProfileService;
     }
 
-    @RabbitListener(queues = "${app.rabbitmq.queue.user-created}")
+    @RabbitListener(queues = "${app.rabbitmq.queue.user-created}", containerFactory = "SimpleRabbitListenerContainerFactory")
     public void handleUserCreatedEvent(UserCreatedEventDto userCreatedEvent, 
-                                     Channel channel, 
-                                     @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+                                    Channel channel, 
+                                    @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         try {
-            // Xử lý message
-            if (userProfileService.getProfileByUserId(userCreatedEvent.getUserId()) != null) {
+            boolean exists = userProfileService.existsByUserId(userCreatedEvent.getUserId());
+            if (exists) {
+                logger.info("Profile already exists for user: {}", userCreatedEvent.getUserId());
+                channel.basicAck(deliveryTag, false);
                 return;
             }
+
             userProfileService.createProfileDefault(userCreatedEvent);
-            
-            // Acknowledge thành công
+            logger.info("Successfully created profile default for user: {}", userCreatedEvent.getUserId());
             channel.basicAck(deliveryTag, false);
-            
+
         } catch (Exception e) {
             try {
-                // Reject và không requeue
                 channel.basicNack(deliveryTag, false, false);
+                logger.error("Error creating profile default for user: {}", userCreatedEvent.getUserId(), e);
             } catch (IOException ioException) {
-                // Log error
+                logger.error("Error acknowledging message for user: {}", userCreatedEvent.getUserId(), ioException);
             }
         }
     }

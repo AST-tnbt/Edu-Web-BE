@@ -10,5 +10,4 @@ import lombok.*;
 @Builder
 public class UserCreatedEventDto implements Serializable {
     private UUID userId;
-    private String email;
 }

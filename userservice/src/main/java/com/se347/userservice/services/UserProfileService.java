@@ -11,4 +11,5 @@ public interface UserProfileService {
     // UserProfileResponseDto getProfileByEmail(String email);
     UserProfileResponseDto getProfileByUserId(UUID userId);
     UserProfileResponseDto updateProfile(UUID userId, UserProfileRequestDto request);
+    boolean existsByUserId(UUID userId);
 }

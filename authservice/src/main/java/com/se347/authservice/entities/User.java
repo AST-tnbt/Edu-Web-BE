@@ -26,31 +26,28 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column
     private Role role;
 
-    @Column(nullable = false)
-    private String status;
-
-    @Column(nullable = false)
+    @Column
     private boolean accountNonExpired;
 
-    @Column(nullable = false)
+    @Column
     private boolean accountNonLocked;
 
-    @Column(nullable = false)
+    @Column
     private boolean credentialsNonExpired;
 
-    @Column(nullable = false)
+    @Column
     private boolean enabled;
 
     @Column
     private boolean firstLogin;
 
-    @Column(nullable = false, updatable = false)
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column
     private LocalDateTime updatedAt;
 
     @PrePersist

@@ -21,7 +21,7 @@ public class UserProfileListennerImpl implements UserProfileListenner{
         this.authenticationService = authenticationService;
     }
 
-    @RabbitListener(queues = "${app.rabbitmq.queue.user-profile-completed}")
+    @RabbitListener(queues = "${app.rabbitmq.queue.user-profile-completed}", containerFactory = "SimpleRabbitListenerContainerFactory")
     public void handleProfileCompleted(UserProfileCompletedEvent userProfileCompletedEvent,
                                     Channel channel,
                                     @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {

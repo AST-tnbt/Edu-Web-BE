@@ -131,6 +131,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public RefreshTokenResponseDto refreshToken(RefreshTokenRequestDto refreshTokenRequest) {
         String refreshToken = refreshTokenRequest.getRefreshToken();
+        String accessToken = refreshTokenRequest.getAccessToken();
+
+        if (!tokenProvider.validateToken(accessToken)) {
+            throw new RuntimeException("Invalid or expired access token");
+        }
 
         if (!tokenProvider.validateToken(refreshToken)) {
             throw new RuntimeException("Invalid or expired refresh token");
@@ -138,6 +143,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         if (redisTokenService.isBlacklisted(refreshToken)) {
             throw new RuntimeException("Refresh token is blacklisted or expired");
+        }
+
+        // Tính thời gian còn lại của access token
+        long accessTokenRemainingMillis = tokenProvider.getRemainingTime(accessToken);
+
+        // Nếu access token còn hạn, đưa vào blacklist
+        if (accessTokenRemainingMillis > 0) {
+            redisTokenService.blacklistToken(accessToken, accessTokenRemainingMillis);
         }
 
         String email = tokenProvider.getUsernameFromToken(refreshToken);

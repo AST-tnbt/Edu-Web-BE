@@ -20,10 +20,8 @@ public class AuthenticationEventPublisherImpl implements AuthenticationEventPubl
     @Value("${app.rabbitmq.routing-key.user-created}")
     private String userCreatedRoutingKey;
 
-    public AuthenticationEventPublisherImpl(RabbitTemplate rabbitTemplate, String authAndUserExchangeName, String userCreatedRoutingKey) {
+    public AuthenticationEventPublisherImpl(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
-        this.authAndUserExchangeName = authAndUserExchangeName;
-        this.userCreatedRoutingKey = userCreatedRoutingKey;
     }
 
     public void publishUserCreatedEvent(User user) {

@@ -177,9 +177,12 @@ services:
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
-      - APP_RABBITMQ_EXCHANGE=auth.exchange
-      - APP_RABBITMQ_ROUTING_KEY=auth.created
-      - APP_RABBITMQ_QUEUE=auth.created.queue
+
+      - APP_RABBITMQ_EXCHANGE_AUTH_USER=auth_user.exchange
+      - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
+      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+      - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
+      - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
 
     ports:
       - "8005:8005"
@@ -227,9 +230,12 @@ services:
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
-      - APP_RABBITMQ_EXCHANGE=user.exchange
-      - APP_RABBITMQ_ROUTING_KEY=user.created
-      - APP_RABBITMQ_QUEUE=user.created.queue
+
+      - APP_RABBITMQ_EXCHANGE_AUTH_USER=auth_user.exchange
+      - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
+      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+      - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
+      - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
     ports:
       - "8006:8006"
     depends_on:

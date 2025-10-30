@@ -18,6 +18,7 @@
         <module>userservice</module>
         <module>courseservice</module>
         <module>contentservice</module>
+        <module>paymentservice</module>
         <module>enrollmentservice</module>
     </modules>
 

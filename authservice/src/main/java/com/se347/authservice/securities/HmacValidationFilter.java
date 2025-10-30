@@ -36,9 +36,8 @@ public class HmacValidationFilter extends OncePerRequestFilter {
     private boolean hmacEnabled;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
-                                  FilterChain filterChain) throws ServletException, IOException {
-        
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
         // Kiểm tra xem HMAC validation có được enable không
         if (!hmacEnabled) {
             filterChain.doFilter(request, response);

@@ -2,10 +2,10 @@ package com.se347.authservice.dtos;
 
 import lombok.*;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class RefreshTokenRequestDto {
     private String refreshToken;
+    private String accessToken;
 }

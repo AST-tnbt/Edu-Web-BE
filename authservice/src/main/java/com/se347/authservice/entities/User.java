@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import jakarta.persistence.PrePersist;
 
 @Entity
 @Table(name = "users")
@@ -25,34 +26,38 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column
     private Role role;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private String status = "ACTIVE";
+    @Column
+    private boolean accountNonExpired;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private boolean accountNonExpired = true;
+    @Column
+    private boolean accountNonLocked;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private boolean accountNonLocked = true;
+    @Column
+    private boolean credentialsNonExpired;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private boolean credentialsNonExpired = true;
+    @Column
+    private boolean enabled;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private boolean enabled = true;
+    @Column
+    private boolean firstLogin;
 
-    @Builder.Default
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    @Column
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

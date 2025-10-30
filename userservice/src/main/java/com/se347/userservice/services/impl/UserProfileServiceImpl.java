@@ -8,7 +8,11 @@ import com.se347.userservice.exceptions.UserException;
 import com.se347.userservice.exceptions.BusinessException;
 import com.se347.userservice.exceptions.ExceptionUtils;
 import com.se347.userservice.services.UserProfileService;
+import com.se347.userservice.dtos.UserCreatedEventDto;
+import com.se347.userservice.publisher.UserProfileEventPublisher;
 
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -16,10 +20,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserProfileServiceImpl implements UserProfileService {
 
+    @Autowired
     private final UserProfileRepository userProfileRepository;
 
-    UserProfileServiceImpl(UserProfileRepository userProfileRepository){
+    @Autowired
+    private final UserProfileEventPublisher userProfileEventPublisher;
+
+    public UserProfileServiceImpl(UserProfileRepository userProfileRepository, UserProfileEventPublisher userProfileEventPublisher){
         this.userProfileRepository = userProfileRepository;
+        this.userProfileEventPublisher = userProfileEventPublisher;
     }
 
     @Override
@@ -39,6 +48,7 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .bio(request.getBio())
                 .phoneNumber(request.getPhoneNumber())
                 .address(request.getAddress())
+                .profileCompleted(false)
                 .build();
 
         try {
@@ -48,6 +58,18 @@ public class UserProfileServiceImpl implements UserProfileService {
         } catch (Exception e) {
             throw new BusinessException.DependencyException("Database", "Failed to save user profile", e);
         }
+    }
+
+    @Transactional
+    @Override
+    public UserProfileResponseDto createProfileDefault(UserCreatedEventDto userCreatedEvent) {
+        UserProfile profile = UserProfile.builder()
+                .userId(userCreatedEvent.getUserId())
+                .profileCompleted(false)
+                .build();
+        profile.onCreate();
+        userProfileRepository.save(profile);
+        return mapToResponse(profile);
     }
 
     // public UserProfileResponseDto getProfileByEmail(String email) {
@@ -83,14 +105,24 @@ public class UserProfileServiceImpl implements UserProfileService {
         profile.setBio(request.getBio());
         profile.setPhoneNumber(request.getPhoneNumber());
         profile.setAddress(request.getAddress());
+        profile.setProfileCompleted(true);
         profile.onUpdate();
-        
+
         try {
             userProfileRepository.save(profile);
+
+            // Publish user profile completed event
+            userProfileEventPublisher.publishUserProfileCompletedEvent(profile);
+
             return mapToResponse(profile);
         } catch (Exception e) {
             throw new BusinessException.DependencyException("Database", "Failed to update user profile", e);
         }
+    }
+
+    @Override
+    public boolean existsByUserId(UUID userId) {
+        return userProfileRepository.existsByUserId(userId);
     }
 
     /**

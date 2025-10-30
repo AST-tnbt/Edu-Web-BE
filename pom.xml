@@ -16,8 +16,9 @@
         <module>eurekaserver</module>
         <module>authservice</module>
         <module>userservice</module>
-        <module>apigateway</module>
+        <module>courseservice</module>
         <module>contentservice</module>
+        <module>enrollmentservice</module>
     </modules>
 
     <name>EduWeb Backend</name>

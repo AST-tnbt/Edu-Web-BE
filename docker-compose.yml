@@ -79,6 +79,25 @@ services:
       interval: 5s
       start_period: 20s 
 
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"      # AMQP
+      - "15672:15672"    # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      timeout: 3s
+      retries: 5
+      interval: 5s
+      start_period: 20s
 
   # ===========================================
   # Object Storage (MinIO)
@@ -153,6 +172,18 @@ services:
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-authservice}
 
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      - APP_RABBITMQ_EXCHANGE_AUTH_USER=auth_user.exchange
+      - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
+      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+      - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
+      - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
+
     ports:
       - "8005:8005"
     depends_on:
@@ -161,6 +192,8 @@ services:
       redis:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - eduweb-network
@@ -191,12 +224,26 @@ services:
       # Eureka config
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-userservice}
+
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      - APP_RABBITMQ_EXCHANGE_AUTH_USER=auth_user.exchange
+      - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
+      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+      - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
+      - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
     ports:
       - "8006:8006"
     depends_on:
       mysql_user:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - eduweb-network
@@ -261,6 +308,7 @@ volumes:
   redis_data:
   minio_data:
   mysql_content_data:
+  rabbitmq-data:
 
 networks:
   eduweb-network:

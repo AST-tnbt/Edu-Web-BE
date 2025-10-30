@@ -19,7 +19,7 @@ public class UserProfile {
     @Column(nullable = false)
     private UUID userId;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String fullName;
 
     @Column(length = 255)
@@ -28,6 +28,7 @@ public class UserProfile {
     @Column(columnDefinition = "TEXT")
     private String bio;
 
+    @Column
     private LocalDate dateOfBirth;
 
     @Column(length = 20)
@@ -36,7 +37,13 @@ public class UserProfile {
     @Column(length = 255)
     private String address;
 
+    @Column
+    private boolean profileCompleted;
+
+    @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(updatable = true)
     private LocalDateTime updatedAt;
 
     @PrePersist

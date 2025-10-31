@@ -1,94 +1,186 @@
-## Chạy API Gateway
+# Project structure
+The project currently includes several modules (services):
+1. API Gateway
+2. Auth service
+3. User service
+4. Course service
+5. Content service
+6. Enrollment service
+7. Payment service  
 
-Thiết lập biến môi trường (tùy chọn, khuyến nghị):
-```powershell
-# Cổng HTTP
-$env:APIGATEWAY_SERVER_PORT = "8080"
+The description of each service will be described bellow.
 
-# JWT/HMAC
-$env:APIGATEWAY_JWT_SECRET = "gw-jwt-secret"
-$env:APIGATEWAY_HMAC_SECRET = "gw-hmac-secret"
+## API Gateway
+It will be an entry point of all request. 
 
-# Eureka & Redis
-$env:APIGATEWAY_EUREKA_SERVER_URL = "http://localhost:8761/eureka/"
-$env:APIGATEWAY_REDIS_HOST = "localhost"
-$env:APIGATEWAY_REDIS_PORT = "6379"
+**Base URL: `http://localhost:8080`**
 
-# Rate limit (tùy chọn)
-$env:APIGATEWAY_RATE_LIMIT_REPLENISH_RATE = "10"
-$env:APIGATEWAY_RATE_LIMIT_BURST_CAPACITY = "20"
-$env:APIGATEWAY_RATE_LIMIT_REQUESTED_TOKENS = "1"
+## Auth service
 
- # Chạy
- mvn -pl apigateway spring-boot:run
+Responsible for authentication.  
+
+***Note: If user fist time login (API response has `firstLogin` field is true, so frontend will force user to update profile).***
+
+**API sample:**
+1. Signup
+- Method: POST
+- URL: `{{baseUrl}}/api/auth/signup`
+- Body (raw JSON):
+```json
+{
+  "email": "example@gmail.com",
+  "password": "12345",
+  "passwordConfirm": "12345"
+}
+```
+- Response (String):
+```
+Signup successful for user: example@gmail.com
 ```
 
-Chạy file JAR sau khi build:
-```powershell
-java -jar apigateway\target\apigateway-0.0.1-SNAPSHOT.jar
+2. Login
+- Method: POST
+- URL: `{{baseUrl}}/api/auth/login`
+- Body (raw JSON):
+```json
+{
+    "email": "example@gmail.com",
+    "password": "12345"
+}
+```
+- Response (raw JSON):
+```json
+{
+    "userId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsInJvbGVzIjpbIlNUVURFTlQiXSwiaWF0IjoxNzYwMTQ5NDcwLCJleHAiOjE3NjAyMzU4NzB9.L9Rg4dmOtzWtL9EbXwF6zB6GiW2yc1uLfaOW91UzJLo",
+    "refreshToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsImlhdCI6MTc2MDE0OTQ3MCwiZXhwIjoxNzYwNTgxNDcwfQ.um6ljpblLhK8IPxFY8uDpYt__GUS7hhNmE6Ie5rKwsw",
+    "tokenType": "Bearer",
+    "email": "example@gmail.com",
+    "role": "[STUDENT]",
+    "firstLogin": true
+}
+```
+*Note: role is string array (currently not necessary)*
+3. Refresh
+- Method: POST
+- URL: `{{baseUrl}}/api/auth/refresh`
+- Body (raw JSON):
+```json
+{
+  "accessToken": "{accessToken}",
+  "refreshToken": "{refreshToken}"
+}
+```
+- Response (raw JSON):
+```json
+{
+"newAccessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsInJvbGVzIjpbIlNUVURFTlQiXSwiaWF0IjoxNzYwMTQ5NjIwLCJleHAiOjE3NjAyMzYwMjB9.2MOMEcC7MGUNCBFB54cD6KdJuaVm4J3gVQBrHnZEhQI",
+"refreshToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsImlhdCI6MTc2MDE0OTQ3MCwiZXhwIjoxNzYwNTgxNDcwfQ.um6ljpblLhK8IPxFY8uDpYt__GUS7hhNmE6Ie5rKwsw"
+}
 ```
 
----
-
-## Chạy Auth Service
-
-Thiết lập biến môi trường (tối thiểu nên đặt JWT/HMAC và DB):
-```powershell
-# Cổng HTTP
-$env:AUTHSERVICE_SERVER_PORT = "8005"
-
-# JWT/HMAC
-$env:AUTHSERVICE_JWT_SECRET = "auth-jwt-secret"
-$env:AUTHSERVICE_HMAC_SECRET = "auth-hmac-secret"
-
-# Datasource (MySQL)
-$env:AUTHSERVICE_DATASOURCE_URL = "jdbc:mysql://localhost:3306/authdb?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true"
-$env:AUTHSERVICE_DATASOURCE_USERNAME = "authuser"
-$env:AUTHSERVICE_DATASOURCE_PASSWORD = "authpass"
-
-# Redis (tùy chọn cho token blacklist, v.v.)
-$env:AUTHSERVICE_REDIS_HOST = "localhost"
-$env:AUTHSERVICE_REDIS_PORT = "6379"
-
-# Eureka
-$env:AUTHSERVICE_EUREKA_SERVER_URL = "http://localhost:8761/eureka/"
-
- # Chạy
- mvn -pl authservice spring-boot:run
+4) Logout
+- Method: POST
+- URL: `{{baseUrl}}/api/auth/logout`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Response (String):
+```
+Logged out successfully
 ```
 
-Chạy file JAR sau khi build:
-```powershell
-java -jar authservice\target\authservice-0.0.1-SNAPSHOT.jar
+## User service
+
+Responsible for managing the user information.
+
+1. Tạo hồ sơ người dùng
+- Method: POST
+- URL: `{{baseUrl}}/api/users/profiles`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Body (raw JSON):
+```json
+{
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "fullName": "Nguyen Van A",
+  "avatarUrl": "https://example.com/a.jpg",
+  "bio": "Hello there",
+  "phoneNumber": "+84901234567",
+  "address": "Hanoi, Vietnam"
+}
+```
+- Response:
+```json
+{
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "fullName": "Nguyen Van A",
+  "avatarUrl": "https://example.com/a.jpg",
+  "bio": "Hello there",
+  "phoneNumber": "+84901234567",
+  "address": "Hanoi, Vietnam",
+  "createdAt": "2025-10-31T10:11:39.648084762",
+  "updatedAt": "2025-10-31T10:11:39.648100429"
+}
 ```
 
----
-
-## Chạy User Service
-
-Thiết lập biến môi trường (tối thiểu DB và HMAC):
-```powershell
-# Cổng HTTP
-$env:USERSERVICE_SERVER_PORT = "8006"
-
-# HMAC
-$env:USERSERVICE_HMAC_SECRET = "user-hmac-secret"
-
-# Datasource (MySQL)
-$env:USERSERVICE_DATASOURCE_URL = "jdbc:mysql://localhost:3306/usersdb?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true"
-$env:USERSERVICE_DATASOURCE_USERNAME = "usersvc"
-$env:USERSERVICE_DATASOURCE_PASSWORD = "usersvcpass"
-
-# Eureka
-$env:USERSERVICE_EUREKA_SERVER_URL = "http://localhost:8761/eureka/"
-
- # Chạy
- mvn -pl userservice spring-boot:run
+2. Lấy hồ sơ theo email hiện tại
+- Method: GET
+- URL: `{{baseUrl}}/api/users/profiles/me`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Response:
+```json
+{
+    "userId": "7e26ae87-6800-4a01-92e1-129fda1bb33d",
+    "fullName": "Nguyen Van A",
+    "avatarUrl": "https://example.com/a.jpg",
+    "bio": "Hello there",
+    "phoneNumber": "+84901234567",
+    "address": "Hanoi, Vietnam",
+    "createdAt": "2025-10-31T10:11:39.659688",
+    "updatedAt": "2025-10-31T10:11:39.659696"
+}
 ```
 
-Chạy file JAR sau khi build:
-```powershell
-java -jar userservice\target\userservice-0.0.1-SNAPSHOT.jar
+3. Lấy hồ sơ theo `userId`
+- Method: GET
+- URL: `{{baseUrl}}/api/users/profiles/{userId}`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Response:
+```json
+{
+    "userId": "7e26ae87-6800-4a01-92e1-129fda1bb33d",
+    "fullName": "Nguyen Van A",
+    "avatarUrl": "https://example.com/a.jpg",
+    "bio": "Hello there",
+    "phoneNumber": "+84901234567",
+    "address": "Hanoi, Vietnam",
+    "createdAt": "2025-10-31T10:11:39.659688",
+    "updatedAt": "2025-10-31T10:11:39.659696"
+}
 ```
 
----
+4. Cập nhật hồ sơ theo `userId`
+- Method: PUT
+- URL: `{{baseUrl}}/api/users/profiles/{userId}`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Body (raw JSON):
+```json
+{
+    "fullName": "Nguyen Van Hehe",
+    "avatarUrl": "https://example.com/a.jpg",
+    "bio": "Hello there",
+    "phoneNumber": "+84901234567",
+    "address": "Hanoi, Vietnam"
+}
+```
+- Response:
+```json
+{
+    "userId": "7e26ae87-6800-4a01-92e1-129fda1bb33d",
+    "fullName": "Nguyen Van Hehe",
+    "avatarUrl": "https://example.com/a.jpg",
+    "bio": "Hello there",
+    "phoneNumber": "+84901234567",
+    "address": "Hanoi, Vietnam",
+    "createdAt": "2025-10-31T10:11:39.659688",
+    "updatedAt": "2025-10-31T10:24:32.987335342"
+}
+```

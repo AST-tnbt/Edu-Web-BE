@@ -13,8 +13,6 @@ public class LearningProgressResponseDto {
     private UUID enrollmentId;
     private UUID contentId;
     private UUID lessonId;
-    private double progressPercentage;
-    private int timeSpent;
     private boolean isCompleted;
     private LocalDateTime lastAccessedAt;
     private LocalDateTime completedAt;

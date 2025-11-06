@@ -93,4 +93,22 @@ public abstract class EnrollmentException extends RuntimeException {
             super("Enrollment limit exceeded for course: " + courseId);
         }
     }
+
+    public static class DuplicateEnrollmentException extends EnrollmentException {
+        public DuplicateEnrollmentException(String message) {
+            super(message);
+        }
+    }
+    
+    public static class InvalidStatusTransitionException extends EnrollmentException {
+        public InvalidStatusTransitionException(String message) {
+            super(message);
+        }
+    }
+    
+    public static class InvalidPaymentStatusTransitionException extends EnrollmentException {
+        public InvalidPaymentStatusTransitionException(String message) {
+            super(message);
+        }
+    }
 }

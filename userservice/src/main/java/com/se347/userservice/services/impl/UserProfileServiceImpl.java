@@ -11,27 +11,24 @@ import com.se347.userservice.services.UserProfileService;
 import com.se347.userservice.dtos.UserCreatedEventDto;
 import com.se347.userservice.publisher.UserProfileEventPublisher;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class UserProfileServiceImpl implements UserProfileService {
 
-    @Autowired
     private final UserProfileRepository userProfileRepository;
-
-    @Autowired
     private final UserProfileEventPublisher userProfileEventPublisher;
 
-    public UserProfileServiceImpl(UserProfileRepository userProfileRepository, UserProfileEventPublisher userProfileEventPublisher){
-        this.userProfileRepository = userProfileRepository;
-        this.userProfileEventPublisher = userProfileEventPublisher;
-    }
-
     @Override
+    @Transactional
     public UserProfileResponseDto createProfile(UserProfileRequestDto request) {
         // Validate input
         validateCreateProfileRequest(request);
@@ -55,7 +52,8 @@ public class UserProfileServiceImpl implements UserProfileService {
             profile.onCreate();
             userProfileRepository.save(profile);
             return mapToResponse(profile);
-        } catch (Exception e) {
+        } catch (DataAccessException e) {
+            log.error("Failed to save user profile. userId={}", request.getUserId(), e);
             throw new BusinessException.DependencyException("Database", "Failed to save user profile", e);
         }
     }
@@ -63,23 +61,39 @@ public class UserProfileServiceImpl implements UserProfileService {
     @Transactional
     @Override
     public UserProfileResponseDto createProfileDefault(UserCreatedEventDto userCreatedEvent) {
-        UserProfile profile = UserProfile.builder()
-                .userId(userCreatedEvent.getUserId())
-                .profileCompleted(false)
-                .build();
-        profile.onCreate();
-        userProfileRepository.save(profile);
+        // Idempotency: safeguard against duplicate events
+        return userProfileRepository.findByUserId(userCreatedEvent.getUserId())
+                .map(this::mapToResponse)
+                .orElseGet(() -> {
+                    UserProfile profile = UserProfile.builder()
+                            .userId(userCreatedEvent.getUserId())
+                            .profileCompleted(false)
+                            .build();
+                    profile.onCreate();
+                    try {
+                        userProfileRepository.save(profile);
+                        return mapToResponse(profile);
+                    } catch (DataAccessException e) {
+                        log.error("Failed to save default user profile. userId={}", userCreatedEvent.getUserId(), e);
+                        throw new BusinessException.DependencyException("Database", "Failed to save user profile", e);
+                    }
+                });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileResponseDto getProfileByEmail(String email) {
+        // Validate input
+        ExceptionUtils.validateNotNull(email, "email");
+        
+        UserProfile profile = userProfileRepository.findByEmail(email)
+                .orElseThrow(() -> new UserException.UserProfileNotFoundException(email));
+
         return mapToResponse(profile);
     }
 
-    // public UserProfileResponseDto getProfileByEmail(String email) {
-    //     UserProfile profile = userProfileRepository.findByEmail(email)
-    //             .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-
-    //     return mapToResponse(profile);
-    // }
-
     @Override
+    @Transactional(readOnly = true)
     public UserProfileResponseDto getProfileByUserId(UUID userId) {
         // Validate input
         ExceptionUtils.validateNotNull(userId, "userId");
@@ -91,6 +105,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
+    @Transactional
     public UserProfileResponseDto updateProfile(UUID userId, UserProfileRequestDto request) {
         // Validate input
         ExceptionUtils.validateNotNull(userId, "userId");
@@ -115,12 +130,14 @@ public class UserProfileServiceImpl implements UserProfileService {
             userProfileEventPublisher.publishUserProfileCompletedEvent(profile);
 
             return mapToResponse(profile);
-        } catch (Exception e) {
+        } catch (DataAccessException e) {
+            log.error("Failed to update user profile. userId={}", userId, e);
             throw new BusinessException.DependencyException("Database", "Failed to update user profile", e);
         }
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean existsByUserId(UUID userId) {
         return userProfileRepository.existsByUserId(userId);
     }

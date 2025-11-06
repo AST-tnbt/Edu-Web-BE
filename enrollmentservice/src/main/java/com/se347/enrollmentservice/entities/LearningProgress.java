@@ -16,7 +16,6 @@ public class LearningProgress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private UUID learningProgressId;
 
-
     @Column(nullable = false)
     private UUID enrollmentId;
 
@@ -25,12 +24,6 @@ public class LearningProgress {
 
     @Column(nullable = false)
     private UUID lessonId;
-
-    @Column(nullable = false)
-    private double progressPercentage;
-
-    @Column(nullable = false)
-    private int timeSpent;
 
     @Column(nullable = false)
     private boolean isCompleted;

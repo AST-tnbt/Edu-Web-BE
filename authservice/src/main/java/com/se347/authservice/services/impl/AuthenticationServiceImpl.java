@@ -4,6 +4,11 @@ import com.se347.authservice.configs.JwtConfig;
 import com.se347.authservice.dtos.*;
 import com.se347.authservice.entities.User;
 import com.se347.authservice.enums.Role;
+import com.se347.authservice.exceptions.EmailAlreadyRegisteredException;
+import com.se347.authservice.exceptions.InvalidOrExpiredTokenException;
+import com.se347.authservice.exceptions.MissingOrInvalidAuthorizationHeaderException;
+import com.se347.authservice.exceptions.PasswordMismatchException;
+import com.se347.authservice.exceptions.TokenBlacklistedException;
 import com.se347.authservice.publishers.AuthenticationEventPublisher;
 import com.se347.authservice.repositories.UserRepository;
 import com.se347.authservice.securities.CustomUserDetailsService;
@@ -15,7 +20,7 @@ import com.se347.authservice.services.RedisTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,67 +30,35 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
 
-    @Autowired
     private final UserRepository userRepository;
-
-    @Autowired
     private final PasswordEncoder passwordEncoder;
-
-    @Autowired
     private final AuthenticationManager authenticationManager;
-
-    @Autowired
     private final JwtTokenProvider tokenProvider;
-
-    @Autowired
     private final CustomUserDetailsService customUserDetailsService;
-
-    @Autowired
     private final RedisTokenService redisTokenService;
-
-    @Autowired
     private final JwtConfig jwtConfig;
-
-    @Autowired
     private final AuthenticationEventPublisher userCreatedPublisher;
-    
-    public AuthenticationServiceImpl(UserRepository userRepository, 
-                                    PasswordEncoder passwordEncoder, 
-                                    AuthenticationManager authenticationManager, 
-                                    JwtTokenProvider tokenProvider, 
-                                    CustomUserDetailsService customUserDetailsService, 
-                                    RedisTokenService redisTokenService, 
-                                    JwtConfig jwtConfig, 
-                                    AuthenticationEventPublisher userCreatedPublisher) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.tokenProvider = tokenProvider;
-        this.customUserDetailsService = customUserDetailsService;
-        this.redisTokenService = redisTokenService;
-        this.jwtConfig = jwtConfig;
-        this.userCreatedPublisher = userCreatedPublisher;
-    }
 
     @Transactional
     @Override
     public User signup(SignupRequestDto signupRequest) {
         // Kiểm tra email tồn tại
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new EmailAlreadyRegisteredException("Email already registered");
         }
 
         // Kiểm tra password và passwordConfirm có trùng hay không
         if (!signupRequest.getPassword().equals(signupRequest.getPasswordConfirm())) {
-            throw new RuntimeException("Password and PasswordConfirm not exist");
+            throw new PasswordMismatchException("Password and passwordConfirm do not match");
         }
 
         User user = User.builder()
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(Role.STUDENT) // mặc định role USER
+                .role(Role.USER) // mặc định role USER
                 .firstLogin(true)
                 .accountNonExpired(true)
                 .accountNonLocked(true)
@@ -123,7 +96,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 refreshToken,
                 "Bearer",
                 userPrincipal.getUsername(),
-                userPrincipal.getAuthorities().toString(),
+                userPrincipal.getRole(),
                 userPrincipal.isFirstLogin()
         );
     }
@@ -131,34 +104,28 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public RefreshTokenResponseDto refreshToken(RefreshTokenRequestDto refreshTokenRequest) {
         String refreshToken = refreshTokenRequest.getRefreshToken();
-        String accessToken = refreshTokenRequest.getAccessToken();
-
-        if (!tokenProvider.validateToken(accessToken)) {
-            throw new RuntimeException("Invalid or expired access token");
-        }
 
         if (!tokenProvider.validateToken(refreshToken)) {
-            throw new RuntimeException("Invalid or expired refresh token");
+            throw new InvalidOrExpiredTokenException("Invalid or expired refresh token");
         }
 
         if (redisTokenService.isBlacklisted(refreshToken)) {
-            throw new RuntimeException("Refresh token is blacklisted or expired");
-        }
-
-        // Tính thời gian còn lại của access token
-        long accessTokenRemainingMillis = tokenProvider.getRemainingTime(accessToken);
-
-        // Nếu access token còn hạn, đưa vào blacklist
-        if (accessTokenRemainingMillis > 0) {
-            redisTokenService.blacklistToken(accessToken, accessTokenRemainingMillis);
+            throw new TokenBlacklistedException("Refresh token is blacklisted or expired");
         }
 
         String email = tokenProvider.getUsernameFromToken(refreshToken);
         UserPrincipal userPrincipal = (UserPrincipal) customUserDetailsService.loadUserByUsername(email);
 
+        String newRefreshToken = tokenProvider.generateRefreshToken(email);
         String newAccessToken = tokenProvider.generateAccessToken(userPrincipal);
 
-        return new RefreshTokenResponseDto(newAccessToken);
+        // Blacklist old refresh token and store new tokens in Redis
+        long oldRefreshRemaining = tokenProvider.getRemainingTime(refreshToken);
+        redisTokenService.blacklistToken(refreshToken, oldRefreshRemaining);
+        redisTokenService.saveToken("access:" + email, newAccessToken, jwtConfig.getAccessTokenExpiration());
+        redisTokenService.saveToken("refresh:" + email, newRefreshToken, jwtConfig.getRefreshTokenExpiration());
+
+        return new RefreshTokenResponseDto(newAccessToken, newRefreshToken);
     }
 
     @Override
@@ -166,11 +133,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Missing or invalid Authorization header");
+            throw new MissingOrInvalidAuthorizationHeaderException("Missing or invalid Authorization header");
         }
         
         if (redisTokenService.isBlacklisted(header.substring(7))) {
-            throw new RuntimeException("Access token is blacklisted or expired");
+            throw new TokenBlacklistedException("Access token is blacklisted or expired");
         }
 
         String accessToken = header.substring(7); // Bỏ "Bearer "
@@ -178,7 +145,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         // Kiểm tra access token hợp lệ
         if (!tokenProvider.validateToken(accessToken)) {
-            throw new SecurityException("Invalid or expired access token");
+            throw new InvalidOrExpiredTokenException("Invalid or expired access token");
         }
 
         // Tính thời gian còn lại của access token

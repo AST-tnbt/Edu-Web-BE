@@ -55,10 +55,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
-    // Xử lý RuntimeException chung (ví dụ: email đã tồn tại, refresh token sai, ...)
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Object> handleRuntimeException(RuntimeException ex) {
+    // Xử lý các custom exceptions
+    @ExceptionHandler(EmailAlreadyRegisteredException.class)
+    public ResponseEntity<Object> handleEmailAlreadyRegistered(EmailAlreadyRegisteredException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(PasswordMismatchException.class)
+    public ResponseEntity<Object> handlePasswordMismatch(PasswordMismatchException ex) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidOrExpiredTokenException.class)
+    public ResponseEntity<Object> handleInvalidOrExpired(InvalidOrExpiredTokenException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(TokenBlacklistedException.class)
+    public ResponseEntity<Object> handleTokenBlacklisted(TokenBlacklistedException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingOrInvalidAuthorizationHeaderException.class)
+    public ResponseEntity<Object> handleMissingAuthHeader(MissingOrInvalidAuthorizationHeaderException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     // Xử lý Exception chung

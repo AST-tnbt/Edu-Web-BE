@@ -12,4 +12,5 @@ public interface LearningProgressRepository extends JpaRepository<LearningProgre
     List<LearningProgress> findByEnrollmentId(UUID enrollmentId);
     LearningProgress findByLearningProgressId(UUID learningProgressId);
     LearningProgress findByLessonIdAndEnrollmentId(UUID lessonId, UUID enrollmentId);
+    LearningProgress findByContentIdAndEnrollmentId(UUID contentId, UUID enrollmentId);
 }

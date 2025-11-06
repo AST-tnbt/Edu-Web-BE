@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.lang.Integer;
 
 @Entity
 @Table(name = "course_progress")
@@ -23,10 +24,10 @@ public class CourseProgress {
     private double overallProgress;
 
     @Column(nullable = false)
-    private int lessonsCompleted;
+    private Integer lessonsCompleted;
 
     @Column(nullable = false)
-    private int totalLessons;
+    private Integer totalLessons;
 
     @Column(nullable = false)
     private boolean isCourseCompleted;

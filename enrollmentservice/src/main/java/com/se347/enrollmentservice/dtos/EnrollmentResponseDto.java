@@ -18,7 +18,6 @@ public class EnrollmentResponseDto {
     private LocalDateTime enrolledAt;
     private EnrollmentStatus enrollmentStatus;
     private PaymentStatus paymentStatus;
-    private LocalDateTime accessExpiresAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

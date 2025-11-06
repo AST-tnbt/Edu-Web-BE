@@ -99,7 +99,7 @@ public class HmacValidationFilter extends OncePerRequestFilter {
             logger.debug("Body hash - Header: {}, Computed: {}, Body length: {}", 
                         bodyHashHeader, computedHash, bodyBytes.length);
 
-            if (org.springframework.util.StringUtils.hasText(bodyHashHeader) && !bodyHashHeader.equals(computedHash)) {
+            if (org.springframework.util.StringUtils.hasText(bodyHashHeader) && !computedHash.equals(bodyHashHeader)) {
                 logger.warn("Body hash mismatch for path: {} - Header: {}, Computed: {}", 
                            path, bodyHashHeader, computedHash);
                 handleUnauthorized(response, "Body hash mismatch");

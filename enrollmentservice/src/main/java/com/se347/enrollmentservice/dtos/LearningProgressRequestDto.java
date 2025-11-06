@@ -8,10 +8,9 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class LearningProgressRequestDto {
+    private UUID learningProgressId;
     private UUID enrollmentId;
-    private UUID contentId;
     private UUID lessonId;
-    private double progressPercentage;
-    private int timeSpent;
+    private UUID contentId;
     private boolean isCompleted;
 }

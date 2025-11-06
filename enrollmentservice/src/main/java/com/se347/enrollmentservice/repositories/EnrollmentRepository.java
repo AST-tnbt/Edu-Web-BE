@@ -6,7 +6,6 @@ import com.se347.enrollmentservice.entities.Enrollment;
 
 import java.util.UUID;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {

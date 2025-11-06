@@ -40,8 +40,7 @@ public class LearningProgressController {
     }
     
     @PostMapping("{learningProgressId}/complete")
-    public ResponseEntity<Void> markLearningProgressAsCompleted(@PathVariable UUID learningProgressId, @PathVariable UUID enrollmentId) {
-        learningProgressService.markLearningProgressAsCompleted(learningProgressId, enrollmentId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<LearningProgressResponseDto> markAsCompleted(@PathVariable UUID learningProgressId, @PathVariable UUID enrollmentId) {
+        return ResponseEntity.ok(learningProgressService.markAsCompleted(learningProgressId, enrollmentId));
     }
 }

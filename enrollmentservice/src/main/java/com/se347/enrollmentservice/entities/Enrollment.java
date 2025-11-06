@@ -34,9 +34,6 @@ public class Enrollment {
     @Column(nullable = false)
     private PaymentStatus paymentStatus;
 
-    @Column(nullable = false)
-    private LocalDateTime accessExpiresAt;
-
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -1,9 +1,11 @@
 package com.se347.paymentservice.service;
 
 import com.se347.paymentservice.config.VnpayConfig;
+import com.se347.paymentservice.dtos.PaymentCompletedEvent;
 import com.se347.paymentservice.dtos.PaymentUrlResponse;
 import com.se347.paymentservice.dtos.VnpayRequest;
 import com.se347.paymentservice.exception.AmountException;
+import com.se347.paymentservice.publisher.PaymentPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,7 @@ import java.util.*;
 public class PaymentServiceImpl implements PaymentService{
 
     private final VnpayConfig vnpayConfig;
+    private final PaymentPublisher paymentPublisher;
 
     @Override
     public PaymentUrlResponse createPayment(VnpayRequest paymentRequest) {
@@ -94,6 +97,13 @@ public class PaymentServiceImpl implements PaymentService{
             vnpParams.remove("vnp_SecureHash");
             vnpParams.remove("vnp_SecureHashType");
 
+            PaymentCompletedEvent paymentCompletedEvent = new PaymentCompletedEvent(
+                    UUID.fromString(vnpParams.get("userId")),
+                    UUID.fromString(vnpParams.get("courseId"))
+            );
+            vnpParams.remove("userId");
+            vnpParams.remove("courseId");
+
             // Sắp xếp tham số theo tên (A-Z)
             Map<String, String> sortedParams = new TreeMap<>(vnpParams);
 
@@ -134,6 +144,7 @@ public class PaymentServiceImpl implements PaymentService{
             if ("00".equals(responseCode) && "00".equals(transactionStatus)) {
                 response.put("RspCode", "00");
                 response.put("Message", "Payment confirmed successfully");
+                paymentPublisher.publishPaymentSuccessEvent(paymentCompletedEvent);
             } else {
                 response.put("RspCode", "02");
                 response.put("Message", "Payment failed");

@@ -8,23 +8,29 @@ import com.se347.courseservice.repositories.CourseRepository;
 import com.se347.courseservice.services.CategoryService;
 import com.se347.courseservice.entities.Course;
 import com.se347.courseservice.exceptions.CourseException;
+import com.se347.courseservice.repositories.SectionRepository;
+import com.se347.courseservice.repositories.LessonRepository;
+import com.se347.courseservice.entities.Section;
+import com.se347.courseservice.clients.EnrollmentServiceClient;
 
 import org.springframework.stereotype.Service;
 import java.util.UUID;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
+@RequiredArgsConstructor
 @Service
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
     private final CategoryService categoryService;
+    private final SectionRepository sectionRepository;
+    private final LessonRepository lessonRepository;
+    private final EnrollmentServiceClient enrollmentServiceClient;
 
-    public CourseServiceImpl(CourseRepository courseRepository, CategoryService categoryService) {
-        this.courseRepository = courseRepository;
-        this.categoryService = categoryService;
-    }
-
+    @Transactional
     @Override
     public CourseResponseDto createCourse(CourseRequestDto request) {
         if (request == null) {
@@ -188,6 +194,31 @@ public class CourseServiceImpl implements CourseService {
         return courses.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Course toCourse(UUID courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new CourseException.CourseNotFoundException(courseId.toString()));
+        return course;
+    }
+
+    @Override
+    public Integer getToltalLessonsByCourseId(UUID courseId) {
+        if (courseId == null) {
+            throw new CourseException.InvalidRequestException("Course ID cannot be null");
+        }
+
+        if (!courseExists(courseId)) {
+            throw new CourseException.CourseNotFoundException(courseId.toString());
+        }
+
+        int totalLessons = 0;
+        List<Section> sections = sectionRepository.findByCourseId(courseId);
+        for (Section section : sections) {
+            totalLessons += lessonRepository.countBySectionId(section.getSectionId());
+        }
+        return totalLessons;
     }
 
     private CourseResponseDto mapToResponse(Course course) {

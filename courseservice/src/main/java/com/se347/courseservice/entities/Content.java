@@ -2,6 +2,7 @@ package com.se347.courseservice.entities;
 
 import com.se347.courseservice.enums.ContentType;
 import com.se347.courseservice.enums.ContentStatus;
+import com.se347.courseservice.entities.Lesson;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,11 +18,8 @@ import java.time.LocalDateTime;
 @Builder
 public class Content {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID contentId;
-
-    @Column(nullable = false)
-    private UUID lessonId;
 
     @Column(nullable = false)
     private ContentType type;
@@ -40,6 +38,10 @@ public class Content {
 
     @Column(nullable = false, updatable = false)
     private ContentStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id", nullable = false)
+    private Lesson lesson;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -150,6 +150,16 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         return mapToResponse(courseProgressRepository.save(courseProgress));
     }
 
+    @Override
+    public void setTotalLessons(UUID courseProgressId, Integer totalLessons) {
+        CourseProgress courseProgress = courseProgressRepository.findById(courseProgressId)
+            .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException(
+                "Course progress not found with ID: " + courseProgressId));
+        courseProgress.setTotalLessons(totalLessons);
+        courseProgress.onUpdate();
+        courseProgressRepository.save(courseProgress);
+    }
+
     // ========== Mapping ==========
 
     private CourseProgressResponseDto mapToResponse(CourseProgress courseProgress) {

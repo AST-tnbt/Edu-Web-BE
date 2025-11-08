@@ -16,7 +16,7 @@ import java.util.UUID;
 @Builder
 public class Enrollment {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID enrollmentId;
 
     @Column(nullable = false)

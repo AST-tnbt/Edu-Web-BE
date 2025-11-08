@@ -32,11 +32,29 @@ public class CourseException extends RuntimeException {
     }
     
     /**
+     * Exception thrown when a section is not found
+     */
+    public static class SectionNotFoundException extends CourseException {
+        public SectionNotFoundException(String sectionId) {
+            super("Section not found with ID: " + sectionId);
+        }
+    }
+
+    /**
      * Exception thrown when a lesson is not found
      */
     public static class LessonNotFoundException extends CourseException {
         public LessonNotFoundException(String lessonId) {
             super("Lesson not found with ID: " + lessonId);
+        }
+    }
+
+    /**
+     * Exception thrown when a lesson with same title already exists in a section
+     */
+    public static class LessonAlreadyExistsException extends CourseException {
+        public LessonAlreadyExistsException(String sectionId, String title) {
+            super("Lesson with title '" + title + "' already exists for section '" + sectionId + "'");
         }
     }
     
@@ -46,6 +64,24 @@ public class CourseException extends RuntimeException {
     public static class ContentNotFoundException extends CourseException {
         public ContentNotFoundException(String contentId) {
             super("Content not found with ID: " + contentId);
+        }
+    }
+
+    /**
+     * Exception thrown when content already exists (e.g., duplicate title/order within a lesson)
+     */
+    public static class ContentAlreadyExistsException extends CourseException {
+        public ContentAlreadyExistsException(String message) {
+            super("Content already exists: " + message);
+        }
+    }
+
+    /**
+     * Exception thrown when content type/status is invalid
+     */
+    public static class InvalidContentStateException extends CourseException {
+        public InvalidContentStateException(String message) {
+            super("Invalid content state: " + message);
         }
     }
     

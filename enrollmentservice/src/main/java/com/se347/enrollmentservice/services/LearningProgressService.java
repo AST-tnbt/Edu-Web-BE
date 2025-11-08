@@ -9,7 +9,6 @@ import java.util.List;
 public interface LearningProgressService {
     LearningProgressResponseDto createLearningProgress(LearningProgressRequestDto request);
     LearningProgressResponseDto getLearningProgressById(UUID learningProgressId);
-    LearningProgressResponseDto getLearningProgressByContentIdAndEnrollmentId(UUID contentId, UUID enrollmentId);
     List<LearningProgressResponseDto> getLearningProgressByEnrollmentId(UUID enrollmentId);
     LearningProgressResponseDto updateLearningProgress(UUID learningProgressId, LearningProgressRequestDto request);
     LearningProgressResponseDto patchLearningProgress(UUID learningProgressId, LearningProgressRequestDto request);

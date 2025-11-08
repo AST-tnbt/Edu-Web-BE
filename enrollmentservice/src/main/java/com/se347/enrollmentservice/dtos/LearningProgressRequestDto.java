@@ -11,6 +11,5 @@ public class LearningProgressRequestDto {
     private UUID learningProgressId;
     private UUID enrollmentId;
     private UUID lessonId;
-    private UUID contentId;
     private boolean isCompleted;
 }

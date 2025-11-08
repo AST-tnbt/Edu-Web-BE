@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.List;
 
 public interface LessonRepository extends JpaRepository<Lesson, UUID> {
-    boolean existsByCourseIdAndTitle(UUID courseId, String title);
-    List<Lesson> findByCourseId(UUID courseId);
+    boolean existsBySectionIdAndTitle(UUID sectionId, String title);
+    List<Lesson> findBySectionId(UUID sectionId);
+    Integer countBySectionId(UUID sectionId);
 }

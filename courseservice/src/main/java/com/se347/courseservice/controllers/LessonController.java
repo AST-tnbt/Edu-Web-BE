@@ -20,7 +20,7 @@ public class LessonController {
         this.lessonService = lessonService;
     }
 
-    @PostMapping
+    @PostMapping("/lessons")
     public ResponseEntity<LessonResponseDto> createLesson(@RequestBody LessonRequestDto request) {
         return ResponseEntity.ok(lessonService.createLesson(request));
     }
@@ -35,9 +35,9 @@ public class LessonController {
         return ResponseEntity.ok(lessonService.updateLesson(lessonId, request));
     }
 
-    @GetMapping("/course/{courseId}/lessons")
-    public ResponseEntity<List<LessonResponseDto>> getLessonsByCourseId(@PathVariable UUID courseId) {
-        return ResponseEntity.ok(lessonService.getLessonsByCourseId(courseId));
+    @GetMapping("/sections/{sectionId}/lessons")
+    public ResponseEntity<List<LessonResponseDto>> getLessonsBySectionId(@PathVariable UUID sectionId) {
+        return ResponseEntity.ok(lessonService.getLessonsBySectionId(sectionId));
     }
 
     // @DeleteMapping("/{lessonId}")
@@ -46,8 +46,5 @@ public class LessonController {
     //     return ResponseEntity.noContent().build();
     // }
 
-    @PutMapping("/lessons/{lessonId}/reorder")
-    public ResponseEntity<List<LessonResponseDto>> reorderLessons(@PathVariable UUID lessonId, @RequestBody List<LessonRequestDto> request) {
-        return ResponseEntity.ok(lessonService.getLessonsByCourseId(lessonId));
-    }
+    // Reorder endpoint can be added later if service supports it
 }

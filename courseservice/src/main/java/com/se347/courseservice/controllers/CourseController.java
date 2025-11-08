@@ -44,4 +44,9 @@ public class CourseController {
     public ResponseEntity<List<CourseResponseDto>> getCoursesByCategoryName(@PathVariable String categoryName) {
         return ResponseEntity.ok(courseService.getCoursesByCategoryName(categoryName));
     }
+
+    @GetMapping("/{courseId}/total-lessons")
+    public ResponseEntity<Integer> getTotalLessonsByCourseId(@PathVariable UUID courseId) {
+        return ResponseEntity.ok(courseService.getToltalLessonsByCourseId(courseId));
+    }
 }

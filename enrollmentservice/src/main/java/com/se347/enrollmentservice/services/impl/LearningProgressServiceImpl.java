@@ -50,7 +50,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
         LearningProgress learningProgress = LearningProgress.builder()
             .enrollmentId(request.getEnrollmentId())
             .lessonId(request.getLessonId())
-            .contentId(request.getContentId())
             .isCompleted(request.isCompleted())
             .lastAccessedAt(LocalDateTime.now())
             .completedAt(request.isCompleted() ? LocalDateTime.now() : null)
@@ -65,18 +64,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
         LearningProgress learningProgress = learningProgressRepository.findById(learningProgressId)
             .orElseThrow(() -> new LearningProgressException.LearningProgressNotFoundException(
                 "Learning progress not found with ID: " + learningProgressId));
-        return mapToResponse(learningProgress);
-    }
-
-    @Override
-    public LearningProgressResponseDto getLearningProgressByContentIdAndEnrollmentId(UUID contentId, UUID enrollmentId) {
-        LearningProgress learningProgress = learningProgressRepository.findByContentIdAndEnrollmentId(contentId, enrollmentId);
-
-        if (learningProgress == null) {
-            throw new LearningProgressException.LearningProgressNotFoundException(
-            "Learning progress not found for content " + contentId + " and enrollment " + enrollmentId);
-        }
-        
         return mapToResponse(learningProgress);
     }
 
@@ -100,7 +87,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
         boolean originalCompleted = learningProgress.isCompleted();
 
         // Apply updates
-        learningProgress.setContentId(request.getContentId());
         learningProgress.setCompleted(request.isCompleted());
         learningProgress.setLastAccessedAt(LocalDateTime.now());
 
@@ -121,10 +107,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
 
         boolean originalCompleted = learningProgress.isCompleted();
 
-        // Apply partial updates
-        if (request.getContentId() != null) {
-            learningProgress.setContentId(request.getContentId());
-        }
         if (!request.isCompleted()) {
             learningProgress.setCompleted(request.isCompleted());
         }
@@ -177,7 +159,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
             .learningProgressId(learningProgress.getLearningProgressId())
             .enrollmentId(learningProgress.getEnrollmentId())
             .lessonId(learningProgress.getLessonId())
-            .contentId(learningProgress.getContentId())
             .isCompleted(learningProgress.isCompleted())
             .lastAccessedAt(learningProgress.getLastAccessedAt())
             .completedAt(learningProgress.getCompletedAt())
@@ -196,9 +177,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
         if (request.getLessonId() == null) {
             throw new LearningProgressException.InvalidRequestException("Lesson ID cannot be null");
         }
-        if (request.getContentId() == null) {
-            throw new LearningProgressException.InvalidRequestException("Content ID cannot be null");
-        }
     }
 
     private void validateUpdateRequest(UUID learningProgressId, LearningProgressRequestDto request) {
@@ -208,9 +186,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
         if (request == null) {
             throw new LearningProgressException.InvalidRequestException("Request cannot be null");
         }
-        if (request.getContentId() == null) {
-            throw new LearningProgressException.InvalidRequestException("Content ID cannot be null");
-        }
     }
 
     private void validatePatchRequest(UUID learningProgressId, LearningProgressRequestDto request) {
@@ -219,11 +194,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
         }
         if (request == null) {
             throw new LearningProgressException.InvalidRequestException("Request cannot be null");
-        }
-
-        boolean hasAny = request.getContentId() != null;
-        if (!hasAny) {
-            throw new LearningProgressException.InvalidRequestException("At least one field must be provided for update");
         }
     }
 

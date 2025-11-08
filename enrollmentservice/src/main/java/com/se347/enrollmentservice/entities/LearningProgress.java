@@ -13,14 +13,11 @@ import java.util.UUID;
 @Builder
 public class LearningProgress {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID learningProgressId;
 
     @Column(nullable = false)
     private UUID enrollmentId;
-
-    @Column(nullable = false)
-    private UUID contentId;
 
     @Column(nullable = false)
     private UUID lessonId;
@@ -28,9 +25,9 @@ public class LearningProgress {
     @Column(nullable = false)
     private boolean isCompleted;
 
-    @Column(nullable = false)
+    @Column(updatable = true)
     private LocalDateTime lastAccessedAt;
 
-    @Column(nullable = false)
+    @Column(updatable = true)
     private LocalDateTime completedAt;
 }

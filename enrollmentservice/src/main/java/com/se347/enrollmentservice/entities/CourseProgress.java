@@ -14,7 +14,7 @@ import java.lang.Integer;
 @Builder
 public class CourseProgress {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID courseProgressId;
 
     @Column(nullable = false)
@@ -32,7 +32,7 @@ public class CourseProgress {
     @Column(nullable = false)
     private boolean isCourseCompleted;
 
-    @Column(nullable = false)
+    @Column(updatable = true)
     private LocalDateTime courseCompletedAt;
 
     @Column(nullable = false, updatable = false)

@@ -15,7 +15,7 @@ import java.util.UUID;
 public class LessonResponseDto {
     private UUID lessonId;
     private String title;
-    private UUID courseId;
+    private UUID sectionId;
     private int orderIndex;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

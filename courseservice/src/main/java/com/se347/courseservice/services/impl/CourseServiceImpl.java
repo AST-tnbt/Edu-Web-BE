@@ -11,7 +11,6 @@ import com.se347.courseservice.exceptions.CourseException;
 import com.se347.courseservice.repositories.SectionRepository;
 import com.se347.courseservice.repositories.LessonRepository;
 import com.se347.courseservice.entities.Section;
-import com.se347.courseservice.clients.EnrollmentServiceClient;
 
 import org.springframework.stereotype.Service;
 import java.util.UUID;
@@ -28,7 +27,6 @@ public class CourseServiceImpl implements CourseService {
     private final CategoryService categoryService;
     private final SectionRepository sectionRepository;
     private final LessonRepository lessonRepository;
-    private final EnrollmentServiceClient enrollmentServiceClient;
 
     @Transactional
     @Override

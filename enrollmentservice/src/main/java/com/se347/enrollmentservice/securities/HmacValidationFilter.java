@@ -7,7 +7,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import lombok.NonNull;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import jakarta.servlet.FilterChain;
@@ -40,8 +40,10 @@ public class HmacValidationFilter extends OncePerRequestFilter {
     private boolean hmacEnabled;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
-                                  FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, 
+                                    @NonNull HttpServletResponse response,                 
+                                    @NonNull FilterChain filterChain) 
+                                    throws ServletException, IOException {
         
         // Kiểm tra xem HMAC validation có được enable không
         if (!hmacEnabled) {

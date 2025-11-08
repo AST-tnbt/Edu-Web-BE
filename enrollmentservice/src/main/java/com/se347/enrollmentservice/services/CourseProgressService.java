@@ -11,6 +11,5 @@ public interface CourseProgressService {
     CourseProgressResponseDto getCourseProgressByEnrollmentId(UUID enrollmentId);
     CourseProgressResponseDto updateCourseProgress(UUID courseProgressId, CourseProgressRequestDto request);
     CourseProgressResponseDto patchCourseProgress(UUID courseProgressId, CourseProgressRequestDto request);
-    CourseProgressResponseDto updateLessonsCompleted(UUID courseProgressId, Integer lessonsCompleted);
     void setTotalLessons(UUID courseProgressId, Integer totalLessons);
 }

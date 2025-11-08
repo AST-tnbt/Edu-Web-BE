@@ -7,9 +7,9 @@ import com.se347.enrollmentservice.services.EnrollmentService;
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
 import com.se347.enrollmentservice.enums.PaymentStatus;
 import com.se347.enrollmentservice.clients.CourseServiceClient;
-import com.se347.enrollmentservice.entities.CourseProgress;
 import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
 import com.se347.enrollmentservice.services.CourseProgressService;
+import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import com.rabbitmq.client.Channel;
@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
@@ -32,6 +33,7 @@ public class PaymentListenerImpl implements PaymentListener {
     private final CourseServiceClient courseServiceClient;
     private final CourseProgressService courseProgressService;
 
+    @Transactional
     @RabbitListener(queues = "${app.rabbitmq.queue.payment.completed}", containerFactory = "rabbitListenerContainerFactory")
     public void handlePaymentCompletedEvent(PaymentCompletedEventDto paymentCompletedEventDto,
                                             Channel channel,
@@ -59,26 +61,25 @@ public class PaymentListenerImpl implements PaymentListener {
             }
 
             // Create new enrollment with proper statuses
-            UUID enrollmentId = UUID.randomUUID();
-            EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(enrollmentId, courseId, userId);
-            enrollmentService.createEnrollment(enrollmentRequest);
+            EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId);
+            EnrollmentResponseDto enrollment = enrollmentService.createEnrollment(enrollmentRequest);
+            UUID enrollmentId = enrollment.getEnrollmentId(); // Get generated ID from response
             
-            // Acknowledge message after successful enrollment creation
-            acknowledgeMessage(channel, deliveryTag, "Enrollment created successfully");
-            logSuccess(courseId, userId, startTime, deliveryTag, "New enrollment created");
-            
-            
-            // Get total lessons from CourseService
+            // Get total lessons from CourseService with validation
             Integer totalLessons = courseServiceClient.getTotalLessonsByCourseId(courseId);
+            if (totalLessons == null || totalLessons < 0) {
+                throw new IllegalStateException("Invalid totalLessons received from CourseService: " + totalLessons + 
+                    ". Expected non-negative integer.");
+            }
             
             // Create course progress
             CourseProgressRequestDto courseProgressRequest = buildCourseProgress(enrollmentId, totalLessons);
             courseProgressService.createCourseProgress(courseProgressRequest);
 
-            // Acknowledge message after successful course progress creation
-            acknowledgeMessage(channel, deliveryTag, "Course progress created successfully");
-            logSuccess(courseId, userId, startTime, deliveryTag, "Course progress created");
-            
+            // Acknowledge message ONCE after all operations succeed
+            acknowledgeMessage(channel, deliveryTag, "Enrollment and course progress created successfully");
+            logSuccess(courseId, userId, startTime, deliveryTag, "Complete - enrollment and course progress created");
+
         } catch (IllegalArgumentException e) {
             // Validation errors - reject message without requeue
             logError(courseId, userId, startTime, deliveryTag, e, "Validation error");
@@ -109,9 +110,8 @@ public class PaymentListenerImpl implements PaymentListener {
     /**
      * Builds enrollment request with proper statuses for paid enrollment
      */
-    private EnrollmentRequestDto buildEnrollmentRequest(UUID enrollmentId, UUID courseId, UUID userId) {
+    private EnrollmentRequestDto buildEnrollmentRequest(UUID courseId, UUID userId) {
         return EnrollmentRequestDto.builder()
-            .enrollmentId(enrollmentId)
             .courseId(courseId)
             .studentId(userId)
             .enrolledAt(LocalDateTime.now())

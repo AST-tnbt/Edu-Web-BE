@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 
@@ -25,6 +26,15 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.queue.payment.completed}")
     private String paymentCompletedQueueName;
 
+    @Value("${app.rabbitmq.exchange.enrollment-course}")
+    private String enrollmentCourseExchangeName;
+
+    @Value("${app.rabbitmq.routing-key.set-total-lessons}")
+    private String setTotalLessonsRoutingKey;
+
+    @Value("${app.rabbitmq.queue.set-total-lessons}")
+    private String setTotalLessonsQueueName;
+
     @Bean
     public TopicExchange enrollmentPaymentExchange() {
         return new TopicExchange(enrollmentPaymentExchangeName, true, false);
@@ -38,6 +48,21 @@ public class RabbitConfig {
     @Bean
     public Binding bindingPaymentCompleted(Queue paymentCompletedQueue, TopicExchange enrollmentPaymentExchange) {
         return BindingBuilder.bind(paymentCompletedQueue).to(enrollmentPaymentExchange).with(paymentCompletedRoutingKey);
+    }
+
+    @Bean
+    public TopicExchange enrollmentCourseExchange() {
+        return new TopicExchange(enrollmentCourseExchangeName, true, false);
+    }
+
+    @Bean
+    public Queue setTotalLessonsQueue() {
+        return QueueBuilder.durable(setTotalLessonsQueueName).build();
+    }
+    
+    @Bean
+    public Binding bindingSetTotalLessons(Queue setTotalLessonsQueue, TopicExchange enrollmentCourseExchange) {
+        return BindingBuilder.bind(setTotalLessonsQueue).to(enrollmentCourseExchange).with(setTotalLessonsRoutingKey);
     }
 
     @Bean

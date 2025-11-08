@@ -27,7 +27,7 @@ public class CourseServiceClientImpl implements CourseServiceClient{
                 .orElse(0);
         } catch (Exception e) {
             logger.warn("Failed to get totalLessons from CourseService, using default 0", e);
-            return 0;
+            throw new RuntimeException("Failed to get totalLessons from CourseService", e);
         }
     }
 }

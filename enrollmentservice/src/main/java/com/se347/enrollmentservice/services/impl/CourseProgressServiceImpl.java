@@ -129,33 +129,31 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         return mapToResponse(courseProgressRepository.save(courseProgress));
     }
 
-    // Update only lessons completed
     @Override
-    public CourseProgressResponseDto updateLessonsCompleted(UUID courseProgressId, Integer lessonsCompleted) {
+    public void setTotalLessons(UUID courseProgressId, Integer totalLessons) {
         if (courseProgressId == null) {
             throw new CourseProgressException.InvalidRequestException("Course progress ID cannot be null");
         }
-
+        if (totalLessons == null || totalLessons < 0) {
+            throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
+        }
+        
         CourseProgress courseProgress = courseProgressRepository.findById(courseProgressId)
             .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException(
                 "Course progress not found with ID: " + courseProgressId));
-
-        Integer originalLessonsCompleted = courseProgress.getLessonsCompleted();
-        courseProgress.setLessonsCompleted(lessonsCompleted);
-
-        validateProgressRules(courseProgress, originalLessonsCompleted, courseProgress.getTotalLessons());
-        updateProgressAndCompletion(courseProgress);
-
-        courseProgress.onUpdate();
-        return mapToResponse(courseProgressRepository.save(courseProgress));
-    }
-
-    @Override
-    public void setTotalLessons(UUID courseProgressId, Integer totalLessons) {
-        CourseProgress courseProgress = courseProgressRepository.findById(courseProgressId)
-            .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException(
-                "Course progress not found with ID: " + courseProgressId));
+        
+        // Validate that lessonsCompleted doesn't exceed new totalLessons
+        if (courseProgress.getLessonsCompleted() > totalLessons) {
+            throw new CourseProgressException.InvalidRequestException(
+                "Cannot set totalLessons to " + totalLessons + 
+                " because lessonsCompleted (" + courseProgress.getLessonsCompleted() + ") exceeds it");
+        }
+        
         courseProgress.setTotalLessons(totalLessons);
+        
+        // Recalculate progress and completion status after totalLessons change
+        updateProgressAndCompletion(courseProgress);
+        
         courseProgress.onUpdate();
         courseProgressRepository.save(courseProgress);
     }

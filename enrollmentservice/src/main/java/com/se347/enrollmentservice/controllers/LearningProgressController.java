@@ -34,6 +34,11 @@ public class LearningProgressController {
         return ResponseEntity.ok(learningProgressService.getLearningProgressByEnrollmentId(enrollmentId));
     } 
 
+    @GetMapping("lesson/{lessonId}/enrollment/{enrollmentId}")
+    public ResponseEntity<LearningProgressResponseDto> getLearningProgressByLessonIdAndEnrollmentId(@PathVariable UUID lessonId, @PathVariable UUID enrollmentId) {
+        return ResponseEntity.ok(learningProgressService.getLearningProgressByLessonIdAndEnrollmentId(lessonId, enrollmentId));
+    }
+
     @PutMapping("{learningProgressId}") 
     public ResponseEntity<LearningProgressResponseDto> updateLearningProgress(@PathVariable UUID learningProgressId, @RequestBody LearningProgressRequestDto request) {
         return ResponseEntity.ok(learningProgressService.updateLearningProgress(learningProgressId, request));

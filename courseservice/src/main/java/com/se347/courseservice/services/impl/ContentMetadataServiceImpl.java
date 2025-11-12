@@ -93,7 +93,7 @@ public class ContentMetadataServiceImpl implements ContentMetadataService {
 
     @Override
     public List<ContentMetadataResponseDto> getContentMetadataByLessonId(UUID lessonId) {
-        List<Content> contents = contentRepository.findByLessonId(lessonId);
+        List<Content> contents = contentRepository.findByLesson_LessonId(lessonId);
         return contents.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());

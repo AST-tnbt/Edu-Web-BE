@@ -10,20 +10,24 @@ import com.se347.enrollmentservice.repositories.EnrollmentRepository;
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
 import com.se347.enrollmentservice.enums.PaymentStatus;
 import com.se347.enrollmentservice.exceptions.EnrollmentException;
+import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
+import com.se347.enrollmentservice.services.CourseProgressService;
+import com.se347.enrollmentservice.clients.CourseServiceClient;
 
+import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+
+@RequiredArgsConstructor
 @Service
 public class EnrollmentServiceImpl implements EnrollmentService {
 
     private final EnrollmentRepository enrollmentRepository;
-
-    public EnrollmentServiceImpl(EnrollmentRepository enrollmentRepository) {
-        this.enrollmentRepository = enrollmentRepository;
-    }
-
+    private final CourseProgressService courseProgressService;
+    private final CourseServiceClient courseServiceClient;
+    
     // ========== Public API ==========
 
     @Override
@@ -41,6 +45,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollment.onCreate();
         enrollment.onUpdate();
         enrollmentRepository.save(enrollment);
+
+        Integer totalLessons = courseServiceClient.getTotalLessonsByCourseId(request.getCourseId());
+        CourseProgressRequestDto courseProgressRequest = buildCourseProgress(enrollment.getEnrollmentId(), totalLessons);
+        courseProgressService.createCourseProgress(courseProgressRequest);
         return mapToResponse(enrollment);
     }
 
@@ -202,6 +210,14 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         if (request.getCourseId() == null) throw new EnrollmentException.InvalidRequestException("Course ID cannot be null");
         if (request.getStudentId() == null) throw new EnrollmentException.InvalidRequestException("Student ID cannot be null");
         // EnrollmentStatus/PaymentStatus có thể null khi tạo (tùy nghiệp vụ), giữ nguyên theo code hiện tại
+    }
+
+    private CourseProgressRequestDto buildCourseProgress(UUID enrollmentId, Integer totalLessons) {
+        return CourseProgressRequestDto.builder()
+            .enrollmentId(enrollmentId)
+            .lessonsCompleted(0)
+            .totalLessons(totalLessons)
+            .build();
     }
 
     private void validateUpdateRequest(UUID enrollmentId, EnrollmentRequestDto request) {

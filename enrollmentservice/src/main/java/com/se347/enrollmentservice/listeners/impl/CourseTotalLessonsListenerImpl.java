@@ -6,6 +6,8 @@ import com.se347.enrollmentservice.services.EnrollmentService;
 import com.se347.enrollmentservice.services.CourseProgressService;
 import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
 import com.se347.enrollmentservice.dtos.CourseProgressResponseDto;
+import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
+import com.se347.enrollmentservice.exceptions.CourseProgressException;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import com.rabbitmq.client.Channel;
@@ -62,6 +64,22 @@ public class CourseTotalLessonsListenerImpl implements CourseTotalLessonsListene
                     courseProgressService.setTotalLessons(courseProgress.getCourseProgressId(), newTotalLessons);
                     
                     updatedCount++;
+                } catch (CourseProgressException.CourseProgressNotFoundException notFoundEx) {
+                    try {
+                        CourseProgressRequestDto createRequest = CourseProgressRequestDto.builder()
+                            .enrollmentId(enrollment.getEnrollmentId())
+                            .lessonsCompleted(0)
+                            .totalLessons(newTotalLessons)
+                            .build();
+                        
+                        courseProgressService.createCourseProgress(createRequest);
+                        updatedCount++;
+                        logger.info("ℹ️ [COURSE] Created missing CourseProgress for enrollment: {}", enrollment.getEnrollmentId());
+                    } catch (Exception createEx) {
+                        failedCount++;
+                        logger.error("❌ [COURSE] Failed to create CourseProgress for enrollment: {} - Error: {}", 
+                            enrollment.getEnrollmentId(), createEx.getMessage(), createEx);
+                    }
                 } catch (Exception e) {
                     failedCount++;
                     logger.error("❌ [COURSE] Failed to update CourseProgress for enrollment: {} - Error: {}", 

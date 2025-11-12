@@ -212,9 +212,9 @@ public class CourseServiceImpl implements CourseService {
         }
 
         int totalLessons = 0;
-        List<Section> sections = sectionRepository.findByCourseId(courseId);
+        List<Section> sections = sectionRepository.findByCourse_CourseId(courseId);
         for (Section section : sections) {
-            totalLessons += lessonRepository.countBySectionId(section.getSectionId());
+            totalLessons += (int) lessonRepository.countBySection_SectionId(section.getSectionId());
         }
         return totalLessons;
     }

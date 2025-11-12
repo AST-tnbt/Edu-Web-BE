@@ -29,7 +29,7 @@ public class SectionServiceImpl implements SectionService {
         String normalizedTitle = request.getTitle().trim();
         String normalizedDescription = request.getDescription().trim();
 
-        if (sectionRepository.existsByCourseIdAndTitle(request.getCourseId(), normalizedTitle)) {
+        if (sectionRepository.existsByCourse_CourseIdAndTitle(request.getCourseId(), normalizedTitle)) {
             throw new CourseException.InvalidRequestException("Section with title '" + normalizedTitle + "' already exists for course '" + request.getCourseId() + "'");
         }
 
@@ -76,7 +76,7 @@ public class SectionServiceImpl implements SectionService {
         String normalizedDescription = request.getDescription().trim();
 
         // Optional duplicate check when title changes
-        if (!normalizedTitle.equals(section.getTitle()) && sectionRepository.existsByCourseIdAndTitle(section.getCourse().getCourseId(), normalizedTitle)) {
+        if (!normalizedTitle.equals(section.getTitle()) && sectionRepository.existsByCourse_CourseIdAndTitle(section.getCourse().getCourseId(), normalizedTitle)) {
             throw new CourseException.InvalidRequestException("Section with title '" + normalizedTitle + "' already exists for course '" + section.getCourse().getCourseId() + "'");
         }
 
@@ -96,7 +96,7 @@ public class SectionServiceImpl implements SectionService {
     @Override
     @Transactional(readOnly = true)
     public List<SectionResponseDto> getSectionsByCourseId(UUID courseId) {
-        return sectionRepository.findByCourseId(courseId)
+        return sectionRepository.findByCourse_CourseId(courseId)
             .stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());

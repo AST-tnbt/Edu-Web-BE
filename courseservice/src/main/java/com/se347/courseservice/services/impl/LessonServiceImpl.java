@@ -54,7 +54,7 @@ public class LessonServiceImpl implements LessonService {
         
         String normalizedTitle = request.getTitle().trim();
 
-        if (lessonRepository.existsBySectionIdAndTitle(request.getSectionId(), normalizedTitle)) {
+        if (lessonRepository.existsBySection_SectionIdAndTitle(request.getSectionId(), normalizedTitle)) {
             throw new CourseException.LessonAlreadyExistsException(request.getSectionId().toString(), normalizedTitle);
         }
 
@@ -144,7 +144,7 @@ public class LessonServiceImpl implements LessonService {
         // Only check duplicate if title or section changes
         boolean titleChanged = !normalizedTitle.equals(existingLesson.getTitle());
         boolean sectionChanged = !request.getSectionId().equals(existingLesson.getSection().getSectionId());
-        if ((titleChanged || sectionChanged) && lessonRepository.existsBySectionIdAndTitle(request.getSectionId(), normalizedTitle)) {
+        if ((titleChanged || sectionChanged) && lessonRepository.existsBySection_SectionIdAndTitle(request.getSectionId(), normalizedTitle)) {
             throw new CourseException.LessonAlreadyExistsException(request.getSectionId().toString(), normalizedTitle);
         }
 
@@ -165,7 +165,7 @@ public class LessonServiceImpl implements LessonService {
             throw new CourseException.InvalidRequestException("Section ID cannot be null");
         }
 
-        List<Lesson> lessons = lessonRepository.findBySectionId(sectionId);
+        List<Lesson> lessons = lessonRepository.findBySection_SectionId(sectionId);
         return lessons.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());

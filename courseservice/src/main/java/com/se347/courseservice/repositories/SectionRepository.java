@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SectionRepository extends JpaRepository<Section, UUID> {
-    List<Section> findByCourseId(UUID courseId);
-    boolean existsByCourseIdAndTitle(UUID courseId, String title);
-    Integer countByCourseId(UUID courseId);
+    List<Section> findByCourse_CourseId(UUID courseId);
+    boolean existsByCourse_CourseIdAndTitle(UUID courseId, String title);
+    Integer countByCourse_CourseId(UUID courseId);
 }

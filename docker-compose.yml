@@ -72,7 +72,7 @@ services:
       MYSQL_USER: ${COURSE_DB_USERNAME}
       MYSQL_PASSWORD: ${COURSE_DB_PASSWORD}
     ports:
-      - "3308:3306"
+      - "3310:3306"
     volumes:
       - mysql_course_data:/var/lib/mysql
     networks:
@@ -92,7 +92,7 @@ services:
       MYSQL_USER: ${ENROLLMENT_DB_USERNAME}
       MYSQL_PASSWORD: ${ENROLLMENT_DB_PASSWORD}
     ports:
-      - "3310:3306"
+      - "3311:3306"
     volumes:
       - mysql_enrollment_data:/var/lib/mysql
     networks:
@@ -314,12 +314,28 @@ services:
       # Eureka config
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-courseservice}
+
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE:-enrollment_course.exchange}
+      - APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS=${APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS:-set.total.lessons}
+      - APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS=${APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS:-set.total.lessons.queue}
+
+      # Enrollment Service Client
+      - COURSESERVICE_ENROLLMENT_BASE_URL=http://enrollmentservice:8008
+
     ports:
       - "8007:8007"
     depends_on:
       mysql_course:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - eduweb-network
@@ -350,12 +366,34 @@ services:
       # Eureka config
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-enrollmentservice}
+
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      # Application Rabbit settings - Payment Events
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT:-enrollment_payment.exchange}
+      - APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED=${APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED:-payment.completed}
+      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED:-payment.completed.queue}
+
+      # Application Rabbit settings - Course Events
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE:-enrollment_course.exchange}
+      - APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS=${APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS:-set.total.lessons}
+      - APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS=${APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS:-set.total.lessons.queue}
+    
+      # Course Service Client
+      - ENROLLMENT_SERVICE_COURSE_BASE_URL=http://courseservice:8007
+
     ports:
       - "8008:8008"
     depends_on:
       mysql_enrollment:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - eduweb-network
@@ -367,7 +405,9 @@ services:
       start_period: 60s
 
   contentservice:
-    build: ./contentservice
+    build:
+      context: .
+      dockerfile: contentservice/Dockerfile
     container_name: eduweb-content
     environment:
       # Application config
@@ -400,6 +440,51 @@ services:
       - eduweb-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8009/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+
+  paymentservice:
+    build:
+      context: .
+      dockerfile: paymentservice/Dockerfile
+    container_name: eduweb-payment
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=paymentservice
+      - SERVER_PORT=8010
+
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      # VNPay config
+      - PAY_URL=${PAY_URL}
+      - RETURN_URL=${RETURN_URL}
+      - TMN_CODE=${TMN_CODE}
+      - SECRET_KEY=${SECRET_KEY}
+      - API_URL=${API_URL}
+
+      # Eureka config
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-paymentservice}
+
+      # Application Rabbit settings - Payment Events
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT:-enrollment_payment.exchange}
+      - APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED=${APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED:-payment.completed}
+      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED:-payment.completed.queue}
+    ports:
+      - "8010:8010"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/actuator/health"]
       timeout: 10s
       retries: 5
       interval: 10s

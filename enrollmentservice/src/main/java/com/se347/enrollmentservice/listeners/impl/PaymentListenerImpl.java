@@ -6,10 +6,6 @@ import com.se347.enrollmentservice.listeners.PaymentListener;
 import com.se347.enrollmentservice.services.EnrollmentService;
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
 import com.se347.enrollmentservice.enums.PaymentStatus;
-import com.se347.enrollmentservice.clients.CourseServiceClient;
-import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
-import com.se347.enrollmentservice.services.CourseProgressService;
-import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import com.rabbitmq.client.Channel;
@@ -30,8 +26,6 @@ public class PaymentListenerImpl implements PaymentListener {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentListenerImpl.class);
     private final EnrollmentService enrollmentService;
-    private final CourseServiceClient courseServiceClient;
-    private final CourseProgressService courseProgressService;
 
     @Transactional
     @RabbitListener(queues = "${app.rabbitmq.queue.payment.completed}", containerFactory = "rabbitListenerContainerFactory")
@@ -62,24 +56,7 @@ public class PaymentListenerImpl implements PaymentListener {
 
             // Create new enrollment with proper statuses
             EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId);
-            EnrollmentResponseDto enrollment = enrollmentService.createEnrollment(enrollmentRequest);
-            UUID enrollmentId = enrollment.getEnrollmentId(); // Get generated ID from response
-            
-            // Get total lessons from CourseService with validation
-            Integer totalLessons = courseServiceClient.getTotalLessonsByCourseId(courseId);
-            if (totalLessons == null || totalLessons < 0) {
-                throw new IllegalStateException("Invalid totalLessons received from CourseService: " + totalLessons + 
-                    ". Expected non-negative integer.");
-            }
-            
-            // Create course progress
-            CourseProgressRequestDto courseProgressRequest = buildCourseProgress(enrollmentId, totalLessons);
-            courseProgressService.createCourseProgress(courseProgressRequest);
-
-            // Acknowledge message ONCE after all operations succeed
-            acknowledgeMessage(channel, deliveryTag, "Enrollment and course progress created successfully");
-            logSuccess(courseId, userId, startTime, deliveryTag, "Complete - enrollment and course progress created");
-
+            enrollmentService.createEnrollment(enrollmentRequest);
         } catch (IllegalArgumentException e) {
             // Validation errors - reject message without requeue
             logError(courseId, userId, startTime, deliveryTag, e, "Validation error");
@@ -117,14 +94,6 @@ public class PaymentListenerImpl implements PaymentListener {
             .enrolledAt(LocalDateTime.now())
             .enrollmentStatus(EnrollmentStatus.ACTIVE)
             .paymentStatus(PaymentStatus.PAID)
-            .build();
-    }
-    
-    private CourseProgressRequestDto buildCourseProgress(UUID enrollmentId, Integer totalLessons) {
-        return CourseProgressRequestDto.builder()
-            .enrollmentId(enrollmentId)
-            .lessonsCompleted(0)
-            .totalLessons(totalLessons)
             .build();
     }
 

@@ -24,28 +24,28 @@ public class LearningProgressController {
         return ResponseEntity.ok(learningProgressService.createLearningProgress(request));
     }
 
-    @GetMapping("{learningProgressId}")
+    @GetMapping("/{learningProgressId}")
     public ResponseEntity<LearningProgressResponseDto> getLearningProgressById(@PathVariable UUID learningProgressId) {
         return ResponseEntity.ok(learningProgressService.getLearningProgressById(learningProgressId));
     }
 
-    @GetMapping("enrollment/{enrollmentId}")
+    @GetMapping("/enrollment/{enrollmentId}")
     public ResponseEntity<List<LearningProgressResponseDto>> getLearningProgressByEnrollmentId(@PathVariable UUID enrollmentId) {
         return ResponseEntity.ok(learningProgressService.getLearningProgressByEnrollmentId(enrollmentId));
     } 
 
-    @GetMapping("lesson/{lessonId}/enrollment/{enrollmentId}")
+    @GetMapping("/lesson/{lessonId}/enrollment/{enrollmentId}")
     public ResponseEntity<LearningProgressResponseDto> getLearningProgressByLessonIdAndEnrollmentId(@PathVariable UUID lessonId, @PathVariable UUID enrollmentId) {
         return ResponseEntity.ok(learningProgressService.getLearningProgressByLessonIdAndEnrollmentId(lessonId, enrollmentId));
     }
 
-    @PutMapping("{learningProgressId}") 
+    @PutMapping("/{learningProgressId}") 
     public ResponseEntity<LearningProgressResponseDto> updateLearningProgress(@PathVariable UUID learningProgressId, @RequestBody LearningProgressRequestDto request) {
         return ResponseEntity.ok(learningProgressService.updateLearningProgress(learningProgressId, request));
     }
     
-    @PostMapping("{learningProgressId}/complete")
-    public ResponseEntity<LearningProgressResponseDto> markAsCompleted(@PathVariable UUID learningProgressId, @PathVariable UUID enrollmentId) {
-        return ResponseEntity.ok(learningProgressService.markAsCompleted(learningProgressId, enrollmentId));
+    @PostMapping("/lesson/{lessonId}/enrollment/{enrollmentId}/complete")
+    public ResponseEntity<LearningProgressResponseDto> markAsCompleted(@PathVariable UUID lessonId, @PathVariable UUID enrollmentId) {
+        return ResponseEntity.ok(learningProgressService.markAsCompleted(lessonId, enrollmentId));
     }
 }

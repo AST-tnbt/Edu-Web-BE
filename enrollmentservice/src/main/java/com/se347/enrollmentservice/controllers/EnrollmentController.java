@@ -25,27 +25,27 @@ public class EnrollmentController {
         return ResponseEntity.ok(enrollmentService.createEnrollment(request));
     }
 
-    @GetMapping("enrollments/{enrollmentId}")
+    @GetMapping("/enrollments/{enrollmentId}")
     public ResponseEntity<EnrollmentResponseDto> getEnrollmentById(@PathVariable UUID enrollmentId) {
         return ResponseEntity.ok(enrollmentService.getEnrollmentById(enrollmentId));
     }
 
-    @GetMapping("enrollments/my-courses")
+    @GetMapping("/enrollments/my-courses")
     public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByCurrentStudent(@RequestHeader("X-User-Id") UUID studentId) {
         return ResponseEntity.ok(enrollmentService.getEnrollmentsByStudentId(studentId));
     }
 
-    @GetMapping("courses/{courseId}/enrollments")
+    @GetMapping("/courses/{courseId}/enrollments")
     public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByCourseId(@PathVariable UUID courseId) {
         return ResponseEntity.ok(enrollmentService.getEnrollmentsByCourseId(courseId));
     }
 
-    @GetMapping("courses/{courseId}/enrollments/{studentId}")
+    @GetMapping("/courses/{courseId}/enrollments/{studentId}")
     public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByCourseIdAndStudentId(@PathVariable UUID courseId, @PathVariable UUID studentId) {
         return ResponseEntity.ok(enrollmentService.getEnrollmentsByCourseIdAndStudentId(courseId, studentId));
     }
 
-    @GetMapping("enrollments/{studentId}")
+    @GetMapping("/enrollments/student/{studentId}")
     public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByStudentId(@PathVariable UUID studentId) {
         return ResponseEntity.ok(enrollmentService.getEnrollmentsByStudentId(studentId));
     }
@@ -60,7 +60,7 @@ public class EnrollmentController {
     //     return ResponseEntity.ok(enrollmentService.updateEnrollmentPaymentStatus(enrollmentId, request));
     // }
 
-    @PutMapping("enrollments/{enrollmentId}")
+    @PutMapping("/enrollments/{enrollmentId}")
     public ResponseEntity<EnrollmentResponseDto> updateEnrollment(@PathVariable UUID enrollmentId, @RequestBody EnrollmentRequestDto request) {
         return ResponseEntity.ok(enrollmentService.updateEnrollment(enrollmentId, request));
     }

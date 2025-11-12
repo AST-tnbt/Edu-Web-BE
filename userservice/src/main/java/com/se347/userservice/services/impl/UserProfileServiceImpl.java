@@ -41,6 +41,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         UserProfile profile = UserProfile.builder()
                 .userId(request.getUserId())
                 .fullName(request.getFullName())
+                .email(request.getEmail())
                 .avatarUrl(request.getAvatarUrl())
                 .bio(request.getBio())
                 .phoneNumber(request.getPhoneNumber())
@@ -67,6 +68,7 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .orElseGet(() -> {
                     UserProfile profile = UserProfile.builder()
                             .userId(userCreatedEvent.getUserId())
+                            .email(userCreatedEvent.getEmail())
                             .profileCompleted(false)
                             .build();
                     profile.onCreate();
@@ -191,6 +193,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         return UserProfileResponseDto.builder()
                 .userId(profile.getUserId())
                 .fullName(profile.getFullName())
+                .email(profile.getEmail())
                 .avatarUrl(profile.getAvatarUrl())
                 .bio(profile.getBio())
                 .phoneNumber(profile.getPhoneNumber())

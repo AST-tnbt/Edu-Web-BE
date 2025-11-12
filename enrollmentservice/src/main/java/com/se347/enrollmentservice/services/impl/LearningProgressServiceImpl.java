@@ -11,6 +11,10 @@ import com.se347.enrollmentservice.services.EnrollmentService;
 import com.se347.enrollmentservice.services.CourseProgressService;
 import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
 import com.se347.enrollmentservice.dtos.CourseProgressResponseDto;
+import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
+import com.se347.enrollmentservice.enums.EnrollmentStatus;
+import com.se347.enrollmentservice.enums.PaymentStatus;
+import com.se347.enrollmentservice.exceptions.EnrollmentException;
 
 import java.util.UUID;
 import java.util.List;
@@ -18,11 +22,16 @@ import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RequiredArgsConstructor
 @Service
 public class LearningProgressServiceImpl implements LearningProgressService {
 
+    private static final Logger logger = LoggerFactory.getLogger(LearningProgressServiceImpl.class);
+    
     private final LearningProgressRepository learningProgressRepository;
     private final EnrollmentService enrollmentService;
     private final CourseProgressService courseProgressService;
@@ -34,11 +43,8 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     public LearningProgressResponseDto createLearningProgress(LearningProgressRequestDto request) {
         validateCreateRequest(request);
         
-        // Verify enrollment exists
-        if (!enrollmentService.isEnrollmentExists(request.getEnrollmentId())) {
-            throw new LearningProgressException.InvalidRequestException(
-                "Enrollment not found with ID: " + request.getEnrollmentId());
-        }
+        // Validate enrollment có thể truy cập (status, payment)
+        validateEnrollmentForAccess(request.getEnrollmentId());
 
         // Check for duplicate learning progress
         LearningProgress existing = learningProgressRepository.findByLessonIdAndEnrollmentId(
@@ -71,14 +77,16 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     @Transactional
     @Override
     public LearningProgressResponseDto getLearningProgressByLessonIdAndEnrollmentId(UUID lessonId, UUID enrollmentId) {
-        LearningProgress learningProgress = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
-        if (learningProgress == null) {
-            createLearningProgress(LearningProgressRequestDto.builder()
-                .lessonId(lessonId)
-                .enrollmentId(enrollmentId)
-                .build());
-            learningProgress = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
-        }
+        // 1. Validate enrollment có thể truy cập (status, payment)
+        validateEnrollmentForAccess(enrollmentId);
+        
+        // 2. Get or create learning progress với retry logic để tránh race condition
+        LearningProgress learningProgress = getOrCreateLearningProgress(lessonId, enrollmentId);
+        
+        // 3. Update last accessed time
+        learningProgress.setLastAccessedAt(LocalDateTime.now());
+        learningProgressRepository.save(learningProgress);
+        
         return mapToResponse(learningProgress);
     }
 
@@ -205,6 +213,100 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     }
 
     // ========== Validation ==========
+
+    /**
+     * Validate enrollment có thể truy cập lesson không
+     * - Enrollment status phải là ACTIVE
+     * - Payment status phải là PAID
+     */
+    private EnrollmentResponseDto validateEnrollmentForAccess(UUID enrollmentId) {
+        EnrollmentResponseDto enrollment = enrollmentService.getEnrollmentById(enrollmentId);
+        
+        // Kiểm tra enrollment status
+        if (enrollment.getEnrollmentStatus() != EnrollmentStatus.ACTIVE) {
+            throw new EnrollmentException.InvalidEnrollmentStateException(
+                "Cannot access lesson. Enrollment status is: " + enrollment.getEnrollmentStatus() + 
+                ". Expected: ACTIVE");
+        }
+        
+        // Kiểm tra payment status
+        if (enrollment.getPaymentStatus() != PaymentStatus.PAID) {
+            throw new EnrollmentException.PaymentRequiredException(
+                "Payment required. Current payment status: " + enrollment.getPaymentStatus() + 
+                ". Expected: PAID");
+        }
+        
+        return enrollment;
+    }
+
+    /**
+     * Get or create learning progress với retry logic để tránh race condition
+     * Nếu 2 requests cùng lúc truy cập lesson lần đầu, sẽ retry nếu gặp duplicate key exception
+     */
+    private LearningProgress getOrCreateLearningProgress(UUID lessonId, UUID enrollmentId) {
+        // Thử tìm trước
+        LearningProgress existing = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
+        if (existing != null) {
+            return existing;
+        }
+        
+        // Nếu không tìm thấy, thử tạo mới với retry logic
+        int maxRetries = 3;
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                LearningProgress newProgress = LearningProgress.builder()
+                    .enrollmentId(enrollmentId)
+                    .lessonId(lessonId)
+                    .isCompleted(false)
+                    .lastAccessedAt(LocalDateTime.now())
+                    .build();
+                
+                return learningProgressRepository.save(newProgress);
+            } catch (DataIntegrityViolationException e) {
+                // Duplicate key - có thể do race condition, thử lại
+                logger.debug("Duplicate key detected for lesson {} and enrollment {}, attempt {}/{}", 
+                    lessonId, enrollmentId, attempt + 1, maxRetries);
+                
+                if (attempt < maxRetries - 1) {
+                    // Wait một chút trước khi retry (exponential backoff)
+                    try {
+                        Thread.sleep(50 * (attempt + 1)); // 50ms, 100ms, 150ms
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new LearningProgressException.InvalidRequestException(
+                            "Interrupted during retry for learning progress creation");
+                    }
+                    // Thử tìm lại (có thể request khác đã tạo xong)
+                    existing = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
+                    if (existing != null) {
+                        logger.debug("Found existing learning progress after retry");
+                        return existing;
+                    }
+                } else {
+                    // Lần cuối, thử tìm lại một lần nữa
+                    existing = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
+                    if (existing != null) {
+                        logger.debug("Found existing learning progress on final attempt");
+                        return existing;
+                    }
+                    // Nếu vẫn không tìm thấy, throw exception
+                    logger.error("Failed to create learning progress after {} retries for lesson {} and enrollment {}", 
+                        maxRetries, lessonId, enrollmentId);
+                    throw new LearningProgressException.InvalidRequestException(
+                        "Failed to create learning progress after retries: " + e.getMessage());
+                }
+            }
+        }
+        
+        // Fallback: thử tìm lại một lần cuối
+        existing = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
+        if (existing != null) {
+            return existing;
+        }
+        
+        throw new LearningProgressException.InvalidRequestException(
+            "Failed to create learning progress for lesson " + lessonId + " and enrollment " + enrollmentId);
+    }
 
     private void validateCreateRequest(LearningProgressRequestDto request) {
         if (request == null) {

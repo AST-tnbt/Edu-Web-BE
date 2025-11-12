@@ -8,23 +8,19 @@ import com.se347.enrollmentservice.dtos.CourseProgressResponseDto;
 import com.se347.enrollmentservice.repositories.CourseProgressRepository;
 import com.se347.enrollmentservice.entities.CourseProgress;
 import com.se347.enrollmentservice.exceptions.CourseProgressException;
-import com.se347.enrollmentservice.services.EnrollmentService;
+import com.se347.enrollmentservice.repositories.EnrollmentRepository;
 
+import lombok.RequiredArgsConstructor;
 import java.lang.Integer;
 import java.util.UUID;
 import java.time.LocalDateTime;
 
+@RequiredArgsConstructor
 @Service
 public class CourseProgressServiceImpl implements CourseProgressService {
 
     private final CourseProgressRepository courseProgressRepository;
-    private final EnrollmentService enrollmentService;
-
-    public CourseProgressServiceImpl(CourseProgressRepository courseProgressRepository,
-                                   EnrollmentService enrollmentService) {
-        this.courseProgressRepository = courseProgressRepository;
-        this.enrollmentService = enrollmentService;
-    }
+    private final EnrollmentRepository enrollmentRepository;
 
     // ========== Public API ==========
 
@@ -33,7 +29,7 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         validateCreateRequest(request);
         
         // Verify enrollment exists
-        if (!enrollmentService.isEnrollmentExists(request.getEnrollmentId())) {
+        if (!enrollmentRepository.existsById(request.getEnrollmentId())) {
             throw new CourseProgressException.InvalidRequestException(
                 "Enrollment not found with ID: " + request.getEnrollmentId());
         }
@@ -186,8 +182,8 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         if (request.getLessonsCompleted() == null || request.getLessonsCompleted() < 0) {
             throw new CourseProgressException.InvalidRequestException("Lessons completed must be non-negative");
         }
-        if (request.getTotalLessons() == null || request.getTotalLessons() <= 0) {
-            throw new CourseProgressException.InvalidRequestException("Total lessons must be positive");
+        if (request.getTotalLessons() == null || request.getTotalLessons() < 0) {
+            throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
         }
         if (request.getLessonsCompleted() > request.getTotalLessons()) {
             throw new CourseProgressException.InvalidRequestException("Lessons completed cannot exceed total lessons");
@@ -204,8 +200,8 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         if (request.getLessonsCompleted() == null || request.getLessonsCompleted() < 0) {
             throw new CourseProgressException.InvalidRequestException("Lessons completed must be non-negative");
         }
-        if (request.getTotalLessons() == null || request.getTotalLessons() <= 0) {
-            throw new CourseProgressException.InvalidRequestException("Total lessons must be positive");
+        if (request.getTotalLessons() == null || request.getTotalLessons() < 0) {
+            throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
         }
         if (request.getLessonsCompleted() > request.getTotalLessons()) {
             throw new CourseProgressException.InvalidRequestException("Lessons completed cannot exceed total lessons");
@@ -229,8 +225,8 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         if (request.getLessonsCompleted() != null && request.getLessonsCompleted() < 0) {
             throw new CourseProgressException.InvalidRequestException("Lessons completed must be non-negative");
         }
-        if (request.getTotalLessons() != null && request.getTotalLessons() <= 0) {
-            throw new CourseProgressException.InvalidRequestException("Total lessons must be positive");
+        if (request.getTotalLessons() != null && request.getTotalLessons() < 0) {
+            throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
         }
     }
 

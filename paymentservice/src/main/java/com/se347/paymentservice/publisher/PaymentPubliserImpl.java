@@ -14,7 +14,7 @@ public class PaymentPubliserImpl implements PaymentPublisher{
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentPubliserImpl.class);
 
-    private RabbitTemplate rabbitTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     @Value("${app.rabbitmq.exchange.enrollment_payment}")
     private String paymentExchangeName;

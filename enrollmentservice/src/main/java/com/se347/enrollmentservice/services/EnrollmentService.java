@@ -12,12 +12,12 @@ public interface EnrollmentService {
     EnrollmentResponseDto createEnrollment(EnrollmentRequestDto request);
     EnrollmentResponseDto getEnrollmentById(UUID enrollmentId);
     EnrollmentResponseDto updateEnrollment(UUID enrollmentId, EnrollmentRequestDto request);
-    // void deleteEnrollment(UUID enrollmentId);
     List<EnrollmentResponseDto> getEnrollmentsByStudentId(UUID studentId);
     List<EnrollmentResponseDto> getEnrollmentsByCourseId(UUID courseId);
     List<EnrollmentResponseDto> getEnrollmentsByCourseIdAndStudentId(UUID courseId, UUID studentId);
-    boolean isEnrollmentExists(UUID enrollmentId);
     List<EnrollmentResponseDto> getAllEnrollments();
-    // EnrollmentResponseDto updateStatusOfEnrollment(UUID enrollmentId, EnrollmentStatus status);
-    // EnrollmentResponseDto updatePaymentStatusOfEnrollment(UUID enrollmentId, PaymentStatus status);
+    boolean isEnrollmentExists(UUID enrollmentId);
+    EnrollmentResponseDto updateEnrollmentStatus(UUID enrollmentId, EnrollmentStatus newStatus);
+    EnrollmentResponseDto updatePaymentStatus(UUID enrollmentId, PaymentStatus newStatus);
+    EnrollmentResponseDto updateStatuses(UUID enrollmentId, EnrollmentStatus enrollmentStatus, PaymentStatus paymentStatus);
 }

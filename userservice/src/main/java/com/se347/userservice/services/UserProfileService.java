@@ -8,7 +8,7 @@ import java.util.UUID;
 public interface UserProfileService {
     UserProfileResponseDto createProfile(UserProfileRequestDto request);
     UserProfileResponseDto createProfileDefault(UserCreatedEventDto userCreatedEvent);
-    // UserProfileResponseDto getProfileByEmail(String email);
+    UserProfileResponseDto getProfileByEmail(String email);
     UserProfileResponseDto getProfileByUserId(UUID userId);
     UserProfileResponseDto updateProfile(UUID userId, UserProfileRequestDto request);
     boolean existsByUserId(UUID userId);

@@ -129,4 +129,10 @@ public abstract class LearningProgressException extends RuntimeException {
             super("Invalid completion data: " + message);
         }
     }
+
+    public static class DuplicateLearningProgressException extends LearningProgressException {
+        public DuplicateLearningProgressException(String message) {
+            super(message);
+        }
+    }
 }

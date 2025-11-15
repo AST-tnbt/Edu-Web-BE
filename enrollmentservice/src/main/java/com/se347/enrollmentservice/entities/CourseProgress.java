@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.lang.Integer;
 
 @Entity
 @Table(name = "course_progress")
@@ -13,7 +14,7 @@ import java.util.UUID;
 @Builder
 public class CourseProgress {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID courseProgressId;
 
     @Column(nullable = false)
@@ -23,15 +24,15 @@ public class CourseProgress {
     private double overallProgress;
 
     @Column(nullable = false)
-    private int lessonsCompleted;
+    private Integer lessonsCompleted;
 
     @Column(nullable = false)
-    private int totalLessons;
+    private Integer totalLessons;
 
     @Column(nullable = false)
     private boolean isCourseCompleted;
 
-    @Column(nullable = false)
+    @Column(updatable = true)
     private LocalDateTime courseCompletedAt;
 
     @Column(nullable = false, updatable = false)

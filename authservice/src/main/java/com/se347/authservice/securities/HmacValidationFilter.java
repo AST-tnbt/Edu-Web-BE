@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import lombok.NonNull;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import jakarta.servlet.FilterChain;
@@ -36,7 +37,10 @@ public class HmacValidationFilter extends OncePerRequestFilter {
     private boolean hmacEnabled;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, 
+                                    @NonNull HttpServletResponse response, 
+                                    @NonNull FilterChain filterChain) 
+                                    throws ServletException, IOException {
 
         // Kiểm tra xem HMAC validation có được enable không
         if (!hmacEnabled) {
@@ -79,7 +83,7 @@ public class HmacValidationFilter extends OncePerRequestFilter {
             byte[] bodyBytes = request.getInputStream().readAllBytes();
             String computedHash = base64Sha256(bodyBytes);
 
-            if (org.springframework.util.StringUtils.hasText(bodyHashHeader) && !bodyHashHeader.equals(computedHash)) {
+            if (org.springframework.util.StringUtils.hasText(bodyHashHeader) && !computedHash.equals(bodyHashHeader)) {
                 handleUnauthorized(response, "Body hash mismatch");
                 return;
             }

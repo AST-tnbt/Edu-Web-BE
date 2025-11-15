@@ -12,10 +12,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class EnrollmentRequestDto {
+    private UUID enrollmentId;
     private UUID courseId;
     private UUID studentId;
     private LocalDateTime enrolledAt;
     private EnrollmentStatus enrollmentStatus;
     private PaymentStatus paymentStatus;
-    private LocalDateTime accessExpiresAt;
 }

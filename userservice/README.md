@@ -6,7 +6,7 @@ Base URL: `http://localhost:8006/api/users/profiles`
 - Body (JSON):
 ```json
 {
-  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "userId": "{userId}",
   "fullName": "Nguyen Van A",
   "avatarUrl": "https://example.com/a.jpg",
   "bio": "Hello there",

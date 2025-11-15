@@ -29,12 +29,12 @@ Signup successful for user: example@gmail.com
 - Response (raw JSON):
 ```
 {
-    "userId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
-    "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsInJvbGVzIjpbIlNUVURFTlQiXSwiaWF0IjoxNzYwMTQ5NDcwLCJleHAiOjE3NjAyMzU4NzB9.L9Rg4dmOtzWtL9EbXwF6zB6GiW2yc1uLfaOW91UzJLo",
-    "refreshToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsImlhdCI6MTc2MDE0OTQ3MCwiZXhwIjoxNzYwNTgxNDcwfQ.um6ljpblLhK8IPxFY8uDpYt__GUS7hhNmE6Ie5rKwsw",
+    "userId": "{userId}",
+    "accessToken": "{accessToken}",
+    "refreshToken": "{refreshToken}",
     "tokenType": "Bearer",
     "email": "example@gmail.com",
-    "role": "[STUDENT]"
+    "role": "USER"
 }
 ```
 
@@ -51,8 +51,8 @@ Signup successful for user: example@gmail.com
 - Response (raw JSON):
 ```
 {
-"newAccessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsInJvbGVzIjpbIlNUVURFTlQiXSwiaWF0IjoxNzYwMTQ5NjIwLCJleHAiOjE3NjAyMzYwMjB9.2MOMEcC7MGUNCBFB54cD6KdJuaVm4J3gVQBrHnZEhQI",
-"refreshToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsImlhdCI6MTc2MDE0OTQ3MCwiZXhwIjoxNzYwNTgxNDcwfQ.um6ljpblLhK8IPxFY8uDpYt__GUS7hhNmE6Ie5rKwsw",
+"newAccessToken": "{newAccessToken}",
+"refreshToken": "{newRefreshToken}",
 }
 ```
 

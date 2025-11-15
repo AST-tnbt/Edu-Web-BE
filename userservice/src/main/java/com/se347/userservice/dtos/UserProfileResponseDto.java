@@ -12,6 +12,7 @@ import java.util.UUID;
 public class UserProfileResponseDto {
     private UUID userId;
     private String fullName;
+    private String email;
     private String avatarUrl;
     private String bio;
     private String phoneNumber;

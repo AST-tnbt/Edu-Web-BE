@@ -15,7 +15,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class ContentMetadataRequestDto {
-    private UUID courseId;
     private UUID lessonId;
     private UUID contentId;
     private ContentType contentType;

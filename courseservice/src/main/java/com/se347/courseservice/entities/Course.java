@@ -1,12 +1,14 @@
 package com.se347.courseservice.entities;
 
 import com.se347.courseservice.enums.CourseLevel;
+import com.se347.courseservice.entities.Section;
 
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "courses")
@@ -16,7 +18,7 @@ import java.math.BigDecimal;
 @Builder
 public class Course {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID courseId;
 
     @Column(nullable = false)
@@ -39,6 +41,9 @@ public class Course {
 
     @Column(nullable = false)
     private UUID instructorId;
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Section> sections;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

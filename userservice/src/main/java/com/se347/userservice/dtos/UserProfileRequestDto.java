@@ -12,6 +12,7 @@ import lombok.*;
 public class UserProfileRequestDto {
     private UUID userId;
     private String fullName;
+    private String email;
     private String avatarUrl;
     private String bio;
     private String phoneNumber;

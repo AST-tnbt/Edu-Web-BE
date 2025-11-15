@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import lombok.NonNull;
 
 /**
  * HMAC Validation Filter cho Course Service
@@ -40,8 +41,10 @@ public class HmacValidationFilter extends OncePerRequestFilter {
     private boolean hmacEnabled;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
-                                  FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, 
+                                    @NonNull HttpServletResponse response, 
+                                    @NonNull FilterChain filterChain) 
+                                    throws ServletException, IOException {
         
         // Kiểm tra xem HMAC validation có được enable không
         if (!hmacEnabled) {
@@ -99,7 +102,7 @@ public class HmacValidationFilter extends OncePerRequestFilter {
             logger.debug("Body hash - Header: {}, Computed: {}, Body length: {}", 
                         bodyHashHeader, computedHash, bodyBytes.length);
 
-            if (org.springframework.util.StringUtils.hasText(bodyHashHeader) && !bodyHashHeader.equals(computedHash)) {
+            if (org.springframework.util.StringUtils.hasText(bodyHashHeader) && !computedHash.equals(bodyHashHeader)) {
                 logger.warn("Body hash mismatch for path: {} - Header: {}, Computed: {}", 
                            path, bodyHashHeader, computedHash);
                 handleUnauthorized(response, "Body hash mismatch");

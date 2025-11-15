@@ -6,38 +6,29 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "learning_progress")
+@Table(name = "learning_progress", 
+       uniqueConstraints = @UniqueConstraint(name = "uk_lesson_enrollment", columnNames = {"lessonId", "enrollmentId"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class LearningProgress {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID learningProgressId;
-
 
     @Column(nullable = false)
     private UUID enrollmentId;
 
     @Column(nullable = false)
-    private UUID contentId;
-
-    @Column(nullable = false)
     private UUID lessonId;
-
-    @Column(nullable = false)
-    private double progressPercentage;
-
-    @Column(nullable = false)
-    private int timeSpent;
 
     @Column(nullable = false)
     private boolean isCompleted;
 
-    @Column(nullable = false)
+    @Column(updatable = true)
     private LocalDateTime lastAccessedAt;
 
-    @Column(nullable = false)
+    @Column(updatable = true)
     private LocalDateTime completedAt;
 }

@@ -11,10 +11,7 @@ import java.time.LocalDateTime;
 public class LearningProgressResponseDto {
     private UUID learningProgressId;
     private UUID enrollmentId;
-    private UUID contentId;
     private UUID lessonId;
-    private double progressPercentage;
-    private int timeSpent;
     private boolean isCompleted;
     private LocalDateTime lastAccessedAt;
     private LocalDateTime completedAt;

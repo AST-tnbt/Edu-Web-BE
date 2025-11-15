@@ -24,17 +24,17 @@ public class CourseProgressController {
         return ResponseEntity.ok(courseProgressService.createCourseProgress(request));
     }
     
-    @GetMapping("{courseProgressId}")
+    @GetMapping("/{courseProgressId}")
     public ResponseEntity<CourseProgressResponseDto> getCourseProgressById(@PathVariable UUID courseProgressId) {
         return ResponseEntity.ok(courseProgressService.getCourseProgressById(courseProgressId));
     }
     
-    @GetMapping("enrollment/{enrollmentId}")
+    @GetMapping("/enrollment/{enrollmentId}")
     public ResponseEntity<CourseProgressResponseDto> getCourseProgressByEnrollmentId(@PathVariable UUID enrollmentId) {
         return ResponseEntity.ok(courseProgressService.getCourseProgressByEnrollmentId(enrollmentId));
     }
 
-    @PutMapping("{courseProgressId}")
+    @PutMapping("/{courseProgressId}")
     public ResponseEntity<CourseProgressResponseDto> updateCourseProgress(@PathVariable UUID courseProgressId, @RequestBody CourseProgressRequestDto request) {
         return ResponseEntity.ok(courseProgressService.updateCourseProgress(courseProgressId, request));
     }

@@ -63,6 +63,46 @@ services:
       retries: 10
       interval: 10s
 
+  mysql_course:
+    image: mysql:8.0
+    container_name: eduweb-mysql-course
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${COURSE_DB_NAME}
+      MYSQL_USER: ${COURSE_DB_USERNAME}
+      MYSQL_PASSWORD: ${COURSE_DB_PASSWORD}
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql_course_data:/var/lib/mysql
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  mysql_enrollment:
+    image: mysql:8.0
+    container_name: eduweb-mysql-enrollment
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${ENROLLMENT_DB_NAME}
+      MYSQL_USER: ${ENROLLMENT_DB_USERNAME}
+      MYSQL_PASSWORD: ${ENROLLMENT_DB_PASSWORD}
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql_enrollment_data:/var/lib/mysql
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
   redis:
     image: redis:7.2-alpine
     container_name: eduweb-redis
@@ -254,6 +294,202 @@ services:
       interval: 10s
       start_period: 60s
 
+  courseservice:
+    build: ./courseservice
+    container_name: eduweb-course
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=courseservice
+      - SERVER_PORT=8007
+      
+      # Database config
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql_course:3306/coursesdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=${COURSE_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${COURSE_DB_PASSWORD}
+      
+      # HMAC config
+      - GATEWAY_HMAC_SECRET=${GATEWAY_HMAC_SECRET}
+      - GATEWAY_HMAC_ENABLED=${GATEWAY_HMAC_ENABLED}
+      
+      # Eureka config
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-courseservice}
+
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE:-enrollment_course.exchange}
+      - APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS=${APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS:-set.total.lessons}
+      - APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS=${APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS:-set.total.lessons.queue}
+
+      # Enrollment Service Client
+      - COURSESERVICE_ENROLLMENT_BASE_URL=http://enrollmentservice:8008
+
+    ports:
+      - "8007:8007"
+    depends_on:
+      mysql_course:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+
+  enrollmentservice:
+    build: ./enrollmentservice
+    container_name: eduweb-enrollment
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=enrollmentservice
+      - SERVER_PORT=8008
+      
+      # Database config
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql_enrollment:3306/enrollmentsdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=${ENROLLMENT_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${ENROLLMENT_DB_PASSWORD}
+      
+      # HMAC config
+      - GATEWAY_HMAC_SECRET=${GATEWAY_HMAC_SECRET}
+      - GATEWAY_HMAC_ENABLED=${GATEWAY_HMAC_ENABLED}
+      
+      # Eureka config
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-enrollmentservice}
+
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      # Application Rabbit settings - Payment Events
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT:-enrollment_payment.exchange}
+      - APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED=${APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED:-payment.completed}
+      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED:-payment.completed.queue}
+
+      # Application Rabbit settings - Course Events
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE:-enrollment_course.exchange}
+      - APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS=${APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS:-set.total.lessons}
+      - APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS=${APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS:-set.total.lessons.queue}
+    
+      # Course Service Client
+      - ENROLLMENT_SERVICE_COURSE_BASE_URL=http://courseservice:8007
+
+    ports:
+      - "8008:8008"
+    depends_on:
+      mysql_enrollment:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+
+  contentservice:
+    build:
+      context: .
+      dockerfile: contentservice/Dockerfile
+    container_name: eduweb-content
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=contentservice
+      - SERVER_PORT=8009
+      
+      # Database config
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql_content:3306/${CONTENT_DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=${CONTENT_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${CONTENT_DB_PASSWORD}
+      
+      # MinIO config
+      - MINIO_URL=http://minio:9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      
+      # Eureka config
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-contentservice}
+    ports:
+      - "8009:8009"
+    depends_on:
+      mysql_content:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8009/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+
+  paymentservice:
+    build:
+      context: .
+      dockerfile: paymentservice/Dockerfile
+    container_name: eduweb-payment
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=paymentservice
+      - SERVER_PORT=8010
+
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      # VNPay config
+      - PAY_URL=${PAY_URL}
+      - RETURN_URL=${RETURN_URL}
+      - TMN_CODE=${TMN_CODE}
+      - SECRET_KEY=${SECRET_KEY}
+      - API_URL=${API_URL}
+
+      # Eureka config
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-paymentservice}
+
+      # Application Rabbit settings - Payment Events
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT:-enrollment_payment.exchange}
+      - APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED=${APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED:-payment.completed}
+      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED:-payment.completed.queue}
+    ports:
+      - "8010:8010"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+
   apigateway:
     build: ./apigateway
     container_name: eduweb-gateway
@@ -305,9 +541,11 @@ services:
 volumes:
   mysql_auth_data:
   mysql_user_data:
+  mysql_course_data:
+  mysql_content_data:
+  mysql_enrollment_data:
   redis_data:
   minio_data:
-  mysql_content_data:
   rabbitmq-data:
 
 networks:

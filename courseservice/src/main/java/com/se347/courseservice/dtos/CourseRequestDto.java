@@ -19,7 +19,6 @@ public class CourseRequestDto {
     private String thumbnailUrl;
     private BigDecimal price;
     private CourseLevel level;
-    private UUID categoryId;
     private String categoryName;
     private UUID instructorId;
 }

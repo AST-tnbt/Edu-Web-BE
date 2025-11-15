@@ -12,8 +12,7 @@ import java.util.UUID;
 @Repository
 public interface ContentRepository extends JpaRepository<Content, UUID> {
     List<Content> findByContentId(UUID contentId);
-    List<Content> findByLessonId(UUID lessonId);
-    List<Content> findByCourseId(UUID courseId);
+    List<Content> findByLesson_LessonId(UUID lessonId);
     List<Content> findByTitleContaining(String title);
-    List<Content> findByContentType(ContentType contentType);
+    List<Content> findByType(ContentType contentType);
 }

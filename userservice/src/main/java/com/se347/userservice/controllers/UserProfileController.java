@@ -77,6 +77,20 @@ public class UserProfileController {
         }
     }
 
+    @GetMapping("/email/{email}")
+    public ResponseEntity<UserProfileResponseDto> getProfileByEmail(@PathVariable String email) {
+        logger.info("Getting user profile for email: {}", email);
+        try {
+            UserProfileResponseDto profile = userProfileService.getProfileByEmail(email);
+            logger.info("Successfully retrieved user profile for email: {}", email);
+            return ResponseEntity.ok(profile);
+        }
+        catch (UserException.UserProfileNotFoundException e) {
+            logger.warn("User profile not found for email: {}", email);
+            throw e; // Re-throw để GlobalExceptionHandler xử lý
+        }
+    }
+
     @PutMapping("/{userId}")
     public ResponseEntity<UserProfileResponseDto> updateProfile(
             @PathVariable UUID userId,

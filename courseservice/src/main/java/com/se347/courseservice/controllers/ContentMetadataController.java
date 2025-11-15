@@ -36,16 +36,6 @@ public class ContentMetadataController {
         return ResponseEntity.ok(contentMetadataService.updateContentMetadata(contentId, request));
     }
 
-    @GetMapping
-    public ResponseEntity<List<ContentMetadataResponseDto>> getAllContentMetadata() {
-        return ResponseEntity.ok(contentMetadataService.getAllContentMetadata());
-    }
-    
-    @GetMapping("/course/{courseId}")
-    public ResponseEntity<List<ContentMetadataResponseDto>> getContentMetadataByCourseId(@PathVariable UUID courseId) {
-        return ResponseEntity.ok(contentMetadataService.getContentMetadataByCourseId(courseId));
-    }
-
     @GetMapping("/lesson/{lessonId}")
     public ResponseEntity<List<ContentMetadataResponseDto>> getContentMetadataByLessonId(@PathVariable UUID lessonId) {
         return ResponseEntity.ok(contentMetadataService.getContentMetadataByLessonId(lessonId));

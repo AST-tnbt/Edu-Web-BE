@@ -26,7 +26,7 @@ public class AuthenticationListenerServiceImpl implements AuthenticationListener
         this.userProfileService = userProfileService;
     }
 
-    @RabbitListener(queues = "${app.rabbitmq.queue.user-created}", containerFactory = "SimpleRabbitListenerContainerFactory")
+    @RabbitListener(queues = "${app.rabbitmq.queue.user-created}", containerFactory = "rabbitListenerContainerFactory")
     public void handleUserCreatedEvent(UserCreatedEventDto userCreatedEvent, 
                                     Channel channel, 
                                     @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {

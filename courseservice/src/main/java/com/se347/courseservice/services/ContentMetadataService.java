@@ -10,7 +10,5 @@ public interface ContentMetadataService {
     ContentMetadataResponseDto createContentMetadata(ContentMetadataRequestDto request);
     ContentMetadataResponseDto getContentMetadataById(UUID contentId);
     ContentMetadataResponseDto updateContentMetadata(UUID contentId, ContentMetadataRequestDto request);
-    List<ContentMetadataResponseDto> getAllContentMetadata();
-    List<ContentMetadataResponseDto> getContentMetadataByCourseId(UUID courseId);
     List<ContentMetadataResponseDto> getContentMetadataByLessonId(UUID lessonId);
 }

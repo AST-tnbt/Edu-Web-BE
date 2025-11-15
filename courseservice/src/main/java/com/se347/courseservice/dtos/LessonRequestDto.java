@@ -12,7 +12,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class LessonRequestDto {
+    private UUID lessonId;
     private String title;
-    private UUID courseId;
+    private UUID sectionId;
     private int orderIndex;
 }

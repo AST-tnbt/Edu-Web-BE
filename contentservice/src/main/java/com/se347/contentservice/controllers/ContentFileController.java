@@ -3,7 +3,6 @@ package com.se347.contentservice.controllers;
 import com.se347.contentservice.dtos.ContentFileUpdateRequest;
 import com.se347.contentservice.entities.ContentFile;
 import com.se347.contentservice.services.ContentFileService;
-import com.se347.contentservice.services.ContentFileServiceImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -10,5 +10,6 @@ public interface CourseProgressService {
     CourseProgressResponseDto getCourseProgressById(UUID courseProgressId);
     CourseProgressResponseDto getCourseProgressByEnrollmentId(UUID enrollmentId);
     CourseProgressResponseDto updateCourseProgress(UUID courseProgressId, CourseProgressRequestDto request);
-    // void deleteCourseProgress(UUID courseProgressId);
+    CourseProgressResponseDto patchCourseProgress(UUID courseProgressId, CourseProgressRequestDto request);
+    void setTotalLessons(UUID courseProgressId, Integer totalLessons);
 }

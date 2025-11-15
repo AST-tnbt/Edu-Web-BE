@@ -22,6 +22,9 @@ public class UserProfile {
     @Column(length = 100)
     private String fullName;
 
+    @Column(length = 100)
+    private String email;
+
     @Column(length = 255)
     private String avatarUrl;
 

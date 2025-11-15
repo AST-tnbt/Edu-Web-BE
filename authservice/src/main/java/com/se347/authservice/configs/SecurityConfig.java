@@ -1,10 +1,7 @@
 package com.se347.authservice.configs;
 
 import com.se347.authservice.securities.JwtAuthenticationFilter;
-import com.se347.authservice.securities.JwtTokenProvider;
-import com.se347.authservice.securities.CustomUserDetailsService;
 import com.se347.authservice.securities.HmacValidationFilter;
-import com.se347.authservice.services.RedisTokenService;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,16 +16,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final CustomUserDetailsService customUserDetailsService;
-    private final RedisTokenService redisTokenService;
     private final HmacValidationFilter hmacValidationFilter;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    SecurityConfig(JwtTokenProvider jwtTokenProvider, CustomUserDetailsService customUserDetailsService, RedisTokenService redisTokenService, HmacValidationFilter hmacValidationFilter, JwtAuthenticationFilter jwtAuthenticationFilter){
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.customUserDetailsService = customUserDetailsService;
-        this.redisTokenService = redisTokenService;
+    SecurityConfig(HmacValidationFilter hmacValidationFilter, JwtAuthenticationFilter jwtAuthenticationFilter){
         this.hmacValidationFilter = hmacValidationFilter;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }

@@ -23,6 +23,9 @@ public class Enrollment {
     private UUID courseId;
 
     @Column(nullable = false)
+    private String courseSlug;
+
+    @Column(nullable = false)
     private UUID studentId;
 
     @Column(nullable = false)

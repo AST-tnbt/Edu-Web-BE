@@ -21,7 +21,7 @@ public class CourseProgressServiceImpl implements CourseProgressService {
 
     private final CourseProgressRepository courseProgressRepository;
     private final EnrollmentRepository enrollmentRepository;
-
+    
     // ========== Public API ==========
 
     @Override

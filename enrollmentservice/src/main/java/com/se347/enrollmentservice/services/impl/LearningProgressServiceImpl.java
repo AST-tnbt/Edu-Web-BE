@@ -7,14 +7,7 @@ import com.se347.enrollmentservice.dtos.LearningProgressResponseDto;
 import com.se347.enrollmentservice.repositories.LearningProgressRepository;
 import com.se347.enrollmentservice.entities.LearningProgress;
 import com.se347.enrollmentservice.exceptions.LearningProgressException;
-import com.se347.enrollmentservice.services.EnrollmentService;
-import com.se347.enrollmentservice.services.CourseProgressService;
-import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
-import com.se347.enrollmentservice.dtos.CourseProgressResponseDto;
-import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
-import com.se347.enrollmentservice.enums.EnrollmentStatus;
-import com.se347.enrollmentservice.enums.PaymentStatus;
-import com.se347.enrollmentservice.exceptions.EnrollmentException;
+import com.se347.enrollmentservice.services.EnrollmentDomainService;
 
 import java.util.UUID;
 import java.util.List;
@@ -33,8 +26,7 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     private static final Logger logger = LoggerFactory.getLogger(LearningProgressServiceImpl.class);
     
     private final LearningProgressRepository learningProgressRepository;
-    private final EnrollmentService enrollmentService;
-    private final CourseProgressService courseProgressService;
+    private final EnrollmentDomainService enrollmentDomainService;
 
     // ========== Public API ==========
 
@@ -44,7 +36,7 @@ public class LearningProgressServiceImpl implements LearningProgressService {
         validateCreateRequest(request);
         
         // Validate enrollment có thể truy cập (status, payment)
-        validateEnrollmentForAccess(request.getEnrollmentId());
+        enrollmentDomainService.ensureEnrollmentAccessible(request.getEnrollmentId());
 
         // Check for duplicate learning progress
         LearningProgress existing = learningProgressRepository.findByLessonIdAndEnrollmentId(
@@ -78,7 +70,7 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     @Override
     public LearningProgressResponseDto getLearningProgressByLessonIdAndEnrollmentId(UUID lessonId, UUID enrollmentId) {
         // 1. Validate enrollment có thể truy cập (status, payment)
-        validateEnrollmentForAccess(enrollmentId);
+        enrollmentDomainService.ensureEnrollmentAccessible(enrollmentId);
         
         // 2. Get or create learning progress với retry logic để tránh race condition
         LearningProgress learningProgress = getOrCreateLearningProgress(lessonId, enrollmentId);
@@ -215,31 +207,6 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     // ========== Validation ==========
 
     /**
-     * Validate enrollment có thể truy cập lesson không
-     * - Enrollment status phải là ACTIVE
-     * - Payment status phải là PAID
-     */
-    private EnrollmentResponseDto validateEnrollmentForAccess(UUID enrollmentId) {
-        EnrollmentResponseDto enrollment = enrollmentService.getEnrollmentById(enrollmentId);
-        
-        // Kiểm tra enrollment status
-        if (enrollment.getEnrollmentStatus() != EnrollmentStatus.ACTIVE) {
-            throw new EnrollmentException.InvalidEnrollmentStateException(
-                "Cannot access lesson. Enrollment status is: " + enrollment.getEnrollmentStatus() + 
-                ". Expected: ACTIVE");
-        }
-        
-        // Kiểm tra payment status
-        if (enrollment.getPaymentStatus() != PaymentStatus.PAID) {
-            throw new EnrollmentException.PaymentRequiredException(
-                "Payment required. Current payment status: " + enrollment.getPaymentStatus() + 
-                ". Expected: PAID");
-        }
-        
-        return enrollment;
-    }
-
-    /**
      * Get or create learning progress với retry logic để tránh race condition
      * Nếu 2 requests cùng lúc truy cập lesson lần đầu, sẽ retry nếu gặp duplicate key exception
      */
@@ -360,41 +327,15 @@ public class LearningProgressServiceImpl implements LearningProgressService {
      */
     private void syncCourseProgressOnCompletionChange(LearningProgress learningProgress, boolean originalCompleted) {
         boolean currentCompleted = learningProgress.isCompleted();
-        
-        // Only sync if completion status actually changed
+
         if (currentCompleted == originalCompleted) {
             return;
         }
-        
-        try {
-            // Get CourseProgress by enrollmentId
-            CourseProgressResponseDto courseProgress = courseProgressService.getCourseProgressByEnrollmentId(learningProgress.getEnrollmentId());
-            
-            // Calculate new lessonsCompleted count
-            int currentLessonsCompleted = courseProgress.getLessonsCompleted();
-            int newLessonsCompleted;
-            
-            if (currentCompleted && !originalCompleted) {
-                // Lesson just completed - increment
-                newLessonsCompleted = currentLessonsCompleted + 1;
-            } else {
-                // Lesson uncompleted - decrement (but not below 0)
-                newLessonsCompleted = Math.max(0, currentLessonsCompleted - 1);
-            }
-            
-            // Update CourseProgress using patchCourseProgress
-            courseProgressService.patchCourseProgress(
-                courseProgress.getCourseProgressId(),
-                CourseProgressRequestDto.builder()
-                    .lessonsCompleted(newLessonsCompleted)
-                    .build()
-            );
-        } catch (Exception e) {
-            // Log error but don't fail the LearningProgress update
-            // This ensures LearningProgress is saved even if CourseProgress update fails
-            // In production, you might want to use a more sophisticated error handling strategy
-            throw new LearningProgressException.InvalidRequestException(
-                "Failed to sync CourseProgress: " + e.getMessage());
-        }
+
+        boolean increment = currentCompleted && !originalCompleted;
+        enrollmentDomainService.syncCourseProgressOnLessonChange(
+            learningProgress.getEnrollmentId(),
+            increment
+        );
     }
 }

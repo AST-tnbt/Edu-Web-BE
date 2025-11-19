@@ -10,9 +10,6 @@ import com.se347.enrollmentservice.repositories.EnrollmentRepository;
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
 import com.se347.enrollmentservice.enums.PaymentStatus;
 import com.se347.enrollmentservice.exceptions.EnrollmentException;
-import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
-import com.se347.enrollmentservice.services.CourseProgressService;
-import com.se347.enrollmentservice.clients.CourseServiceClient;
 
 import lombok.RequiredArgsConstructor;
 import java.util.List;
@@ -25,9 +22,6 @@ import java.util.stream.Collectors;
 public class EnrollmentServiceImpl implements EnrollmentService {
 
     private final EnrollmentRepository enrollmentRepository;
-    private final CourseProgressService courseProgressService;
-    private final CourseServiceClient courseServiceClient;
-    
     // ========== Public API ==========
 
     @Override
@@ -36,6 +30,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
         Enrollment enrollment = Enrollment.builder()
             .courseId(request.getCourseId())
+            .courseSlug(request.getCourseSlug())
             .studentId(request.getStudentId())
             .enrolledAt(request.getEnrolledAt())
             .enrollmentStatus(request.getEnrollmentStatus())
@@ -45,10 +40,6 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollment.onCreate();
         enrollment.onUpdate();
         enrollmentRepository.save(enrollment);
-
-        Integer totalLessons = courseServiceClient.getTotalLessonsByCourseId(request.getCourseId());
-        CourseProgressRequestDto courseProgressRequest = buildCourseProgress(enrollment.getEnrollmentId(), totalLessons);
-        courseProgressService.createCourseProgress(courseProgressRequest);
         return mapToResponse(enrollment);
     }
 
@@ -188,12 +179,19 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         return mapToResponse(enrollmentRepository.save(enrollment));
     }
 
+    @Override
+    public Enrollment toEnrollment(UUID enrollmentId) {
+        return enrollmentRepository.findById(enrollmentId)
+            .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException(enrollmentId.toString()));
+    }
+
     // ========== Mapping ==========
 
     private EnrollmentResponseDto mapToResponse(Enrollment enrollment) {
         return EnrollmentResponseDto.builder()
             .enrollmentId(enrollment.getEnrollmentId())
             .courseId(enrollment.getCourseId())
+            .courseSlug(enrollment.getCourseSlug())
             .studentId(enrollment.getStudentId())
             .enrolledAt(enrollment.getEnrolledAt())
             .enrollmentStatus(enrollment.getEnrollmentStatus())
@@ -211,15 +209,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         if (request.getStudentId() == null) throw new EnrollmentException.InvalidRequestException("Student ID cannot be null");
         // EnrollmentStatus/PaymentStatus có thể null khi tạo (tùy nghiệp vụ), giữ nguyên theo code hiện tại
     }
-
-    private CourseProgressRequestDto buildCourseProgress(UUID enrollmentId, Integer totalLessons) {
-        return CourseProgressRequestDto.builder()
-            .enrollmentId(enrollmentId)
-            .lessonsCompleted(0)
-            .totalLessons(totalLessons)
-            .build();
-    }
-
+    
     private void validateUpdateRequest(UUID enrollmentId, EnrollmentRequestDto request) {
         if (enrollmentId == null) throw new EnrollmentException.InvalidRequestException("Enrollment ID cannot be null");
         if (request == null) throw new EnrollmentException.InvalidRequestException("Request cannot be null");

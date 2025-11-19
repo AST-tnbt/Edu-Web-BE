@@ -111,4 +111,10 @@ public abstract class EnrollmentException extends RuntimeException {
             super(message);
         }
     }
+
+    public static class UnauthorizedAccessException extends EnrollmentException {
+        public UnauthorizedAccessException(String message) {
+            super(message);
+        }
+    }
 }

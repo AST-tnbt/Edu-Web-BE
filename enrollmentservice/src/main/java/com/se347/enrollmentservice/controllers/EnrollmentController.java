@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import com.se347.enrollmentservice.services.EnrollmentService;
 import com.se347.enrollmentservice.dtos.EnrollmentRequestDto;
 import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
+import com.se347.enrollmentservice.services.EnrollmentDomainService;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
@@ -15,14 +16,16 @@ import java.util.UUID;
 public class EnrollmentController {
 
     private final EnrollmentService enrollmentService;
+    private final EnrollmentDomainService enrollmentDomainService;
 
-    EnrollmentController(EnrollmentService enrollmentService){
+    EnrollmentController(EnrollmentService enrollmentService, EnrollmentDomainService enrollmentDomainService){
         this.enrollmentService = enrollmentService;
+        this.enrollmentDomainService = enrollmentDomainService;
     }
     
     @PostMapping("/courses/{courseId}/enroll")
     public ResponseEntity<EnrollmentResponseDto> createEnrollment(@RequestBody EnrollmentRequestDto request) {
-        return ResponseEntity.ok(enrollmentService.createEnrollment(request));
+        return ResponseEntity.ok(enrollmentDomainService.createEnrollment(request));
     }
 
     @GetMapping("/enrollments/{enrollmentId}")

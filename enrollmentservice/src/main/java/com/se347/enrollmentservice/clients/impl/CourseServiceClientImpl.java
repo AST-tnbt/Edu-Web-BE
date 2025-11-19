@@ -30,6 +30,7 @@ public class CourseServiceClientImpl implements CourseServiceClient{
     @Value("${gateway.hmac.enabled:true}")
     private boolean hmacEnabled;
 
+    @Override
     public Integer getTotalLessonsByCourseId(UUID courseId) {
         try {
             String path = "/api/courses/" + courseId + "/total-lessons";

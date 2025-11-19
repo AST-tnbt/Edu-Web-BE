@@ -65,7 +65,12 @@ public class UserProfileController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<UserProfileResponseDto> getProfile(@PathVariable UUID userId) {
+    public ResponseEntity<UserProfileResponseDto> getProfile(
+        @PathVariable UUID userId,
+        @RequestHeader("X-User-Roles") String userRoles) {
+        if (!userRoles.contains("ADMIN")) {
+            throw new UserException.UserPermissionDeniedException("User not authorized to access this resource");
+        }
         logger.info("Getting user profile for userId: {}", userId);
         try {
             UserProfileResponseDto profile = userProfileService.getProfileByUserId(userId);
@@ -94,13 +99,39 @@ public class UserProfileController {
     @PutMapping("/{userId}")
     public ResponseEntity<UserProfileResponseDto> updateProfile(
             @PathVariable UUID userId,
-            @RequestBody UserProfileRequestDto request) {
+            @RequestBody UserProfileRequestDto request,
+            @RequestHeader("X-User-Roles") String userRoles) {
+        if (!userRoles.contains("ADMIN")) {
+            throw new UserException.UserPermissionDeniedException("User not authorized to access this resource");
+        }
         logger.info("Updating user profile for userId: {}", userId);
         try {
             UserProfileResponseDto profile = userProfileService.updateProfile(userId, request);
             logger.info("Successfully updated user profile for userId: {}", userId);
             return ResponseEntity.ok(profile);
         } catch (UserException.UserProfileNotFoundException e) {
+            logger.warn("User profile not found for update, userId: {}", userId);
+            throw e; // Re-throw để GlobalExceptionHandler xử lý
+        } catch (ValidationException e) {
+            logger.warn("Validation error when updating profile: {}", e.getMessage());
+            throw e; // Re-throw để GlobalExceptionHandler xử lý
+        } catch (BusinessException e) {
+            logger.error("Business error when updating profile: {}", e.getMessage());
+            throw e; // Re-throw để GlobalExceptionHandler xử lý
+        }
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserProfileResponseDto> updateCurrentProfile(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody UserProfileRequestDto request) {
+        logger.info("Updating current user profile for userId: {}", userId);
+        try {
+            UserProfileResponseDto profile = userProfileService.updateProfile(userId, request);
+            logger.info("Successfully updated current user profile for userId: {}", userId);
+            return ResponseEntity.ok(profile);
+        }
+        catch (UserException.UserProfileNotFoundException e) {
             logger.warn("User profile not found for update, userId: {}", userId);
             throw e; // Re-throw để GlobalExceptionHandler xử lý
         } catch (ValidationException e) {

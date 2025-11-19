@@ -20,6 +20,9 @@ public class Lesson {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID lessonId;
 
+    @Column(nullable = false, unique = true)
+    private String lessonSlug;
+
     @Column(nullable = false)
     private String title;
 

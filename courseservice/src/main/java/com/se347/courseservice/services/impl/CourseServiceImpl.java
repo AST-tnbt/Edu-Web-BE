@@ -11,6 +11,7 @@ import com.se347.courseservice.exceptions.CourseException;
 import com.se347.courseservice.repositories.SectionRepository;
 import com.se347.courseservice.repositories.LessonRepository;
 import com.se347.courseservice.entities.Section;
+import com.se347.courseservice.utils.SlugUtil;
 
 import org.springframework.stereotype.Service;
 import java.util.UUID;
@@ -39,6 +40,10 @@ public class CourseServiceImpl implements CourseService {
             throw new CourseException.InvalidRequestException("Title cannot be null or empty");
         }
 
+        if (courseRepository.existsByTitle(request.getTitle())) {
+            throw new CourseException.CourseAlreadyExistsException(request.getTitle());
+        }
+
         if (request.getDescription() == null || request.getDescription().isEmpty()) {
             throw new CourseException.InvalidRequestException("Description cannot be null or empty");
         }
@@ -57,7 +62,12 @@ public class CourseServiceImpl implements CourseService {
             categoryService.createCategory(categoryRequest);
         }
 
+        String requestedSlug = request.getCourseSlug() != null && !request.getCourseSlug().trim().isEmpty()
+                ? request.getCourseSlug()
+                : request.getTitle();
+
         Course course = Course.builder()
+            .courseSlug(generateUniqueSlug(requestedSlug, null))
             .title(request.getTitle())
             .description(request.getDescription())
             .thumbnailUrl(request.getThumbnailUrl())
@@ -84,6 +94,7 @@ public class CourseServiceImpl implements CourseService {
         return mapToResponse(course);
     }
 
+    @Transactional
     @Override
     public CourseResponseDto updateCourse(UUID courseId, CourseRequestDto request) {
         if (courseId == null) {
@@ -116,6 +127,10 @@ public class CourseServiceImpl implements CourseService {
         }
 
         // Update existing course
+        String requestedSlug = request.getCourseSlug() != null && !request.getCourseSlug().trim().isEmpty()
+                ? request.getCourseSlug()
+                : request.getTitle();
+        existingCourse.setCourseSlug(generateUniqueSlug(requestedSlug, existingCourse.getCourseId()));
         existingCourse.setTitle(request.getTitle());
         existingCourse.setDescription(request.getDescription());
         existingCourse.setThumbnailUrl(request.getThumbnailUrl());
@@ -127,6 +142,23 @@ public class CourseServiceImpl implements CourseService {
         existingCourse.onUpdate();
         courseRepository.save(existingCourse);
         return mapToResponse(existingCourse);
+    }
+
+    @Transactional
+    @Override
+    public CourseResponseDto updateCourseByCourseSlug(String courseSlug, CourseRequestDto request, String userRoles, UUID userId) {
+        if (courseSlug == null || courseSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
+        }
+
+        Course course = courseRepository.findByCourseSlug(courseSlug)
+            .orElseThrow(() -> new CourseException.CourseNotFoundException("Course with slug '" + courseSlug + "' not found"));
+
+        if (!authorizeAccess(course.getCourseId(), userRoles, userId)) {
+            throw new CourseException.UnauthorizedAccessException("User not authorized to access this resource");
+        }
+        
+        return updateCourse(course.getCourseId(), request);
     }
 
     @Override
@@ -195,6 +227,16 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public CourseResponseDto getCourseByCourseSlug(String courseSlug) {
+        if (courseSlug == null || courseSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
+        }
+        Course course = courseRepository.findByCourseSlug(courseSlug)
+            .orElseThrow(() -> new CourseException.CourseNotFoundException("Course with slug '" + courseSlug + "' not found"));
+        return mapToResponse(course);
+    }
+
+    @Override
     public Course toCourse(UUID courseId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new CourseException.CourseNotFoundException(courseId.toString()));
@@ -219,9 +261,19 @@ public class CourseServiceImpl implements CourseService {
         return totalLessons;
     }
 
+    private boolean authorizeAccess(UUID courseId, String userRoles, UUID userId) {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new CourseException.CourseNotFoundException(courseId.toString()));
+        if (!userRoles.contains("ADMIN") && course.getInstructorId() != userId) {
+            return false;
+        }
+        return true;
+    }
+
     private CourseResponseDto mapToResponse(Course course) {
         return CourseResponseDto.builder()
             .courseId(course.getCourseId())
+            .courseSlug(course.getCourseSlug() != null ? course.getCourseSlug() : SlugUtil.toSlug(course.getTitle()))
             .title(course.getTitle())
             .description(course.getDescription())
             .thumbnailUrl(course.getThumbnailUrl())
@@ -232,5 +284,26 @@ public class CourseServiceImpl implements CourseService {
             .createdAt(course.getCreatedAt())
             .updatedAt(course.getUpdatedAt())
             .build();
+    }
+
+    private String generateUniqueSlug(String input, UUID currentCourseId) {
+        String baseSlug = SlugUtil.toSlug(input);
+        if (baseSlug == null || baseSlug.isEmpty()) {
+            baseSlug = UUID.randomUUID().toString();
+        }
+
+        String candidate = baseSlug;
+        int suffix = 2;
+        while (slugExists(candidate, currentCourseId)) {
+            candidate = baseSlug + "-" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private boolean slugExists(String slug, UUID currentCourseId) {
+        return courseRepository.findByCourseSlug(slug)
+            .filter(course -> currentCourseId == null || !course.getCourseId().equals(currentCourseId))
+            .isPresent();
     }
 }

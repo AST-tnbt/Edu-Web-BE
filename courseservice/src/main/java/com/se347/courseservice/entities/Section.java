@@ -21,6 +21,9 @@ public class Section {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID sectionId;
         
+    @Column(nullable = false, unique = true)
+    private String sectionSlug;
+
     @Column(nullable = false)
     private String title;
 

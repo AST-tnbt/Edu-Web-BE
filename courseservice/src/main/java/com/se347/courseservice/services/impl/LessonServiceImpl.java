@@ -12,6 +12,8 @@ import com.se347.courseservice.publishers.CoursePublisher;
 import com.se347.courseservice.dtos.events.setTotalLessonsEventDto;
 import com.se347.courseservice.services.CourseService;
 import com.se347.courseservice.entities.Section;
+import com.se347.courseservice.utils.SlugUtil;
+import com.se347.courseservice.entities.Course;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +69,7 @@ public class LessonServiceImpl implements LessonService {
         UUID courseId = section.getCourse().getCourseId();
 
         Lesson lesson = Lesson.builder()
+            .lessonSlug(request.getLessonSlug() != null ? request.getLessonSlug() : SlugUtil.toSlug(request.getTitle()))
             .title(normalizedTitle)
             .section(section) // Dùng section đã lấy
             .orderIndex(request.getOrderIndex())
@@ -102,6 +105,70 @@ public class LessonServiceImpl implements LessonService {
         Lesson lesson = lessonRepository.findById(lessonId)
             .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId.toString()));
         return mapToResponse(lesson);
+    }
+
+    @Override
+    public List<LessonResponseDto> getLessonsByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug) {
+        if (courseSlug == null || courseSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
+        }
+        if (sectionSlug == null || sectionSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Section slug cannot be null or empty");
+        }
+    
+        Section section = sectionService.toSection(sectionService.getSectionByCourseSlugAndSectionSlug(courseSlug, sectionSlug).getSectionId());
+
+        List<Lesson> lessons = lessonRepository.findBySection_SectionId(section.getSectionId());
+        if (lessons.isEmpty()) {
+            throw new CourseException.LessonNotFoundException("Lessons with course slug '" + courseSlug + "' and section slug '" + sectionSlug + "' not found");
+        }
+
+        return lessons.stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public LessonResponseDto getLessonByCourseSlugAndSectionSlugAndLessonSlug(String courseSlug, String sectionSlug, String lessonSlug) {
+        if (courseSlug == null || courseSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
+        }
+        if (sectionSlug == null || sectionSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Section slug cannot be null or empty");
+        }
+
+        Section section = sectionService.toSection(sectionService.getSectionByCourseSlugAndSectionSlug(courseSlug, sectionSlug).getSectionId());
+
+        Lesson lesson = lessonRepository.findByLessonSlug(lessonSlug)
+            .orElseThrow(() -> new CourseException.LessonNotFoundException("Lesson with slug '" + lessonSlug + "' not found"));
+        if (lesson.getSection().getSectionId() != section.getSectionId()) {
+            throw new CourseException.LessonNotFoundException("Lesson with slug '" + lessonSlug + "' not found in section '" + sectionSlug + "'");
+        }
+        return mapToResponse(lesson);
+    }
+
+    @Transactional
+    @Override
+    public LessonResponseDto updateLessonByCourseSlugAndSectionSlugAndLessonSlug(String courseSlug, String sectionSlug, String lessonSlug, LessonRequestDto request, String userRoles, UUID userId) {
+        if (courseSlug == null || courseSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
+        }
+        if (sectionSlug == null || sectionSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Section slug cannot be null or empty");
+        }
+
+        Section section = sectionService.toSection(sectionService.getSectionByCourseSlugAndSectionSlug(courseSlug, sectionSlug).getSectionId());
+        Lesson lesson = lessonRepository.findByLessonSlug(lessonSlug)
+            .orElseThrow(() -> new CourseException.LessonNotFoundException("Lesson with slug '" + lessonSlug + "' not found"));
+
+        if (!authorizeAccess(lesson.getLessonId(), userRoles, userId)) {
+            throw new CourseException.UnauthorizedAccessException("User not authorized to access this resource");
+        }
+
+        if (lesson.getSection().getSectionId() != section.getSectionId()) {
+            throw new CourseException.LessonNotFoundException("Lesson with slug '" + lessonSlug + "' not found in section '" + sectionSlug + "'");
+        }
+        return updateLesson(lesson.getLessonId(), request);
     }
 
     @Override
@@ -148,6 +215,7 @@ public class LessonServiceImpl implements LessonService {
             throw new CourseException.LessonAlreadyExistsException(request.getSectionId().toString(), normalizedTitle);
         }
 
+        existingLesson.setLessonSlug(request.getLessonSlug() != null ? request.getLessonSlug() : SlugUtil.toSlug(request.getTitle()));
         existingLesson.setTitle(normalizedTitle);
         existingLesson.setSection(sectionService.toSection(request.getSectionId()));
         existingLesson.setOrderIndex(request.getOrderIndex());
@@ -171,9 +239,19 @@ public class LessonServiceImpl implements LessonService {
             .collect(Collectors.toList());
     }
 
+    private boolean authorizeAccess(UUID lessonId, String userRoles, UUID userId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId.toString()));
+        if (!userRoles.contains("ADMIN") && lesson.getSection().getCourse().getInstructorId() != userId) {
+            return false;
+        }
+        return true;
+    }
+
     private LessonResponseDto mapToResponse(Lesson lesson) {
         return LessonResponseDto.builder()
             .lessonId(lesson.getLessonId())
+            .lessonSlug(lesson.getLessonSlug() != null ? lesson.getLessonSlug() : SlugUtil.toSlug(lesson.getTitle()))
             .title(lesson.getTitle())
             .sectionId(lesson.getSection().getSectionId())
             .orderIndex(lesson.getOrderIndex())

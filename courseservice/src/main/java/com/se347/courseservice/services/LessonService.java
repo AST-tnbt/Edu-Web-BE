@@ -13,4 +13,7 @@ public interface LessonService {
     Lesson toLesson(UUID lessonId);
     LessonResponseDto updateLesson(UUID lessonId, LessonRequestDto request);
     List<LessonResponseDto> getLessonsBySectionId(UUID sectionId);
+    List<LessonResponseDto> getLessonsByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug);
+    LessonResponseDto getLessonByCourseSlugAndSectionSlugAndLessonSlug(String courseSlug, String sectionSlug, String lessonSlug);
+    LessonResponseDto updateLessonByCourseSlugAndSectionSlugAndLessonSlug(String courseSlug, String sectionSlug, String lessonSlug, LessonRequestDto request, String userRoles, UUID userId);
 }

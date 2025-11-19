@@ -14,4 +14,7 @@ public interface SectionService {
     SectionResponseDto updateSection(UUID sectionId, SectionRequestDto request);
     boolean sectionExists(UUID sectionId);
     List<SectionResponseDto> getSectionsByCourseId(UUID courseId);
+    List<SectionResponseDto> getSectionsByCourseSlug(String courseSlug);
+    SectionResponseDto getSectionByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug);
+    SectionResponseDto updateSectionByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug, SectionRequestDto request, String userRoles, UUID userId);
 }

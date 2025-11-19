@@ -7,6 +7,8 @@ import com.se347.courseservice.repositories.SectionRepository;
 import com.se347.courseservice.services.CourseService;
 import com.se347.courseservice.entities.Section;
 import com.se347.courseservice.exceptions.CourseException;
+import com.se347.courseservice.utils.SlugUtil;
+import com.se347.courseservice.entities.Course;
 
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +36,7 @@ public class SectionServiceImpl implements SectionService {
         }
 
         Section section = Section.builder()
+            .sectionSlug(request.getSectionSlug() != null ? request.getSectionSlug() : SlugUtil.toSlug(request.getTitle()))
             .title(normalizedTitle)
             .description(normalizedDescription)
             .orderIndex(request.getOrderIndex())
@@ -80,6 +83,7 @@ public class SectionServiceImpl implements SectionService {
             throw new CourseException.InvalidRequestException("Section with title '" + normalizedTitle + "' already exists for course '" + section.getCourse().getCourseId() + "'");
         }
 
+        section.setSectionSlug(request.getSectionSlug() != null ? request.getSectionSlug() : SlugUtil.toSlug(request.getTitle()));
         section.setTitle(normalizedTitle);
         section.setDescription(normalizedDescription);
         section.setOrderIndex(request.getOrderIndex());
@@ -94,6 +98,20 @@ public class SectionServiceImpl implements SectionService {
     }
 
     @Override
+    public List<SectionResponseDto> getSectionsByCourseSlug(String courseSlug) {
+        if (courseSlug == null || courseSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
+        }
+        List<Section> sections = sectionRepository.findByCourse_CourseSlug(courseSlug);
+        if (sections.isEmpty()) {
+            throw new CourseException.SectionNotFoundException("Sections with course slug '" + courseSlug + "' not found");
+        }
+        return sections.stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<SectionResponseDto> getSectionsByCourseId(UUID courseId) {
         return sectionRepository.findByCourse_CourseId(courseId)
@@ -102,9 +120,52 @@ public class SectionServiceImpl implements SectionService {
             .collect(Collectors.toList());
     }
 
+    @Override
+    public SectionResponseDto getSectionByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug) {
+        if (courseSlug == null || courseSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
+        }
+        if (sectionSlug == null || sectionSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Section slug cannot be null or empty");
+        }
+
+        Course course = courseService.toCourse(courseService.getCourseByCourseSlug(courseSlug).getCourseId());
+        Section section = sectionRepository.findBySectionSlug(sectionSlug)
+            .orElseThrow(() -> new CourseException.SectionNotFoundException("Section with slug '" + sectionSlug + "' not found"));
+        if (section.getCourse().getCourseSlug() != course.getCourseSlug()) {
+            throw new CourseException.SectionNotFoundException("Section with slug '" + sectionSlug + "' not found in course '" + courseSlug + "'");
+        }
+        return mapToResponse(section);
+    }
+
+    @Override
+    @Transactional
+    public SectionResponseDto updateSectionByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug, SectionRequestDto request, String userRoles, UUID userId) {
+        if (courseSlug == null || courseSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
+        }
+        if (sectionSlug == null || sectionSlug.trim().isEmpty()) {
+            throw new CourseException.InvalidRequestException("Section slug cannot be null or empty");
+        }
+    
+        Course course = courseService.toCourse(courseService.getCourseByCourseSlug(courseSlug).getCourseId());
+        Section section = sectionRepository.findBySectionSlug(sectionSlug)
+            .orElseThrow(() -> new CourseException.SectionNotFoundException("Section with slug '" + sectionSlug + "' not found"));
+
+        if (!authorizeAccess(section.getSectionId(), userRoles, userId)) {
+            throw new CourseException.UnauthorizedAccessException("User not authorized to access this resource");
+        }
+
+        if (section.getCourse().getCourseSlug() != course.getCourseSlug()) {
+            throw new CourseException.SectionNotFoundException("Section with slug '" + sectionSlug + "' not found in course '" + courseSlug + "'");
+        }
+        return updateSection(section.getSectionId(), request);
+    }
+
     private SectionResponseDto mapToResponse(Section section) {
         return SectionResponseDto.builder()
             .sectionId(section.getSectionId())
+            .sectionSlug(section.getSectionSlug() != null ? section.getSectionSlug() : SlugUtil.toSlug(section.getTitle()))
             .courseId(section.getCourse().getCourseId())
             .title(section.getTitle())
             .description(section.getDescription())
@@ -113,6 +174,15 @@ public class SectionServiceImpl implements SectionService {
             .updatedAt(section.getUpdatedAt())
             .build();
     }   
+
+    private boolean authorizeAccess(UUID sectionId, String userRoles, UUID userId) {
+        Section section = sectionRepository.findById(sectionId)
+            .orElseThrow(() -> new CourseException.SectionNotFoundException(sectionId.toString()));
+        if (!userRoles.contains("ADMIN") && section.getCourse().getInstructorId() != userId) {
+            return false;
+        }
+        return true;
+    }
 
     private void validateCreateRequest(SectionRequestDto request) {
         if (request == null) {

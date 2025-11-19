@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 public class CourseResponseDto {
     private UUID courseId;
+    private String courseSlug;
     private String title;
     private String description;
     private String thumbnailUrl;

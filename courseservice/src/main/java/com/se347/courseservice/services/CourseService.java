@@ -16,5 +16,7 @@ public interface CourseService {
     List<CourseResponseDto> getCoursesByCategoryName(String categoryName);
     List<CourseResponseDto> getCoursesByInstructorId(UUID instructorId);
     List<CourseResponseDto> getCoursesByTitleContaining(String title);
+    CourseResponseDto getCourseByCourseSlug(String courseSlug);
     Integer getToltalLessonsByCourseId(UUID courseId);
+    CourseResponseDto updateCourseByCourseSlug(String courseSlug, CourseRequestDto request, String userRoles, UUID userId);
 }

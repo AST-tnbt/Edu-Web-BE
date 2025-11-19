@@ -14,6 +14,7 @@ import java.util.UUID;
 @Builder
 public class LessonResponseDto {
     private UUID lessonId;
+    private String lessonSlug;
     private String title;
     private UUID sectionId;
     private int orderIndex;

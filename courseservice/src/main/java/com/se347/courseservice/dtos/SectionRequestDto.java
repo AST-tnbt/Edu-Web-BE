@@ -13,6 +13,7 @@ import java.util.UUID;
 @Builder
 public class SectionRequestDto {    
     private UUID sectionId;
+    private String sectionSlug;
     private UUID courseId;
     private String title;
     private String description;

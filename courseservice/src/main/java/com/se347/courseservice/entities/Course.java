@@ -21,6 +21,9 @@ public class Course {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID courseId;
 
+    @Column(nullable = false, unique = true)
+    private String courseSlug;
+
     @Column(nullable = false)
     private String title;
 

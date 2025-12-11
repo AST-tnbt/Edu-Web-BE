@@ -19,6 +19,9 @@ public class UserProfile {
     @Column(nullable = false)
     private UUID userId;
 
+    @Column(nullable = false)
+    private String userSlug;
+
     @Column(length = 100)
     private String fullName;
 

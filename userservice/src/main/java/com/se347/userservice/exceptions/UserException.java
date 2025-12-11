@@ -82,4 +82,10 @@ public class UserException extends BaseUserException {
             super("User data is corrupted: " + message, cause);
         }
     }
+
+    public static class UnauthorizedAccessException extends UserException {
+        public UnauthorizedAccessException(String message) {
+            super("Unauthorized access: " + message);
+        }
+    }
 }

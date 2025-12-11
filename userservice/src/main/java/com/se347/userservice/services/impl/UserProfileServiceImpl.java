@@ -10,6 +10,7 @@ import com.se347.userservice.exceptions.ExceptionUtils;
 import com.se347.userservice.services.UserProfileService;
 import com.se347.userservice.dtos.UserCreatedEventDto;
 import com.se347.userservice.publisher.UserProfileEventPublisher;
+import com.se347.userservice.utils.SlugUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         
         UserProfile profile = UserProfile.builder()
                 .userId(request.getUserId())
+                .userSlug(SlugUtil.toSlug(request.getFullName()))
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .avatarUrl(request.getAvatarUrl())
@@ -68,6 +70,7 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .orElseGet(() -> {
                     UserProfile profile = UserProfile.builder()
                             .userId(userCreatedEvent.getUserId())
+                            .userSlug(SlugUtil.toSlug("default-user-" + userCreatedEvent.getUserId()))
                             .email(userCreatedEvent.getEmail())
                             .profileCompleted(false)
                             .build();
@@ -107,17 +110,36 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public UserProfileResponseDto getProfileByUserSlug(String userSlug) {
+        // Validate input
+        ExceptionUtils.validateNotNull(userSlug, "userSlug");
+        
+        UserProfile profile = userProfileRepository.findByUserSlug(userSlug)
+                .orElseThrow(() -> new UserException.UserProfileNotFoundException(userSlug));
+
+        return mapToResponse(profile);
+    }
+
+    @Override
     @Transactional
     public UserProfileResponseDto updateProfile(UUID userId, UserProfileRequestDto request) {
         // Validate input
         ExceptionUtils.validateNotNull(userId, "userId");
+        ExceptionUtils.validateNotNull(request, "request");
         validateUpdateProfileRequest(request);
-        
+
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new UserException.UserProfileNotFoundException(userId.toString()));
 
         // Update fields
         profile.setFullName(request.getFullName());
+
+        // Update user slug if full name changes
+        if (request.getFullName() != null) {
+            profile.setUserSlug(SlugUtil.toSlug(request.getFullName()));
+        }
+
         profile.setAvatarUrl(request.getAvatarUrl());
         profile.setBio(request.getBio());
         profile.setPhoneNumber(request.getPhoneNumber());

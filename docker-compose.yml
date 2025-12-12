@@ -224,6 +224,11 @@ services:
       - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
       - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
 
+      # Admin initialization
+      - ADMIN_DEFAULT_EMAIL=${ADMIN_DEFAULT_EMAIL}
+      - ADMIN_DEFAULT_PASSWORD=${ADMIN_DEFAULT_PASSWORD}
+      - ADMIN_DEFAULT_ROLE=${ADMIN_DEFAULT_ROLE}
+
     ports:
       - "8005:8005"
     depends_on:

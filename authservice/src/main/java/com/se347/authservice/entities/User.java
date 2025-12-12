@@ -26,29 +26,40 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column
+    @Column(nullable = false)
     private Role role;
 
-    @Column
-    private boolean accountNonExpired;
+    @Builder.Default
+    @Column(nullable = false)
+    private String status = "ACTIVE";
 
-    @Column
-    private boolean accountNonLocked;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean accountNonExpired = true;
 
-    @Column
-    private boolean credentialsNonExpired;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean accountNonLocked = true;
 
-    @Column
-    private boolean enabled;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean credentialsNonExpired = true;
 
-    @Column
-    private boolean firstLogin;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean enabled = true;
 
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
+    @Builder.Default
+    @Column(updatable = true)
+    private boolean firstLogin = true;
 
-    @Column
-    private LocalDateTime updatedAt;
+    @Builder.Default
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Builder.Default
+    @Column(nullable = false)
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
     @PrePersist
     public void onCreate() {

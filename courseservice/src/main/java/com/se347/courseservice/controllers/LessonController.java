@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.*;
 import com.se347.courseservice.services.LessonService;
 import com.se347.courseservice.dtos.LessonRequestDto;
 import com.se347.courseservice.dtos.LessonResponseDto;
-import com.se347.courseservice.exceptions.LessonException;
 
 import org.springframework.http.ResponseEntity;
 
@@ -21,47 +20,61 @@ public class LessonController {
         this.lessonService = lessonService;
     }
 
-    @PostMapping("/lessons")
-    public ResponseEntity<LessonResponseDto> createLesson(@RequestBody LessonRequestDto request) {
-        return ResponseEntity.ok(lessonService.createLesson(request));
+    @PostMapping("courses/id/{courseId}/sections/id/{sectionId}/lessons")
+    public ResponseEntity<LessonResponseDto> createLesson(
+            @PathVariable UUID courseId, 
+            @PathVariable UUID sectionId, 
+            @RequestBody LessonRequestDto request) {
+        return ResponseEntity.ok(lessonService.createLesson(courseId, sectionId, request));
     }
 
-    @GetMapping("/lessons/{lessonId}")
-    public ResponseEntity<LessonResponseDto> getLessonById(@PathVariable UUID lessonId, @RequestHeader("X-User-Roles") String userRoles) {
-        if (!userRoles.contains("ADMIN")) {
-            throw new LessonException.UnauthorizedAccessException("User not authorized to access this resource");
-        }
-        return ResponseEntity.ok(lessonService.getLessonById(lessonId));
+    @GetMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}")
+    public ResponseEntity<LessonResponseDto> getLessonById(
+            @PathVariable UUID courseId,
+            @PathVariable UUID sectionId,
+            @PathVariable UUID lessonId) {
+        return ResponseEntity.ok(lessonService.getLessonById(courseId, sectionId, lessonId));
     }
 
-    @PutMapping("/lessons/{lessonId}")
-    public ResponseEntity<LessonResponseDto> updateLesson(@PathVariable UUID lessonId, @RequestBody LessonRequestDto request, @RequestHeader("X-User-Roles") String userRoles) {
-        if (!userRoles.contains("ADMIN")) {
-            throw new LessonException.UnauthorizedAccessException("User not authorized to access this resource");
-        }
-        return ResponseEntity.ok(lessonService.updateLesson(lessonId, request));
+    @PutMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}")
+    public ResponseEntity<LessonResponseDto> updateLessonById(
+            @PathVariable UUID courseId,
+            @PathVariable UUID sectionId,
+            @PathVariable UUID lessonId, 
+            @RequestBody LessonRequestDto request, 
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(lessonService.updateLessonById(courseId, sectionId, lessonId, request, userId));
     }
 
-    @GetMapping("/sections/{sectionId}/lessons")
-    public ResponseEntity<List<LessonResponseDto>> getLessonsBySectionId(@PathVariable UUID sectionId, @RequestHeader("X-User-Roles") String userRoles) {
-        if (!userRoles.contains("ADMIN")) {
-            throw new LessonException.UnauthorizedAccessException("User not authorized to access this resource");
-        }
-        return ResponseEntity.ok(lessonService.getLessonsBySectionId(sectionId));
+    @GetMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}/lessons/slug/{lessonSlug}")
+    public ResponseEntity<LessonResponseDto> getLessonByLessonSlug(
+            @PathVariable String courseSlug,
+            @PathVariable String sectionSlug,
+            @PathVariable String lessonSlug) {
+        return ResponseEntity.ok(lessonService.getLessonByLessonSlug(courseSlug, sectionSlug, lessonSlug));
     }
 
-    @GetMapping("/courses/{courseSlug}/sections/{sectionSlug}/lessons")
-    public ResponseEntity<List<LessonResponseDto>> getLessonsByCourseSlugAndSectionSlug(@PathVariable String courseSlug, @PathVariable String sectionSlug, @RequestHeader("X-User-Roles") String userRoles) {
-        return ResponseEntity.ok(lessonService.getLessonsByCourseSlugAndSectionSlug(courseSlug, sectionSlug));
+    @PutMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}/lessons/slug/{lessonSlug}")
+    public ResponseEntity<LessonResponseDto> updateLessonByLessonSlug(
+            @PathVariable String courseSlug,
+            @PathVariable String sectionSlug,
+            @PathVariable String lessonSlug, 
+            @RequestBody LessonRequestDto request, 
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(lessonService.updateLessonByLessonSlug(courseSlug, sectionSlug, lessonSlug, request, userId));
     }
 
-    @GetMapping("/courses/{courseSlug}/sections/{sectionSlug}/lessons/{lessonSlug}")
-    public ResponseEntity<LessonResponseDto> getLessonByCourseSlugAndSectionSlugAndLessonSlug(@PathVariable String courseSlug, @PathVariable String sectionSlug, @PathVariable String lessonSlug, @RequestHeader("X-User-Roles") String userRoles) {
-        return ResponseEntity.ok(lessonService.getLessonByCourseSlugAndSectionSlugAndLessonSlug(courseSlug, sectionSlug, lessonSlug));
+    @GetMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons")
+    public ResponseEntity<List<LessonResponseDto>> getLessonsBySectionId(
+        @PathVariable UUID courseId, 
+        @PathVariable UUID sectionId) {
+        return ResponseEntity.ok(lessonService.getLessonsBySectionId(courseId, sectionId));
     }
 
-    @PutMapping("/courses/{courseSlug}/sections/{sectionSlug}/lessons/{lessonSlug}")
-    public ResponseEntity<LessonResponseDto> updateLessonByCourseSlugAndSectionSlugAndLessonSlug(@PathVariable String courseSlug, @PathVariable String sectionSlug, @PathVariable String lessonSlug, @RequestBody LessonRequestDto request, @RequestHeader("X-User-Roles") String userRoles, @RequestHeader("X-User-Id") String userId) {
-        return ResponseEntity.ok(lessonService.updateLessonByCourseSlugAndSectionSlugAndLessonSlug(courseSlug, sectionSlug, lessonSlug, request, userRoles, UUID.fromString(userId)));
+    @GetMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}/lessons")
+    public ResponseEntity<List<LessonResponseDto>> getLessonsBySectionSlug(
+        @PathVariable String courseSlug,
+        @PathVariable String sectionSlug) {
+        return ResponseEntity.ok(lessonService.getLessonsBySectionSlug(courseSlug, sectionSlug));
     }
 }

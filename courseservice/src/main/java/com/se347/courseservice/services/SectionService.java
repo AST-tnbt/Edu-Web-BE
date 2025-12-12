@@ -8,13 +8,14 @@ import java.util.List;
 import java.util.UUID;
 
 public interface SectionService {
-    SectionResponseDto createSection(SectionRequestDto request);
-    SectionResponseDto getSectionById(UUID sectionId);
-    Section toSection(UUID sectionId);
-    SectionResponseDto updateSection(UUID sectionId, SectionRequestDto request);
-    boolean sectionExists(UUID sectionId);
+    SectionResponseDto createSection(UUID courseId, SectionRequestDto request);
+    SectionResponseDto getSectionById(UUID courseId, UUID sectionId);
+    SectionResponseDto getSectionBySectionSlug(String courseSlug, String sectionSlug);
+    SectionResponseDto updateSectionById(UUID courseId, UUID sectionId, SectionRequestDto request, UUID userId);
+    SectionResponseDto updateSectionBySectionSlug(String courseSlug, String sectionSlug, SectionRequestDto request, UUID userId);
     List<SectionResponseDto> getSectionsByCourseId(UUID courseId);
     List<SectionResponseDto> getSectionsByCourseSlug(String courseSlug);
-    SectionResponseDto getSectionByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug);
-    SectionResponseDto updateSectionByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug, SectionRequestDto request, String userRoles, UUID userId);
+    boolean sectionExists(UUID sectionId);
+
+    Section toSection(UUID sectionId);
 }

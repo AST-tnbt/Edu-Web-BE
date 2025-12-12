@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.UUID;
 
 public interface LessonService {
-    LessonResponseDto createLesson(LessonRequestDto request);
-    LessonResponseDto getLessonById(UUID lessonId);
+    LessonResponseDto createLesson(UUID courseId, UUID sectionId, LessonRequestDto request);
+    LessonResponseDto getLessonById(UUID courseId, UUID sectionId, UUID lessonId);
+    LessonResponseDto getLessonByLessonSlug(String courseSlug, String sectionSlug, String lessonSlug);
+    LessonResponseDto updateLessonById(UUID courseId, UUID sectionId, UUID lessonId, LessonRequestDto request, UUID userId);
+    LessonResponseDto updateLessonByLessonSlug(String courseSlug, String sectionSlug, String lessonSlug, LessonRequestDto request, UUID userId);
+    List<LessonResponseDto> getLessonsBySectionId(UUID courseId, UUID sectionId);
+    List<LessonResponseDto> getLessonsBySectionSlug(String courseSlug, String sectionSlug);
     Lesson toLesson(UUID lessonId);
-    LessonResponseDto updateLesson(UUID lessonId, LessonRequestDto request);
-    List<LessonResponseDto> getLessonsBySectionId(UUID sectionId);
-    List<LessonResponseDto> getLessonsByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug);
-    LessonResponseDto getLessonByCourseSlugAndSectionSlugAndLessonSlug(String courseSlug, String sectionSlug, String lessonSlug);
-    LessonResponseDto updateLessonByCourseSlugAndSectionSlugAndLessonSlug(String courseSlug, String sectionSlug, String lessonSlug, LessonRequestDto request, String userRoles, UUID userId);
 }

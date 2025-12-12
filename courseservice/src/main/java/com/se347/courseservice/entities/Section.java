@@ -1,7 +1,5 @@
 package com.se347.courseservice.entities;
 
-import com.se347.courseservice.entities.Lesson;
-import com.se347.courseservice.entities.Course;
 import jakarta.persistence.*;
 import lombok.*;
 

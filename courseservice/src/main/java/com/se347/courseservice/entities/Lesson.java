@@ -1,8 +1,5 @@
 package com.se347.courseservice.entities;
 
-import com.se347.courseservice.entities.Content;
-import com.se347.courseservice.entities.Section;
-
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;

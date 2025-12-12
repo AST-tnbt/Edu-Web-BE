@@ -1,7 +1,6 @@
 package com.se347.courseservice.entities;
 
 import com.se347.courseservice.enums.CourseLevel;
-import com.se347.courseservice.entities.Section;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,7 +29,7 @@ public class Course {
     @Column(nullable = false)
     private String description;
 
-    @Column(nullable = false)
+    @Column
     private String thumbnailUrl;
 
     @Column(nullable = false, precision = 10, scale = 2)

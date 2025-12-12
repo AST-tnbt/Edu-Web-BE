@@ -3,17 +3,17 @@ package com.se347.courseservice.services.impl;
 import com.se347.courseservice.dtos.LessonRequestDto;
 import com.se347.courseservice.dtos.LessonResponseDto;
 import com.se347.courseservice.entities.Lesson;
-import com.se347.courseservice.exceptions.CourseException;
-import com.se347.courseservice.services.SectionService;
+import com.se347.courseservice.domains.LessonDomainService;
+import com.se347.courseservice.domains.SectionDomainService;
+import com.se347.courseservice.domains.CourseDomainService;
 import com.se347.courseservice.services.LessonService;
 import com.se347.courseservice.repositories.LessonRepository;
 import com.se347.courseservice.clients.EnrollmentServiceClient;
 import com.se347.courseservice.publishers.CoursePublisher;
 import com.se347.courseservice.dtos.events.setTotalLessonsEventDto;
 import com.se347.courseservice.services.CourseService;
-import com.se347.courseservice.entities.Section;
+import com.se347.courseservice.exceptions.CourseException;
 import com.se347.courseservice.utils.SlugUtil;
-import com.se347.courseservice.entities.Course;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class LessonServiceImpl implements LessonService {
     private final LessonRepository lessonRepository;
-    private final SectionService sectionService;
+    private final LessonDomainService lessonDomainService;
+    private final SectionDomainService sectionDomainService;
+    private final CourseDomainService courseDomainService;
     private final EnrollmentServiceClient enrollmentServiceClient;
     private final CoursePublisher coursePublisher;
     private final CourseService courseService;
@@ -36,45 +38,16 @@ public class LessonServiceImpl implements LessonService {
     
     @Override
     @Transactional
-    public LessonResponseDto createLesson(LessonRequestDto request) {
+    public LessonResponseDto createLesson(UUID courseId, UUID sectionId, LessonRequestDto request) {
+        // Validate business rules through domain service
+        lessonDomainService.validateLessonCreation(request);
+        courseDomainService.validateCourseExists(courseId);
+        sectionDomainService.validateSectionBelongsToCourse(sectionDomainService.findSectionById(sectionId), courseId);
 
-        if (request == null) {
-            throw new CourseException.InvalidRequestException("Request cannot be null");
-        }
-
-        if (request.getTitle() == null || request.getTitle().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Title cannot be null or empty");
-        }
-
-        if (request.getSectionId() == null) {
-            throw new CourseException.InvalidRequestException("Section ID cannot be null");
-        }
-
-        if (request.getOrderIndex() <= 0) {
-            throw new CourseException.InvalidRequestException("Order index must be greater than 0");
-        }
+        // Create entity through domain service
+        Lesson lesson = lessonDomainService.createLessonEntity(request, sectionDomainService.findSectionById(sectionId));
         
-        String normalizedTitle = request.getTitle().trim();
-
-        if (lessonRepository.existsBySection_SectionIdAndTitle(request.getSectionId(), normalizedTitle)) {
-            throw new CourseException.LessonAlreadyExistsException(request.getSectionId().toString(), normalizedTitle);
-        }
-
-        if (!sectionService.sectionExists(request.getSectionId())) {
-            throw new CourseException.SectionNotFoundException(request.getSectionId().toString());
-        }
-
-        UUID sectionId = request.getSectionId();
-        Section section = sectionService.toSection(sectionId); // Lấy 1 lần
-        UUID courseId = section.getCourse().getCourseId();
-
-        Lesson lesson = Lesson.builder()
-            .lessonSlug(request.getLessonSlug() != null ? request.getLessonSlug() : SlugUtil.toSlug(request.getTitle()))
-            .title(normalizedTitle)
-            .section(section) // Dùng section đã lấy
-            .orderIndex(request.getOrderIndex())
-            .build();
-        lesson.onCreate();
+        // Save through repository (infrastructure concern)
         lessonRepository.save(lesson);
 
         // Check enrollments với error handling
@@ -97,30 +70,25 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     @Transactional(readOnly = true)
-    public LessonResponseDto getLessonById(UUID lessonId) {
-        if (lessonId == null) {
-            throw new CourseException.InvalidRequestException("Lesson ID cannot be null");
-        }
+    public LessonResponseDto getLessonById(UUID courseId, UUID sectionId, UUID lessonId) {
+        courseDomainService.validateCourseExists(courseId);
+        sectionDomainService.validateSectionBelongsToCourse(sectionDomainService.findSectionById(sectionId), courseId);
+        lessonDomainService.validateLessonBelongsToSection(lessonDomainService.findLessonById(lessonId), sectionDomainService.findSectionById(sectionId));
 
-        Lesson lesson = lessonRepository.findById(lessonId)
-            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId.toString()));
+        Lesson lesson = lessonDomainService.findLessonById(lessonId);
         return mapToResponse(lesson);
     }
 
     @Override
-    public List<LessonResponseDto> getLessonsByCourseSlugAndSectionSlug(String courseSlug, String sectionSlug) {
-        if (courseSlug == null || courseSlug.trim().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
-        }
-        if (sectionSlug == null || sectionSlug.trim().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Section slug cannot be null or empty");
-        }
-    
-        Section section = sectionService.toSection(sectionService.getSectionByCourseSlugAndSectionSlug(courseSlug, sectionSlug).getSectionId());
+    @Transactional(readOnly = true)
+    public List<LessonResponseDto> getLessonsBySectionId(UUID courseId, UUID sectionId) {
+        courseDomainService.validateCourseExists(courseId);
+        sectionDomainService.validateSectionBelongsToCourse(sectionDomainService.findSectionById(sectionId), courseId);
 
-        List<Lesson> lessons = lessonRepository.findBySection_SectionId(section.getSectionId());
+        List<Lesson> lessons = lessonDomainService.findLessonsBySectionId(sectionId);
+        
         if (lessons.isEmpty()) {
-            throw new CourseException.LessonNotFoundException("Lessons with course slug '" + courseSlug + "' and section slug '" + sectionSlug + "' not found");
+            throw new CourseException.LessonNotFoundException("Lessons with section ID '" + sectionId + "' not found");
         }
 
         return lessons.stream()
@@ -129,97 +97,62 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
-    public LessonResponseDto getLessonByCourseSlugAndSectionSlugAndLessonSlug(String courseSlug, String sectionSlug, String lessonSlug) {
-        if (courseSlug == null || courseSlug.trim().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
-        }
-        if (sectionSlug == null || sectionSlug.trim().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Section slug cannot be null or empty");
-        }
+    @Transactional(readOnly = true)
+    public LessonResponseDto getLessonByLessonSlug(String courseSlug, String sectionSlug, String lessonSlug) {
+        UUID courseId = courseDomainService.findCourseBySlug(courseSlug).getCourseId();
+        courseDomainService.validateCourseExists(courseId);
+        sectionDomainService.validateSectionBelongsToCourse(sectionDomainService.findSectionBySlug(sectionSlug), courseId);
+        lessonDomainService.validateLessonBelongsToSection(lessonDomainService.findLessonByLessonSlug(lessonSlug), sectionDomainService.findSectionBySlug(sectionSlug));
 
-        Section section = sectionService.toSection(sectionService.getSectionByCourseSlugAndSectionSlug(courseSlug, sectionSlug).getSectionId());
-
-        Lesson lesson = lessonRepository.findByLessonSlug(lessonSlug)
-            .orElseThrow(() -> new CourseException.LessonNotFoundException("Lesson with slug '" + lessonSlug + "' not found"));
-        if (lesson.getSection().getSectionId() != section.getSectionId()) {
-            throw new CourseException.LessonNotFoundException("Lesson with slug '" + lessonSlug + "' not found in section '" + sectionSlug + "'");
-        }
+        Lesson lesson = lessonDomainService.findLessonByLessonSlug(lessonSlug);
         return mapToResponse(lesson);
     }
 
     @Transactional
     @Override
-    public LessonResponseDto updateLessonByCourseSlugAndSectionSlugAndLessonSlug(String courseSlug, String sectionSlug, String lessonSlug, LessonRequestDto request, String userRoles, UUID userId) {
-        if (courseSlug == null || courseSlug.trim().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Course slug cannot be null or empty");
-        }
-        if (sectionSlug == null || sectionSlug.trim().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Section slug cannot be null or empty");
-        }
+    public LessonResponseDto updateLessonByLessonSlug(String courseSlug, String sectionSlug, String lessonSlug, LessonRequestDto request, UUID userId) {
+        UUID courseId = courseDomainService.findCourseBySlug(courseSlug).getCourseId();
+        courseDomainService.validateCourseExists(courseId);
+        sectionDomainService.validateSectionBelongsToCourse(sectionDomainService.findSectionBySlug(sectionSlug), courseId);
+        lessonDomainService.validateLessonBelongsToSection(lessonDomainService.findLessonByLessonSlug(lessonSlug), sectionDomainService.findSectionBySlug(sectionSlug));
 
-        Section section = sectionService.toSection(sectionService.getSectionByCourseSlugAndSectionSlug(courseSlug, sectionSlug).getSectionId());
-        Lesson lesson = lessonRepository.findByLessonSlug(lessonSlug)
-            .orElseThrow(() -> new CourseException.LessonNotFoundException("Lesson with slug '" + lessonSlug + "' not found"));
+        // Get lesson through domain service
+        Lesson lesson = lessonDomainService.findLessonByLessonSlug(lessonSlug);
+        
+        lessonDomainService.validateLessonUpdate(lesson, request, userId);
+        
+        // Update entity through domain service
+        lessonDomainService.updateLessonEntity(lesson, request, lesson.getSection());
+        
+        // Save through repository (infrastructure concern)
+        lessonRepository.save(lesson);
 
-        if (!authorizeAccess(lesson.getLessonId(), userRoles, userId)) {
-            throw new CourseException.UnauthorizedAccessException("User not authorized to access this resource");
-        }
-
-        if (lesson.getSection().getSectionId() != section.getSectionId()) {
-            throw new CourseException.LessonNotFoundException("Lesson with slug '" + lessonSlug + "' not found in section '" + sectionSlug + "'");
-        }
-        return updateLesson(lesson.getLessonId(), request);
+        return mapToResponse(lesson);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Lesson toLesson(UUID lessonId) {
-        Lesson lesson = lessonRepository.findById(lessonId)
-            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId.toString()));
-        return lesson;
+        return lessonDomainService.toLesson(lessonId);
     }
 
     @Override
     @Transactional
-    public LessonResponseDto updateLesson(UUID lessonId, LessonRequestDto request) {
+    public LessonResponseDto updateLessonById(UUID courseId, UUID sectionId, UUID lessonId, LessonRequestDto request, UUID userId) {
+        courseDomainService.validateCourseExists(courseId);
+        sectionDomainService.validateSectionBelongsToCourse(sectionDomainService.findSectionById(sectionId), courseId);
+        lessonDomainService.validateLessonBelongsToSection(lessonDomainService.findLessonById(lessonId), sectionDomainService.findSectionById(sectionId));
 
-        if (request == null) {
-            throw new CourseException.InvalidRequestException("Request cannot be null");
-        }
-
-        if (lessonId == null) {
-            throw new CourseException.InvalidRequestException("Lesson ID cannot be null");
-        }
-
-        if (request.getTitle() == null || request.getTitle().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Title cannot be null or empty");
-        }
-
-        if (request.getSectionId() == null) {
-            throw new CourseException.InvalidRequestException("Section ID cannot be null");
-        }
-
-        String normalizedTitle = request.getTitle().trim();
-
-        if (!sectionService.sectionExists(request.getSectionId())) {
-            throw new CourseException.SectionNotFoundException(request.getSectionId().toString());
-        }
-
-        Lesson existingLesson = lessonRepository.findById(lessonId)
-            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId.toString()));
-
-        // Only check duplicate if title or section changes
-        boolean titleChanged = !normalizedTitle.equals(existingLesson.getTitle());
-        boolean sectionChanged = !request.getSectionId().equals(existingLesson.getSection().getSectionId());
-        if ((titleChanged || sectionChanged) && lessonRepository.existsBySection_SectionIdAndTitle(request.getSectionId(), normalizedTitle)) {
-            throw new CourseException.LessonAlreadyExistsException(request.getSectionId().toString(), normalizedTitle);
-        }
-
-        existingLesson.setLessonSlug(request.getLessonSlug() != null ? request.getLessonSlug() : SlugUtil.toSlug(request.getTitle()));
-        existingLesson.setTitle(normalizedTitle);
-        existingLesson.setSection(sectionService.toSection(request.getSectionId()));
-        existingLesson.setOrderIndex(request.getOrderIndex());
-        existingLesson.onUpdate();
+        // Get lesson through domain service
+        Lesson existingLesson = lessonDomainService.findLessonById(lessonId);
+        
+        // Validate business rules through domain service
+        lessonDomainService.validateLessonUpdate(existingLesson, request, userId);
+                
+        // Update entity through domain service
+        lessonDomainService.updateLessonEntity(existingLesson, request, existingLesson.getSection());
+        
+        // Save through repository (infrastructure concern)
         lessonRepository.save(existingLesson);
 
         return mapToResponse(existingLesson);
@@ -227,25 +160,15 @@ public class LessonServiceImpl implements LessonService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<LessonResponseDto> getLessonsBySectionId(UUID sectionId){
+    public List<LessonResponseDto> getLessonsBySectionSlug(String courseSlug, String sectionSlug) {
+        UUID courseId = courseDomainService.findCourseBySlug(courseSlug).getCourseId();
+        courseDomainService.validateCourseExists(courseId);
+        sectionDomainService.validateSectionBelongsToCourse(sectionDomainService.findSectionBySlug(sectionSlug), courseId);
 
-        if (sectionId == null) {
-            throw new CourseException.InvalidRequestException("Section ID cannot be null");
-        }
-
-        List<Lesson> lessons = lessonRepository.findBySection_SectionId(sectionId);
+        List<Lesson> lessons = lessonDomainService.findLessonsBySectionId(sectionDomainService.findSectionBySlug(sectionSlug).getSectionId());
         return lessons.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());
-    }
-
-    private boolean authorizeAccess(UUID lessonId, String userRoles, UUID userId) {
-        Lesson lesson = lessonRepository.findById(lessonId)
-            .orElseThrow(() -> new CourseException.LessonNotFoundException(lessonId.toString()));
-        if (!userRoles.contains("ADMIN") && lesson.getSection().getCourse().getInstructorId() != userId) {
-            return false;
-        }
-        return true;
     }
 
     private LessonResponseDto mapToResponse(Lesson lesson) {

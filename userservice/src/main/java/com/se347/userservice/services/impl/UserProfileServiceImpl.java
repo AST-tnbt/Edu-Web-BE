@@ -70,7 +70,7 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .orElseGet(() -> {
                     UserProfile profile = UserProfile.builder()
                             .userId(userCreatedEvent.getUserId())
-                            .userSlug(SlugUtil.toSlug("default-user-" + userCreatedEvent.getUserId()))
+                            .userSlug(SlugUtil.toSlug("default-user"))
                             .email(userCreatedEvent.getEmail())
                             .profileCompleted(false)
                             .build();
@@ -214,10 +214,12 @@ public class UserProfileServiceImpl implements UserProfileService {
     private UserProfileResponseDto mapToResponse(UserProfile profile) {
         return UserProfileResponseDto.builder()
                 .userId(profile.getUserId())
+                .userSlug(profile.getUserSlug())
                 .fullName(profile.getFullName())
                 .email(profile.getEmail())
                 .avatarUrl(profile.getAvatarUrl())
                 .bio(profile.getBio())
+                .dateOfBirth(profile.getDateOfBirth())
                 .phoneNumber(profile.getPhoneNumber())
                 .address(profile.getAddress())
                 .createdAt(profile.getCreatedAt())

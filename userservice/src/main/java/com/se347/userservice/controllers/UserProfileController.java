@@ -34,7 +34,7 @@ public class UserProfileController {
         return ResponseEntity.ok(profile);
     }
 
-    @GetMapping("/{userId}")
+    @GetMapping("/id/{userId}")
     public ResponseEntity<UserProfileResponseDto> getProfile(
         @PathVariable UUID userId,
         @RequestHeader("X-User-Roles") String userRoles) {
@@ -42,7 +42,7 @@ public class UserProfileController {
         return ResponseEntity.ok(profile);
     }
 
-    @GetMapping("/{userSlug}")
+    @GetMapping("/slug/{userSlug}")
     public ResponseEntity<UserProfileResponseDto> getProfileByUserSlug(@PathVariable String userSlug) {
         UserProfileResponseDto profile = userProfileService.getProfileByUserSlug(userSlug);
         return ResponseEntity.ok(profile);
@@ -54,12 +54,12 @@ public class UserProfileController {
         return ResponseEntity.ok(profile);
     }
 
-    @PutMapping("/{userId}")
+    @PutMapping("/id/{userId}")
     public ResponseEntity<UserProfileResponseDto> updateProfile(
             @PathVariable UUID userId,
             @RequestBody UserProfileRequestDto request,
             @RequestHeader("X-User-Roles") String userRoles) {
-        if (!userRoles.contains("ADMIN")) {
+        if (!userRoles.equals("ADMIN")) {
             throw new UserException.UnauthorizedAccessException("User not authorized to access this resource");
         }
         UserProfileResponseDto profile = userProfileService.updateProfile(userId, request);

@@ -11,6 +11,7 @@ import lombok.*;
 @Builder
 public class UserProfileRequestDto {
     private UUID userId;
+    private String userSlug;
     private String fullName;
     private String email;
     private String avatarUrl;

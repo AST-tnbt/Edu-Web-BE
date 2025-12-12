@@ -2,9 +2,6 @@ package com.se347.paymentservice.service;
 
 import com.se347.paymentservice.dtos.PaymentUrlResponse;
 import com.se347.paymentservice.dtos.VnpayRequest;
-import org.springframework.http.ResponseEntity;
-
-import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 public interface PaymentService {

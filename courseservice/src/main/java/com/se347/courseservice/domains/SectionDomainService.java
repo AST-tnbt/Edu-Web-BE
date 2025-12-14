@@ -16,11 +16,11 @@ public interface SectionDomainService {
     boolean sectionExistsBySlug(String sectionSlug);
     boolean sectionExistsByTitle(String title);
 
-    Section createSectionEntity(SectionRequestDto request);
-    Section updateSectionEntity(Section section, SectionRequestDto request);
+    Section createSectionEntity(SectionRequestDto request, UUID courseId);
+    Section updateSectionEntity(Section section, UUID courseId, SectionRequestDto request);
 
-    void validateSectionCreation(SectionRequestDto request);
-    void validateSectionUpdate(Section section, SectionRequestDto request, UUID userId);
+    void validateSectionCreation(SectionRequestDto request, UUID courseId);
+    void validateSectionUpdate(Section section, UUID courseId, SectionRequestDto request, UUID userId);
     void validateSectionBelongsToCourse(Section section, UUID courseId);
 
     boolean isSectionOwner(Section section, UUID userId);

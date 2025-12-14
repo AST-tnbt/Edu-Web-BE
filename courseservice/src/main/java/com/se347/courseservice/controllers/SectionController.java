@@ -20,8 +20,12 @@ public class SectionController {
     private final SectionService sectionService;
 
     @PostMapping("/courses/id/{courseId}/sections")
-    public ResponseEntity<SectionResponseDto> createSection(@PathVariable UUID courseId, @RequestBody SectionRequestDto request) {
-        return ResponseEntity.ok(sectionService.createSection(courseId, request));
+    public ResponseEntity<SectionResponseDto> createSection(
+        @PathVariable UUID courseId, 
+        @RequestBody SectionRequestDto request,
+        @RequestHeader("X-User-Id") UUID userId
+    ) {
+        return ResponseEntity.ok(sectionService.createSection(courseId, request, userId));
     }
 
     @GetMapping("/courses/id/{courseId}/sections/id/{sectionId}")

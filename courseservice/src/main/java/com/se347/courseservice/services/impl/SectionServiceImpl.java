@@ -25,11 +25,17 @@ public class SectionServiceImpl implements SectionService {
 
     @Override
     @Transactional
-    public SectionResponseDto createSection(UUID courseId, SectionRequestDto request) {
+    public SectionResponseDto createSection(UUID courseId, SectionRequestDto request, UUID userId) {
 
-        sectionDomainService.validateSectionCreation(request);
+        sectionDomainService.validateSectionCreation(request, courseId);
         courseDomainService.validateCourseExists(courseId);
-        Section section = sectionDomainService.createSectionEntity(request);
+
+        // Validate course owner
+        if (!courseDomainService.isCourseOwner(courseDomainService.findCourseById(courseId), userId)) {
+            throw new CourseException.UnauthorizedAccessException("User not authorized to access this resource");
+        }
+
+        Section section = sectionDomainService.createSectionEntity(request, courseId);
         
         // Save through repository (infrastructure concern)
         sectionRepository.save(section);
@@ -74,8 +80,8 @@ public class SectionServiceImpl implements SectionService {
             throw new CourseException.UnauthorizedAccessException("User not authorized to access this resource");
         }
 
-        sectionDomainService.validateSectionUpdate(section, request, userId);
-        sectionDomainService.updateSectionEntity(section, request);
+        sectionDomainService.validateSectionUpdate(section, courseId, request, userId);
+        sectionDomainService.updateSectionEntity(section, courseId, request);
         sectionRepository.save(section);
         
         return mapToResponse(section);
@@ -90,8 +96,8 @@ public class SectionServiceImpl implements SectionService {
 
         Section section = sectionDomainService.findSectionBySlug(sectionSlug);
 
-        sectionDomainService.validateSectionUpdate(section, request, userId);
-        sectionDomainService.updateSectionEntity(section, request);
+        sectionDomainService.validateSectionUpdate(section, courseDomainService.findCourseBySlug(courseSlug).getCourseId(), request, userId);
+        sectionDomainService.updateSectionEntity(section, courseDomainService.findCourseBySlug(courseSlug).getCourseId(), request);
         sectionRepository.save(section);
 
         return mapToResponse(section);

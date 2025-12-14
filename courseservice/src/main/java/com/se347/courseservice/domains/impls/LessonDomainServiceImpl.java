@@ -116,6 +116,11 @@ public class LessonDomainServiceImpl implements LessonDomainService {
         if (section == null) {
             throw new CourseException.InvalidRequestException("Section cannot be null");
         }
+
+        // Validate section exists
+        if (!sectionDomainService.sectionExists(section.getSectionId())) {
+            throw new CourseException.SectionNotFoundException(section.getSectionId().toString());
+        }
         
         String normalizedTitle = request.getTitle() != null ? request.getTitle().trim() : null;
         String lessonSlug = request.getLessonSlug() != null ? request.getLessonSlug() : generateLessonSlug(normalizedTitle);
@@ -165,16 +170,8 @@ public class LessonDomainServiceImpl implements LessonDomainService {
         if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
             throw new CourseException.InvalidRequestException("Title cannot be null or empty");
         }
-        if (request.getSectionId() == null) {
-            throw new CourseException.InvalidRequestException("Section ID cannot be null");
-        }
         if (request.getOrderIndex() <= 0) {
             throw new CourseException.InvalidRequestException("Order index must be greater than 0");
-        }
-        
-        // Validate section exists
-        if (!sectionDomainService.sectionExists(request.getSectionId())) {
-            throw new CourseException.SectionNotFoundException(request.getSectionId().toString());
         }
     }
 

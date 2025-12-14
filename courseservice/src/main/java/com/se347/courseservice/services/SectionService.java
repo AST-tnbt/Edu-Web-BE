@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface SectionService {
-    SectionResponseDto createSection(UUID courseId, SectionRequestDto request);
+    SectionResponseDto createSection(UUID courseId, SectionRequestDto request, UUID userId);
     SectionResponseDto getSectionById(UUID courseId, UUID sectionId);
     SectionResponseDto getSectionBySectionSlug(String courseSlug, String sectionSlug);
     SectionResponseDto updateSectionById(UUID courseId, UUID sectionId, SectionRequestDto request, UUID userId);

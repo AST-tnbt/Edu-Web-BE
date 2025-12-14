@@ -96,27 +96,20 @@ public class SectionDomainServiceImpl implements SectionDomainService {
     }
 
     @Override
-    public Section createSectionEntity(SectionRequestDto request) {
-        if (request == null) {
-            throw new CourseException.InvalidRequestException("Request cannot be null");
-        }
-        if (request.getCourseId() == null) {
-            throw new CourseException.InvalidRequestException("Course ID cannot be null");
-        }
-
+    public Section createSectionEntity(SectionRequestDto request, UUID courseId) {
         Section section = Section.builder()
             .sectionSlug(generateSectionSlug(request.getTitle()))
             .title(request.getTitle())
             .description(request.getDescription())
             .orderIndex(request.getOrderIndex())
-            .course(courseDomainService.findCourseById(request.getCourseId()))
+            .course(courseDomainService.findCourseById(courseId))
             .build();
         section.onCreate();
         return section;
     }
 
     @Override
-    public Section updateSectionEntity(Section section, SectionRequestDto request) {
+    public Section updateSectionEntity(Section section, UUID courseId, SectionRequestDto request) {
         if (section == null) {
             throw new CourseException.SectionNotFoundException("Section cannot be null");
         }
@@ -128,28 +121,43 @@ public class SectionDomainServiceImpl implements SectionDomainService {
         section.setSectionSlug(generateSectionSlug(request.getTitle()));
         section.setDescription(request.getDescription());
         section.setOrderIndex(request.getOrderIndex());
-        section.setCourse(courseDomainService.findCourseById(request.getCourseId()));
+        section.setCourse(courseDomainService.findCourseById(courseId));
         section.onUpdate();
         return section;
     }
 
     @Override
-    public void validateSectionCreation(SectionRequestDto request) {
+    public void validateSectionCreation(SectionRequestDto request, UUID courseId) {
         if (request == null) {
             throw new CourseException.InvalidRequestException("Request cannot be null");
         }
         if (request.getTitle() == null || request.getTitle().isEmpty()) {
             throw new CourseException.InvalidRequestException("Title cannot be null or empty");
         }
+        if (courseId == null) {
+            throw new CourseException.InvalidRequestException("Course ID cannot be null");
+        }
+        if (!courseDomainService.courseExists(courseId)) {
+            throw new CourseException.CourseNotFoundException("Course with ID '" + courseId + "' not found");
+        }
     }
 
     @Override
-    public void validateSectionUpdate(Section section, SectionRequestDto request, UUID userId) {
+    public void validateSectionUpdate(Section section, UUID courseId, SectionRequestDto request, UUID userId) {
         if (section == null) {
             throw new CourseException.SectionNotFoundException("Section cannot be null");
         }
         if (request == null) {
             throw new CourseException.InvalidRequestException("Request cannot be null");
+        }
+        if (courseId == null) {
+            throw new CourseException.InvalidRequestException("Course ID cannot be null");
+        }
+        if (!courseDomainService.courseExists(courseId)) {
+            throw new CourseException.CourseNotFoundException("Course with ID '" + courseId + "' not found");
+        }
+        if (!section.getCourse().getCourseId().equals(courseId)) {
+            throw new CourseException.SectionNotFoundException("Section does not belong to course");
         }
         if (request.getTitle() == null || request.getTitle().isEmpty()) {
             throw new CourseException.InvalidRequestException("Title cannot be null or empty");

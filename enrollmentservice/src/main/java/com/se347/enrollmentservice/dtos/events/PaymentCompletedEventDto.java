@@ -11,4 +11,5 @@ import lombok.*;
 public class PaymentCompletedEventDto implements Serializable {
     private UUID userId;
     private UUID courseId;
+    private String courseSlug;
 }

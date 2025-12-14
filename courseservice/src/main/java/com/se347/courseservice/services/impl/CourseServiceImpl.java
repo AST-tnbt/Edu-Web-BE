@@ -1,20 +1,18 @@
 package com.se347.courseservice.services.impl;
 
+import com.se347.courseservice.domains.CourseDomainService;
 import com.se347.courseservice.dtos.CourseRequestDto;
 import com.se347.courseservice.dtos.CourseResponseDto;
-import com.se347.courseservice.dtos.CategoryRequestDto;
 import com.se347.courseservice.services.CourseService;
 import com.se347.courseservice.repositories.CourseRepository;
-import com.se347.courseservice.services.CategoryService;
 import com.se347.courseservice.entities.Course;
 import com.se347.courseservice.exceptions.CourseException;
-import com.se347.courseservice.repositories.SectionRepository;
-import com.se347.courseservice.repositories.LessonRepository;
-import com.se347.courseservice.entities.Section;
 
 import org.springframework.stereotype.Service;
 import java.util.UUID;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,138 +22,82 @@ import org.springframework.transaction.annotation.Transactional;
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
-    private final CategoryService categoryService;
-    private final SectionRepository sectionRepository;
-    private final LessonRepository lessonRepository;
+    private final CourseDomainService courseDomainService;
 
     @Transactional
     @Override
-    public CourseResponseDto createCourse(CourseRequestDto request) {
-        if (request == null) {
-            throw new CourseException.InvalidRequestException("Request cannot be null");
-        }
-
-        if (request.getTitle() == null || request.getTitle().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Title cannot be null or empty");
-        }
-
-        if (request.getDescription() == null || request.getDescription().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Description cannot be null or empty");
-        }
+    public CourseResponseDto createCourse(CourseRequestDto request, UUID userId) {
+        // Validate business rules through domain service
+        courseDomainService.validateCourseCreation(request);
+        courseDomainService.validateCategoryExists(request.getCategoryName());
         
-        if (request.getThumbnailUrl() == null || request.getThumbnailUrl().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Thumbnail URL cannot be null or empty");
-        }
-
-        // Check if category exists (predefined or custom)
-        if (!categoryService.categoryExists(request.getCategoryName())) {
-            // Create new custom category
-            CategoryRequestDto categoryRequest = CategoryRequestDto.builder()
-                    .categoryName(request.getCategoryName())
-                    .description("Auto-generated category")
-                    .build();
-            categoryService.createCategory(categoryRequest);
-        }
-
-        Course course = Course.builder()
-            .title(request.getTitle())
-            .description(request.getDescription())
-            .thumbnailUrl(request.getThumbnailUrl())
-            .price(request.getPrice())
-            .level(request.getLevel())
-            .categoryName(request.getCategoryName())
-            .instructorId(request.getInstructorId())
-            .build();
-
-        course.onCreate();
+        // Create entity through domain service
+        Course course = courseDomainService.createCourseEntity(request, userId);
+        
+        // Save through repository (infrastructure concern)
         courseRepository.save(course);
         return mapToResponse(course);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CourseResponseDto getCourseById(UUID courseId) {
-        if (courseId == null) {
-            throw new CourseException.InvalidRequestException("Course ID cannot be null");
-        }
-
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new CourseException.CourseNotFoundException(courseId.toString()));
-               
+        Course course = courseDomainService.findCourseById(courseId);
         return mapToResponse(course);
     }
 
+    @Transactional
     @Override
-    public CourseResponseDto updateCourse(UUID courseId, CourseRequestDto request) {
-        if (courseId == null) {
-            throw new CourseException.InvalidRequestException("Course ID cannot be null");
-        }
+    public CourseResponseDto updateCourseById(UUID courseId, CourseRequestDto request, UUID userId) {
+        // Get course through domain service
+        Course existingCourse = courseDomainService.findCourseById(courseId);
         
-        if (request == null) {
-            throw new CourseException.InvalidRequestException("Request cannot be null");
-        }
+        // Validate business rules through domain service
+        courseDomainService.validateCourseUpdate(existingCourse, request, userId);
+        courseDomainService.validateCategoryExists(request.getCategoryName());
 
-        if (request.getTitle() == null || request.getTitle().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Title cannot be null or empty");
-        }
-
-        if (request.getDescription() == null || request.getDescription().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Description cannot be null or empty");
-        }
+        // Update entity through domain service
+        courseDomainService.updateCourseEntity(existingCourse, request);
         
-        if (request.getThumbnailUrl() == null || request.getThumbnailUrl().isEmpty()) {
-            throw new CourseException.InvalidRequestException("Thumbnail URL cannot be null or empty");
-        }
-
-        // Check if course exists
-        Course existingCourse = courseRepository.findById(courseId)
-                .orElseThrow(() -> new CourseException.CourseNotFoundException(courseId.toString()));
-
-        // Check if category exists (predefined or custom)
-        if (!categoryService.categoryExists(request.getCategoryName())) {
-            throw new CourseException.CategoryNotFoundException(request.getCategoryName());
-        }
-
-        // Update existing course
-        existingCourse.setTitle(request.getTitle());
-        existingCourse.setDescription(request.getDescription());
-        existingCourse.setThumbnailUrl(request.getThumbnailUrl());
-        existingCourse.setPrice(request.getPrice());
-        existingCourse.setLevel(request.getLevel());
-        existingCourse.setCategoryName(request.getCategoryName());
-        existingCourse.setInstructorId(request.getInstructorId());
-        
-        existingCourse.onUpdate();
+        // Save through repository (infrastructure concern)
         courseRepository.save(existingCourse);
         return mapToResponse(existingCourse);
     }
 
+    @Transactional
     @Override
-    public boolean courseExists(UUID courseId) {
-        return courseRepository.existsById(courseId);
+    public CourseResponseDto updateCourseByCourseSlug(String courseSlug, CourseRequestDto request, UUID userId) {
+        // Get course through domain service
+        Course course = courseDomainService.findCourseBySlug(courseSlug);
+        
+        // Validate business rules through domain service
+        courseDomainService.validateCourseUpdate(course, request, userId);
+        courseDomainService.validateCategoryExists(request.getCategoryName());
+
+        // Update entity through domain service
+        courseDomainService.updateCourseEntity(course, request);
+        
+        // Save through repository (infrastructure concern)
+        courseRepository.save(course);
+        return mapToResponse(course);
     }
 
     @Override
-    public List<CourseResponseDto> getAllCourses() {
-        // Get all courses
-        List<Course> courses = courseRepository.findAll();
+    @Transactional(readOnly = true)
+    public Page<CourseResponseDto> getAllCourses(Pageable pageable) {
         
-        return courses.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        Page<Course> courses = courseDomainService.findAllCourses(pageable);
+
+        return courses.map(this::mapToResponse);
     }
 
     @Override
     public List<CourseResponseDto> getCoursesByCategoryName(String categoryName) {
 
-        if (categoryName == null || categoryName.trim().isEmpty()) {
+        if (categoryName == null || categoryName.isEmpty()) {
             throw new CourseException.InvalidRequestException("Category name cannot be null or empty");
         }
-        
-        // Check if category exists (predefined or custom)
-        if (!categoryService.categoryExists(categoryName)) {
-            throw new CourseException.CategoryNotFoundException(categoryName);
-        }
-        
+
         // Get courses by category name
         List<Course> courses = courseRepository.findByCategoryName(categoryName);
         
@@ -166,11 +108,10 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public List<CourseResponseDto> getCoursesByInstructorId(UUID instructorId) {
-        
+
         if (instructorId == null) {
             throw new CourseException.InvalidRequestException("Instructor ID cannot be null");
         }
-        
         // Get courses by instructor id
         List<Course> courses = courseRepository.findByInstructorId(instructorId);
         
@@ -181,11 +122,11 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public List<CourseResponseDto> getCoursesByTitleContaining(String title) {
-
-        if (title == null || title.trim().isEmpty()) {
+        
+        if (title == null || title.isEmpty()) {
             throw new CourseException.InvalidRequestException("Title cannot be null or empty");
         }
-        
+
         // Get courses by title containing
         List<Course> courses = courseRepository.findByTitleContaining(title);
         
@@ -195,33 +136,28 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public Course toCourse(UUID courseId) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new CourseException.CourseNotFoundException(courseId.toString()));
-        return course;
+    @Transactional(readOnly = true)
+    public CourseResponseDto getCourseByCourseSlug(String courseSlug) {
+        Course course = courseDomainService.findCourseBySlug(courseSlug);
+        return mapToResponse(course);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Integer getToltalLessonsByCourseId(UUID courseId) {
-        if (courseId == null) {
-            throw new CourseException.InvalidRequestException("Course ID cannot be null");
-        }
+        return courseDomainService.calculateTotalLessons(courseId);
+    }
 
-        if (!courseExists(courseId)) {
-            throw new CourseException.CourseNotFoundException(courseId.toString());
-        }
-
-        int totalLessons = 0;
-        List<Section> sections = sectionRepository.findByCourse_CourseId(courseId);
-        for (Section section : sections) {
-            totalLessons += (int) lessonRepository.countBySection_SectionId(section.getSectionId());
-        }
-        return totalLessons;
+    @Override
+    @Transactional(readOnly = true)
+    public Course toCourse(UUID courseId) {
+        return courseDomainService.toCourse(courseId);
     }
 
     private CourseResponseDto mapToResponse(Course course) {
         return CourseResponseDto.builder()
             .courseId(course.getCourseId())
+            .courseSlug(course.getCourseSlug())
             .title(course.getTitle())
             .description(course.getDescription())
             .thumbnailUrl(course.getThumbnailUrl())

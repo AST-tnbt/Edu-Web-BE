@@ -6,9 +6,9 @@ import com.se347.courseservice.services.ContentMetadataService;
 import com.se347.courseservice.dtos.ContentMetadataRequestDto;
 import com.se347.courseservice.dtos.ContentMetadataResponseDto;
 import com.se347.courseservice.repositories.ContentRepository;
-import com.se347.courseservice.exceptions.CourseException;
 import com.se347.courseservice.entities.Content;
-import com.se347.courseservice.services.LessonService;
+import com.se347.courseservice.domains.ContentDomainService;
+import com.se347.courseservice.domains.LessonDomainService;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,38 +21,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class ContentMetadataServiceImpl implements ContentMetadataService {
 
     private final ContentRepository contentRepository;
-    private final LessonService lessonService;
+    private final ContentDomainService contentDomainService;
+    private final LessonDomainService lessonDomainService;
 
     @Override
     @Transactional
-    public ContentMetadataResponseDto createContentMetadata(ContentMetadataRequestDto request) {
-        if (request == null) {
-            throw new CourseException.InvalidRequestException("Request cannot be null");
-        }
-
-        if (request.getLessonId() == null) {
-            throw new CourseException.InvalidRequestException("Lesson ID cannot be null");
-        }
-
-        if (request.getContentType() == null) {
-            throw new CourseException.InvalidRequestException("Content type cannot be null");
-        }
-
-        String normalizedTitle = request.getTitle() != null ? request.getTitle().trim() : null;
-        String normalizedUrl = request.getContentUrl() != null ? request.getContentUrl().trim() : null;
-        String normalizedText = request.getTextContent() != null ? request.getTextContent().trim() : null;
-
-        Content content = Content.builder()
-            .lesson(lessonService.toLesson(request.getLessonId()))
-            .type(request.getContentType())
-            .title(normalizedTitle)
-            .contentUrl(normalizedUrl)
-            .textContent(normalizedText)
-            .orderIndex(request.getOrderIndex())
-            .status(request.getStatus())
-            .build();
-
-        content.onCreate();
+    public ContentMetadataResponseDto createContentMetadata(ContentMetadataRequestDto request, UUID userId) {
+        // Validate business rules through domain service
+        contentDomainService.validateContentCreation(request, userId);
+        
+        // Create entity through domain service
+        Content content = contentDomainService.createContentEntity(request, lessonDomainService.findLessonById(request.getLessonId()));
+        
+        // Save through repository (infrastructure concern)
         contentRepository.save(content);
         return mapToResponse(content);
     }
@@ -60,40 +41,31 @@ public class ContentMetadataServiceImpl implements ContentMetadataService {
     @Override
     @Transactional(readOnly = true)
     public ContentMetadataResponseDto getContentMetadataById(UUID contentId) {
-        Content content = contentRepository.findById(contentId)
-            .orElseThrow(() -> new CourseException.ContentNotFoundException(contentId.toString()));
+        Content content = contentDomainService.findContentById(contentId);
         return mapToResponse(content);
     }
 
     @Override
     @Transactional
-    public ContentMetadataResponseDto updateContentMetadata(UUID contentId, ContentMetadataRequestDto request) {
-        Content content = contentRepository.findById(contentId)
-            .orElseThrow(() -> new CourseException.ContentNotFoundException(contentId.toString()));
-
-        if (request.getLessonId() == null) {
-            throw new CourseException.InvalidRequestException("Lesson ID cannot be null");
-        }
-
-        String normalizedTitle = request.getTitle() != null ? request.getTitle().trim() : null;
-        String normalizedUrl = request.getContentUrl() != null ? request.getContentUrl().trim() : null;
-        String normalizedText = request.getTextContent() != null ? request.getTextContent().trim() : null;
-
-        content.setLesson(lessonService.toLesson(request.getLessonId()));
-        content.setType(request.getContentType());
-        content.setTitle(normalizedTitle);
-        content.setContentUrl(normalizedUrl);
-        content.setTextContent(normalizedText);
-        content.setOrderIndex(request.getOrderIndex());
-        content.setStatus(request.getStatus());
-        content.onUpdate();
+    public ContentMetadataResponseDto updateContentMetadata(UUID contentId, ContentMetadataRequestDto request, UUID userId) {
+        // Get content through domain service
+        Content content = contentDomainService.findContentById(contentId);
+        
+        // Validate business rules through domain service
+        contentDomainService.validateContentUpdate(content, request, userId);
+        
+        // Update entity through domain service
+        contentDomainService.updateContentEntity(content, request, lessonDomainService.findLessonById(request.getLessonId()));
+        
+        // Save through repository (infrastructure concern)
         contentRepository.save(content);
         return mapToResponse(content);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ContentMetadataResponseDto> getContentMetadataByLessonId(UUID lessonId) {
-        List<Content> contents = contentRepository.findByLesson_LessonId(lessonId);
+        List<Content> contents = contentDomainService.findContentsByLessonId(lessonId);
         return contents.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());

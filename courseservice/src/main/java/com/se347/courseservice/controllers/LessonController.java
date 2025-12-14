@@ -20,31 +20,61 @@ public class LessonController {
         this.lessonService = lessonService;
     }
 
-    @PostMapping("/lessons")
-    public ResponseEntity<LessonResponseDto> createLesson(@RequestBody LessonRequestDto request) {
-        return ResponseEntity.ok(lessonService.createLesson(request));
+    @PostMapping("courses/id/{courseId}/sections/id/{sectionId}/lessons")
+    public ResponseEntity<LessonResponseDto> createLesson(
+            @PathVariable UUID courseId, 
+            @PathVariable UUID sectionId, 
+            @RequestBody LessonRequestDto request) {
+        return ResponseEntity.ok(lessonService.createLesson(courseId, sectionId, request));
     }
 
-    @GetMapping("/lessons/{lessonId}")
-    public ResponseEntity<LessonResponseDto> getLessonById(@PathVariable UUID lessonId) {
-        return ResponseEntity.ok(lessonService.getLessonById(lessonId));
+    @GetMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}")
+    public ResponseEntity<LessonResponseDto> getLessonById(
+            @PathVariable UUID courseId,
+            @PathVariable UUID sectionId,
+            @PathVariable UUID lessonId) {
+        return ResponseEntity.ok(lessonService.getLessonById(courseId, sectionId, lessonId));
     }
 
-    @PutMapping("/lessons/{lessonId}")
-    public ResponseEntity<LessonResponseDto> updateLesson(@PathVariable UUID lessonId, @RequestBody LessonRequestDto request) {
-        return ResponseEntity.ok(lessonService.updateLesson(lessonId, request));
+    @PutMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}")
+    public ResponseEntity<LessonResponseDto> updateLessonById(
+            @PathVariable UUID courseId,
+            @PathVariable UUID sectionId,
+            @PathVariable UUID lessonId, 
+            @RequestBody LessonRequestDto request, 
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(lessonService.updateLessonById(courseId, sectionId, lessonId, request, userId));
     }
 
-    @GetMapping("/sections/{sectionId}/lessons")
-    public ResponseEntity<List<LessonResponseDto>> getLessonsBySectionId(@PathVariable UUID sectionId) {
-        return ResponseEntity.ok(lessonService.getLessonsBySectionId(sectionId));
+    @GetMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}/lessons/slug/{lessonSlug}")
+    public ResponseEntity<LessonResponseDto> getLessonByLessonSlug(
+            @PathVariable String courseSlug,
+            @PathVariable String sectionSlug,
+            @PathVariable String lessonSlug) {
+        return ResponseEntity.ok(lessonService.getLessonByLessonSlug(courseSlug, sectionSlug, lessonSlug));
     }
 
-    // @DeleteMapping("/{lessonId}")
-    // public ResponseEntity<Void> deleteLesson(@PathVariable String lessonId) {
-    //     lessonService.deleteLesson(lessonId);
-    //     return ResponseEntity.noContent().build();
-    // }
+    @PutMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}/lessons/slug/{lessonSlug}")
+    public ResponseEntity<LessonResponseDto> updateLessonByLessonSlug(
+            @PathVariable String courseSlug,
+            @PathVariable String sectionSlug,
+            @PathVariable String lessonSlug, 
+            @RequestBody LessonRequestDto request, 
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(lessonService.updateLessonByLessonSlug(courseSlug, sectionSlug, lessonSlug, request, userId));
+    }
 
-    // Reorder endpoint can be added later if service supports it
+    @GetMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons")
+    public ResponseEntity<List<LessonResponseDto>> getLessonsBySectionId(
+        @PathVariable UUID courseId, 
+        @PathVariable UUID sectionId) {
+        return ResponseEntity.ok(lessonService.getLessonsBySectionId(courseId, sectionId));
+    }
+
+    @GetMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}/lessons")
+    public ResponseEntity<List<LessonResponseDto>> getLessonsBySectionSlug(
+        @PathVariable String courseSlug,
+        @PathVariable String sectionSlug) {
+        return ResponseEntity.ok(lessonService.getLessonsBySectionSlug(courseSlug, sectionSlug));
+    }
 }

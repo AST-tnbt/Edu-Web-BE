@@ -12,4 +12,5 @@ import java.util.UUID;
 public class PaymentCompletedEvent {
     private UUID userId;
     private UUID courseId;
+    private String courseSlug;
 }

@@ -14,6 +14,7 @@ import com.se347.courseservice.enums.CourseLevel;
 @Builder
 public class CourseRequestDto {
     private UUID courseId;
+    private String courseSlug;
     private String title;
     private String description;
     private String thumbnailUrl;

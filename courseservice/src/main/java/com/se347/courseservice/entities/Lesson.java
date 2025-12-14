@@ -1,8 +1,5 @@
 package com.se347.courseservice.entities;
 
-import com.se347.courseservice.entities.Content;
-import com.se347.courseservice.entities.Section;
-
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -19,6 +16,9 @@ public class Lesson {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID lessonId;
+
+    @Column(nullable = false, unique = true)
+    private String lessonSlug;
 
     @Column(nullable = false)
     private String title;

@@ -3,12 +3,9 @@ package com.se347.paymentservice.controller;
 import com.se347.paymentservice.dtos.PaymentUrlResponse;
 import com.se347.paymentservice.dtos.VnpayRequest;
 import com.se347.paymentservice.service.PaymentService;
-import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 

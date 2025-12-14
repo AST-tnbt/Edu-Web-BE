@@ -22,8 +22,10 @@ public class ContentMetadataController {
     }
 
     @PostMapping
-    public ResponseEntity<ContentMetadataResponseDto> createContentMetadata(@RequestBody ContentMetadataRequestDto request) {
-        return ResponseEntity.ok(contentMetadataService.createContentMetadata(request));
+    public ResponseEntity<ContentMetadataResponseDto> createContentMetadata(
+        @RequestBody ContentMetadataRequestDto request,
+        @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(contentMetadataService.createContentMetadata(request, userId));
     }
 
     @GetMapping("/{contentId}")
@@ -32,8 +34,11 @@ public class ContentMetadataController {
     }
 
     @PutMapping("/{contentId}")
-    public ResponseEntity<ContentMetadataResponseDto> updateContentMetadata(@PathVariable UUID contentId, @RequestBody ContentMetadataRequestDto request) {
-        return ResponseEntity.ok(contentMetadataService.updateContentMetadata(contentId, request));
+    public ResponseEntity<ContentMetadataResponseDto> updateContentMetadata(
+        @PathVariable UUID contentId, 
+        @RequestBody ContentMetadataRequestDto request,
+        @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(contentMetadataService.updateContentMetadata(contentId, request, userId));
     }
 
     @GetMapping("/lesson/{lessonId}")

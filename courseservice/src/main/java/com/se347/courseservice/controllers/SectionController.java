@@ -19,23 +19,59 @@ public class SectionController {
 
     private final SectionService sectionService;
 
-    @PostMapping("/sections")
-    public ResponseEntity<SectionResponseDto> createSection(@RequestBody SectionRequestDto request) {
-        return ResponseEntity.ok(sectionService.createSection(request));
+    @PostMapping("/courses/id/{courseId}/sections")
+    public ResponseEntity<SectionResponseDto> createSection(
+        @PathVariable UUID courseId, 
+        @RequestBody SectionRequestDto request,
+        @RequestHeader("X-User-Id") UUID userId
+    ) {
+        return ResponseEntity.ok(sectionService.createSection(courseId, request, userId));
     }
 
-    @GetMapping("/sections/{sectionId}")
-    public ResponseEntity<SectionResponseDto> getSectionById(@PathVariable UUID sectionId) {
-        return ResponseEntity.ok(sectionService.getSectionById(sectionId));
+    @GetMapping("/courses/id/{courseId}/sections/id/{sectionId}")
+    public ResponseEntity<SectionResponseDto> getSectionById(
+            @PathVariable UUID courseId,
+            @PathVariable UUID sectionId) {
+        return ResponseEntity.ok(sectionService.getSectionById(courseId, sectionId));
     }
 
-    @PutMapping("/sections/{sectionId}")
-    public ResponseEntity<SectionResponseDto> updateSection(@PathVariable UUID sectionId, @RequestBody SectionRequestDto request) {
-        return ResponseEntity.ok(sectionService.updateSection(sectionId, request));
+    @PutMapping("/courses/id/{courseId}/sections/id/{sectionId}")
+    public ResponseEntity<SectionResponseDto> updateSectionById(
+            @PathVariable UUID courseId,
+            @PathVariable UUID sectionId, 
+            @RequestBody SectionRequestDto request, 
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(sectionService.updateSectionById(courseId, sectionId, request, userId));
     }
 
-    @GetMapping("/courses/{courseId}/sections")
-    public ResponseEntity<List<SectionResponseDto>> getSectionsByCourseId(@PathVariable UUID courseId) {
+    @GetMapping("/courses/id/{courseId}/sections")
+    public ResponseEntity<List<SectionResponseDto>> getSectionsByCourseId(
+            @PathVariable UUID courseId, 
+            @RequestHeader("X-User-Roles") String userRoles) {
         return ResponseEntity.ok(sectionService.getSectionsByCourseId(courseId));
+    }
+
+    @GetMapping("/courses/slug/{courseSlug}/sections")
+    public ResponseEntity<List<SectionResponseDto>> getSectionsByCourseSlug(
+            @PathVariable String courseSlug, 
+            @RequestHeader("X-User-Roles") String userRoles) {
+        return ResponseEntity.ok(sectionService.getSectionsByCourseSlug(courseSlug));
+    }
+            
+    @GetMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}")
+    public ResponseEntity<SectionResponseDto> getSectionBySectionSlug(
+            @PathVariable String courseSlug,
+            @PathVariable String sectionSlug, 
+            @RequestHeader("X-User-Roles") String userRoles) {
+        return ResponseEntity.ok(sectionService.getSectionBySectionSlug(courseSlug, sectionSlug));
+    }
+
+    @PutMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}")
+    public ResponseEntity<SectionResponseDto> updateSectionBySectionSlug(
+            @PathVariable String courseSlug,
+            @PathVariable String sectionSlug, 
+            @RequestBody SectionRequestDto request, 
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(sectionService.updateSectionBySectionSlug(courseSlug, sectionSlug, request, userId));
     }
 }

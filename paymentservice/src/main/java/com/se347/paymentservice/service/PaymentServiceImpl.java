@@ -99,10 +99,12 @@ public class PaymentServiceImpl implements PaymentService{
 
             PaymentCompletedEvent paymentCompletedEvent = new PaymentCompletedEvent(
                     UUID.fromString(vnpParams.get("userId")),
-                    UUID.fromString(vnpParams.get("courseId"))
+                    UUID.fromString(vnpParams.get("courseId")),
+                    vnpParams.get("courseSlug")
             );
             vnpParams.remove("userId");
             vnpParams.remove("courseId");
+            vnpParams.remove("courseSlug");
 
             // Sắp xếp tham số theo tên (A-Z)
             Map<String, String> sortedParams = new TreeMap<>(vnpParams);

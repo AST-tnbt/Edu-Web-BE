@@ -10,6 +10,7 @@ public interface UserProfileService {
     UserProfileResponseDto createProfileDefault(UserCreatedEventDto userCreatedEvent);
     UserProfileResponseDto getProfileByEmail(String email);
     UserProfileResponseDto getProfileByUserId(UUID userId);
+    UserProfileResponseDto getProfileByUserSlug(String userSlug);
     UserProfileResponseDto updateProfile(UUID userId, UserProfileRequestDto request);
     boolean existsByUserId(UUID userId);
 }

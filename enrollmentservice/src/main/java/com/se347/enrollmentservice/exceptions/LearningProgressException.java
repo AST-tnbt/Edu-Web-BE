@@ -8,11 +8,20 @@ public abstract class LearningProgressException extends RuntimeException {
     public LearningProgressException(String message) {
         super(message);
     }
-    
+
+    /**
+     * Exception thrown when learning progress is not found
+     */
+    public static class UnauthorizedAccessException extends LearningProgressException {
+        public UnauthorizedAccessException(String message) {
+            super("Unauthorized access: " + message);
+        }
+    }
+
     public LearningProgressException(String message, Throwable cause) {
         super(message, cause);
     }
-    
+
     /**
      * Exception thrown when learning progress is not found
      */

@@ -14,6 +14,7 @@ import java.util.UUID;
 public class EnrollmentRequestDto {
     private UUID enrollmentId;
     private UUID courseId;
+    private String courseSlug;
     private UUID studentId;
     private LocalDateTime enrolledAt;
     private EnrollmentStatus enrollmentStatus;

@@ -1,5 +1,6 @@
 package com.se347.enrollmentservice.listeners.impl;
 
+import com.se347.enrollmentservice.domains.EnrollmentDomainService;
 import com.se347.enrollmentservice.dtos.EnrollmentRequestDto;
 import com.se347.enrollmentservice.dtos.events.PaymentCompletedEventDto;
 import com.se347.enrollmentservice.listeners.PaymentListener;
@@ -26,6 +27,7 @@ public class PaymentListenerImpl implements PaymentListener {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentListenerImpl.class);
     private final EnrollmentService enrollmentService;
+    private final EnrollmentDomainService enrollmentDomainService;
 
     @Transactional
     @RabbitListener(queues = "${app.rabbitmq.queue.payment.completed}", containerFactory = "rabbitListenerContainerFactory")
@@ -35,6 +37,7 @@ public class PaymentListenerImpl implements PaymentListener {
         long startTime = System.currentTimeMillis();
         UUID courseId = paymentCompletedEventDto.getCourseId();
         UUID userId = paymentCompletedEventDto.getUserId();
+        String courseSlug = paymentCompletedEventDto.getCourseSlug();
         
         try {
             // Validate input
@@ -55,8 +58,8 @@ public class PaymentListenerImpl implements PaymentListener {
             }
 
             // Create new enrollment with proper statuses
-            EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId);
-            enrollmentService.createEnrollment(enrollmentRequest);
+            EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId, courseSlug);
+            enrollmentDomainService.createEnrollment(enrollmentRequest);
         } catch (IllegalArgumentException e) {
             // Validation errors - reject message without requeue
             logError(courseId, userId, startTime, deliveryTag, e, "Validation error");
@@ -87,10 +90,11 @@ public class PaymentListenerImpl implements PaymentListener {
     /**
      * Builds enrollment request with proper statuses for paid enrollment
      */
-    private EnrollmentRequestDto buildEnrollmentRequest(UUID courseId, UUID userId) {
+    private EnrollmentRequestDto buildEnrollmentRequest(UUID courseId, UUID userId, String courseSlug) {
         return EnrollmentRequestDto.builder()
             .courseId(courseId)
             .studentId(userId)
+            .courseSlug(courseSlug)
             .enrolledAt(LocalDateTime.now())
             .enrollmentStatus(EnrollmentStatus.ACTIVE)
             .paymentStatus(PaymentStatus.PAID)

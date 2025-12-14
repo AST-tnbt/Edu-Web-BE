@@ -36,7 +36,7 @@ public class EnrollmentServiceClientImpl implements EnrollmentServiceClient {
     @Override
     public List<EnrollmentResponseEventDto> getEnrollmentsbyCourseId(UUID courseId) {
         try {
-            String path = "/api/courses/" + courseId + "/enrollments";
+            String path = "/api/courses/id/" + courseId + "/enrollments";
             return enrollmentServiceClient.get()
                 .uri(path)
                 .headers(headers -> applyHmacHeaders(headers, HttpMethod.GET, path, new byte[0]))

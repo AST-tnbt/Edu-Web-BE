@@ -1,12 +1,12 @@
 package com.se347.enrollmentservice.listeners.impl;
 
+import com.se347.enrollmentservice.domains.EnrollmentDomainService;
 import com.se347.enrollmentservice.dtos.EnrollmentRequestDto;
 import com.se347.enrollmentservice.dtos.events.PaymentCompletedEventDto;
 import com.se347.enrollmentservice.listeners.PaymentListener;
 import com.se347.enrollmentservice.services.EnrollmentService;
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
 import com.se347.enrollmentservice.enums.PaymentStatus;
-import com.se347.enrollmentservice.services.EnrollmentDomainService;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import com.rabbitmq.client.Channel;

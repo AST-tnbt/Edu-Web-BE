@@ -1,214 +1,77 @@
 package com.se347.enrollmentservice.services.impl;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.se347.enrollmentservice.services.CourseProgressService;
+import com.se347.enrollmentservice.domains.CourseProgressDomainService;
 import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
 import com.se347.enrollmentservice.dtos.CourseProgressResponseDto;
 import com.se347.enrollmentservice.repositories.CourseProgressRepository;
 import com.se347.enrollmentservice.entities.CourseProgress;
 import com.se347.enrollmentservice.exceptions.CourseProgressException;
-import com.se347.enrollmentservice.repositories.EnrollmentRepository;
 
 import lombok.RequiredArgsConstructor;
-import java.lang.Integer;
 import java.util.UUID;
-import java.time.LocalDateTime;
 
 @RequiredArgsConstructor
 @Service
 public class CourseProgressServiceImpl implements CourseProgressService {
 
     private final CourseProgressRepository courseProgressRepository;
-    private final EnrollmentRepository enrollmentRepository;
+    private final CourseProgressDomainService courseProgressDomainService;
     
     // ========== Public API ==========
 
     @Override
+    @Transactional
     public CourseProgressResponseDto createCourseProgress(CourseProgressRequestDto request) {
-        validateCreateRequest(request);
+        // Validate business rules through domain service
+        courseProgressDomainService.validateCourseProgressCreation(request);
+
+        // Create entity through domain service
+        CourseProgress courseProgress = courseProgressDomainService.createCourseProgressEntity(request);
         
-        // Verify enrollment exists
-        if (!enrollmentRepository.existsById(request.getEnrollmentId())) {
-            throw new CourseProgressException.InvalidRequestException(
-                "Enrollment not found with ID: " + request.getEnrollmentId());
-        }
-
-        CourseProgress courseProgress = CourseProgress.builder()
-            .enrollmentId(request.getEnrollmentId())
-            .lessonsCompleted(request.getLessonsCompleted())
-            .totalLessons(request.getTotalLessons())
-            .isCourseCompleted(false)
-            .courseCompletedAt(null)
-            .build();
-
-        // Calculate progress and completion status
-        updateProgressAndCompletion(courseProgress);
-
-        courseProgress.onCreate();
+        // Save through repository (infrastructure concern)
         courseProgressRepository.save(courseProgress);
 
         return mapToResponse(courseProgress);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CourseProgressResponseDto getCourseProgressById(UUID courseProgressId) {
-        CourseProgress courseProgress = courseProgressRepository.findById(courseProgressId)
-            .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException(
-                "Course progress not found with ID: " + courseProgressId));
-        return mapToResponse(courseProgress);
+        return mapToResponse(courseProgressDomainService.findCourseProgressById(courseProgressId));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CourseProgressResponseDto getCourseProgressByEnrollmentId(UUID enrollmentId) {
-        CourseProgress courseProgress = courseProgressRepository.findByEnrollmentId(enrollmentId);
-        if (courseProgress == null) {
-            throw new CourseProgressException.CourseProgressNotFoundException(
-                "Course progress not found for enrollment ID: " + enrollmentId);
-        }
-        return mapToResponse(courseProgress);
+        return mapToResponse(courseProgressDomainService.findCourseProgressByEnrollmentId(enrollmentId));
     }
 
     @Override
-    public CourseProgressResponseDto updateCourseProgress(UUID courseProgressId, CourseProgressRequestDto request) {
-        validateUpdateRequest(courseProgressId, request);
+    @Transactional
+    public CourseProgressResponseDto updateCourseProgress(UUID courseProgressId, CourseProgressRequestDto request, UUID userId) {
+        // Get course progress through domain service
+        CourseProgress courseProgress = courseProgressDomainService.findCourseProgressById(courseProgressId);
+        if (!courseProgressDomainService.canUserAccessCourseProgress(courseProgress, userId)) {
+            throw new CourseProgressException.UnauthorizedAccessException("User does not have access to this course progress");
+        }
+        // Validate business rules through domain service
+        courseProgressDomainService.validateCourseProgressUpdate(courseProgress, request);
 
-        CourseProgress courseProgress = courseProgressRepository.findById(courseProgressId)
-            .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException(
-                "Course progress not found with ID: " + courseProgressId));
+        // Update entity through domain service
+        courseProgressDomainService.updateCourseProgressEntity(courseProgress, request);
 
-        // Store original values for validation
-        Integer originalLessonsCompleted = courseProgress.getLessonsCompleted();
-        Integer originalTotalLessons = courseProgress.getTotalLessons();
-
-        // Apply updates
-        courseProgress.setLessonsCompleted(request.getLessonsCompleted());
-        courseProgress.setTotalLessons(request.getTotalLessons());
-
-        // Validate business rules
-        validateProgressRules(courseProgress, originalLessonsCompleted, originalTotalLessons);
-
-        // Recalculate progress and completion
-        updateProgressAndCompletion(courseProgress);
-
-        courseProgress.onUpdate();
+        // Save through repository (infrastructure concern)
         return mapToResponse(courseProgressRepository.save(courseProgress));
     }
 
     // PATCH: Update only provided fields
     @Override
+    @Transactional
     public CourseProgressResponseDto patchCourseProgress(UUID courseProgressId, CourseProgressRequestDto request) {
-        validatePatchRequest(courseProgressId, request);
-
-        CourseProgress courseProgress = courseProgressRepository.findById(courseProgressId)
-            .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException(
-                "Course progress not found with ID: " + courseProgressId));
-
-        Integer originalLessonsCompleted = courseProgress.getLessonsCompleted();
-        Integer originalTotalLessons = courseProgress.getTotalLessons();
-
-        // Apply partial updates
-        if (request.getLessonsCompleted() != null) {
-            courseProgress.setLessonsCompleted(request.getLessonsCompleted());
-        }
-        if (request.getTotalLessons() != null) {
-            courseProgress.setTotalLessons(request.getTotalLessons());
-        }
-
-        // Validate business rules for changed fields
-        validateProgressRules(courseProgress, originalLessonsCompleted, originalTotalLessons);
-
-        // Recalculate progress and completion
-        updateProgressAndCompletion(courseProgress);
-
-        courseProgress.onUpdate();
-        return mapToResponse(courseProgressRepository.save(courseProgress));
-    }
-
-    @Override
-    public void setTotalLessons(UUID courseProgressId, Integer totalLessons) {
-        if (courseProgressId == null) {
-            throw new CourseProgressException.InvalidRequestException("Course progress ID cannot be null");
-        }
-        if (totalLessons == null || totalLessons < 0) {
-            throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
-        }
-        
-        CourseProgress courseProgress = courseProgressRepository.findById(courseProgressId)
-            .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException(
-                "Course progress not found with ID: " + courseProgressId));
-        
-        // Validate that lessonsCompleted doesn't exceed new totalLessons
-        if (courseProgress.getLessonsCompleted() > totalLessons) {
-            throw new CourseProgressException.InvalidRequestException(
-                "Cannot set totalLessons to " + totalLessons + 
-                " because lessonsCompleted (" + courseProgress.getLessonsCompleted() + ") exceeds it");
-        }
-        
-        courseProgress.setTotalLessons(totalLessons);
-        
-        // Recalculate progress and completion status after totalLessons change
-        updateProgressAndCompletion(courseProgress);
-        
-        courseProgress.onUpdate();
-        courseProgressRepository.save(courseProgress);
-    }
-
-    // ========== Mapping ==========
-
-    private CourseProgressResponseDto mapToResponse(CourseProgress courseProgress) {
-        return CourseProgressResponseDto.builder()
-            .courseProgressId(courseProgress.getCourseProgressId())
-            .enrollmentId(courseProgress.getEnrollmentId())
-            .overallProgress(courseProgress.getOverallProgress())
-            .lessonsCompleted(courseProgress.getLessonsCompleted())
-            .totalLessons(courseProgress.getTotalLessons())
-            .isCourseCompleted(courseProgress.isCourseCompleted())
-            .courseCompletedAt(courseProgress.getCourseCompletedAt())
-            .createdAt(courseProgress.getCreatedAt())
-            .updatedAt(courseProgress.getUpdatedAt())
-            .build();
-    }
-
-    // ========== Validation ==========
-
-    private void validateCreateRequest(CourseProgressRequestDto request) {
-        if (request == null) {
-            throw new CourseProgressException.InvalidRequestException("Request cannot be null");
-        }
-        if (request.getEnrollmentId() == null) {
-            throw new CourseProgressException.InvalidRequestException("Enrollment ID cannot be null");
-        }
-        if (request.getLessonsCompleted() == null || request.getLessonsCompleted() < 0) {
-            throw new CourseProgressException.InvalidRequestException("Lessons completed must be non-negative");
-        }
-        if (request.getTotalLessons() == null || request.getTotalLessons() < 0) {
-            throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
-        }
-        if (request.getLessonsCompleted() > request.getTotalLessons()) {
-            throw new CourseProgressException.InvalidRequestException("Lessons completed cannot exceed total lessons");
-        }
-    }
-
-    private void validateUpdateRequest(UUID courseProgressId, CourseProgressRequestDto request) {
-        if (courseProgressId == null) {
-            throw new CourseProgressException.InvalidRequestException("Course progress ID cannot be null");
-        }
-        if (request == null) {
-            throw new CourseProgressException.InvalidRequestException("Request cannot be null");
-        }
-        if (request.getLessonsCompleted() == null || request.getLessonsCompleted() < 0) {
-            throw new CourseProgressException.InvalidRequestException("Lessons completed must be non-negative");
-        }
-        if (request.getTotalLessons() == null || request.getTotalLessons() < 0) {
-            throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
-        }
-        if (request.getLessonsCompleted() > request.getTotalLessons()) {
-            throw new CourseProgressException.InvalidRequestException("Lessons completed cannot exceed total lessons");
-        }
-    }
-
-    private void validatePatchRequest(UUID courseProgressId, CourseProgressRequestDto request) {
         if (courseProgressId == null) {
             throw new CourseProgressException.InvalidRequestException("Course progress ID cannot be null");
         }
@@ -228,49 +91,51 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         if (request.getTotalLessons() != null && request.getTotalLessons() < 0) {
             throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
         }
-    }
 
-    private void validateProgressRules(CourseProgress courseProgress, Integer originalLessonsCompleted, Integer originalTotalLessons) {
-        // Lessons completed cannot exceed total lessons
-        if (courseProgress.getLessonsCompleted() > courseProgress.getTotalLessons()) {
-            throw new CourseProgressException.InvalidRequestException("Lessons completed cannot exceed total lessons");
-        }
-
-        // Business rule: Progress cannot decrease significantly (allow small adjustments)
-        if (courseProgress.getLessonsCompleted() < originalLessonsCompleted - 1) {
-            throw new CourseProgressException.InvalidRequestException(
-                "Progress cannot decrease significantly. Original: " + originalLessonsCompleted + 
-                ", New: " + courseProgress.getLessonsCompleted());
-        }
-
-        // If total lessons decreased, ensure lessons completed doesn't exceed new total
-        if (courseProgress.getTotalLessons() < originalTotalLessons) {
-            if (courseProgress.getLessonsCompleted() > courseProgress.getTotalLessons()) {
-                throw new CourseProgressException.InvalidRequestException(
-                    "Cannot reduce total lessons below current completed lessons");
-            }
-        }
-    }
-
-    // ========== Business Logic ==========
-
-    private void updateProgressAndCompletion(CourseProgress courseProgress) {
-        // Calculate progress as percentage (0.0 to 1.0)
-        if (courseProgress.getTotalLessons() > 0) {
-            double progress = (double) courseProgress.getLessonsCompleted() / courseProgress.getTotalLessons();
-            courseProgress.setOverallProgress(Math.round(progress * 100.0) / 100.0); // Round to 2 decimal places
-        } else {
-            courseProgress.setOverallProgress(0.0);
-        }
-
-        // Update completion status
-        boolean isCompleted = courseProgress.getOverallProgress() >= 1.0;
-        courseProgress.setCourseCompleted(isCompleted);
+        // Get course progress through domain service
+        CourseProgress courseProgress = courseProgressDomainService.findCourseProgressById(courseProgressId);
         
-        if (isCompleted && courseProgress.getCourseCompletedAt() == null) {
-            courseProgress.setCourseCompletedAt(LocalDateTime.now());
-        } else if (!isCompleted) {
-            courseProgress.setCourseCompletedAt(null);
-        }
+        // Patch entity through domain service
+        courseProgressDomainService.patchCourseProgressEntity(courseProgress, request);
+
+        // Save through repository (infrastructure concern)
+        return mapToResponse(courseProgressRepository.save(courseProgress));
     }
+
+    @Override
+    @Transactional
+    public void setTotalLessons(UUID courseProgressId, Integer totalLessons) {
+        if (courseProgressId == null) {
+            throw new CourseProgressException.InvalidRequestException("Course progress ID cannot be null");
+        }
+        if (totalLessons == null || totalLessons < 0) {
+            throw new CourseProgressException.InvalidRequestException("Total lessons must be non-negative");
+        }
+        
+        // Get course progress through domain service
+        CourseProgress courseProgress = courseProgressDomainService.findCourseProgressById(courseProgressId);
+        
+        // Set total lessons through domain service
+        courseProgressDomainService.setTotalLessonsEntity(courseProgress, totalLessons);
+        
+        // Save through repository (infrastructure concern)
+        courseProgressRepository.save(courseProgress);
+    }
+
+    // ========== Mapping ==========
+
+    private CourseProgressResponseDto mapToResponse(CourseProgress courseProgress) {
+        return CourseProgressResponseDto.builder()
+            .courseProgressId(courseProgress.getCourseProgressId())
+            .enrollmentId(courseProgress.getEnrollmentId())
+            .overallProgress(courseProgress.getOverallProgress())
+            .lessonsCompleted(courseProgress.getLessonsCompleted())
+            .totalLessons(courseProgress.getTotalLessons())
+            .isCourseCompleted(courseProgress.isCourseCompleted())
+            .courseCompletedAt(courseProgress.getCourseCompletedAt())
+            .createdAt(courseProgress.getCreatedAt())
+            .updatedAt(courseProgress.getUpdatedAt())
+            .build();
+    }
+
 }

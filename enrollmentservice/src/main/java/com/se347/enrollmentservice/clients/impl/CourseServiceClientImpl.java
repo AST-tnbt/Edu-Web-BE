@@ -1,6 +1,7 @@
 package com.se347.enrollmentservice.clients.impl;
 
 import com.se347.enrollmentservice.clients.CourseServiceClient;
+import com.se347.enrollmentservice.dtos.CourseInfoDto;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,30 @@ public class CourseServiceClientImpl implements CourseServiceClient{
         } catch (Exception e) {
             logger.warn("Failed to get totalLessons from CourseService, using default 0", e);
             throw new RuntimeException("Failed to get totalLessons from CourseService", e);
+        }
+    }
+
+    @Override
+    public UUID getInstructorIdByCourseId(UUID courseId) {
+        try {
+            String path = "/api/courses/id/" + courseId;
+            CourseInfoDto course = courseServiceClient.get()
+                .uri(path)
+                .headers(headers -> applyHmacHeaders(headers, HttpMethod.GET, path, new byte[0]))
+                .retrieve()
+                .bodyToMono(CourseInfoDto.class)
+                .timeout(Duration.ofSeconds(10))
+                .blockOptional()
+                .orElse(null);
+            
+            if (course == null || course.getInstructorId() == null) {
+                throw new RuntimeException("Course not found or instructor ID is null");
+            }
+            
+            return course.getInstructorId();
+        } catch (Exception e) {
+            logger.error("Failed to get instructorId from CourseService for course {}", courseId, e);
+            throw new RuntimeException("Failed to get instructorId from CourseService", e);
         }
     }
 

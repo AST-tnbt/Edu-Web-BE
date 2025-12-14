@@ -7,12 +7,12 @@ import java.util.UUID;
 import java.util.List;
 
 public interface LearningProgressService {
-    LearningProgressResponseDto createLearningProgress(LearningProgressRequestDto request);
-    LearningProgressResponseDto getLearningProgressById(UUID learningProgressId);
-    List<LearningProgressResponseDto> getLearningProgressByEnrollmentId(UUID enrollmentId);
-    LearningProgressResponseDto getLearningProgressByLessonIdAndEnrollmentId(UUID lessonId, UUID enrollmentId);
-    LearningProgressResponseDto updateLearningProgress(UUID learningProgressId, LearningProgressRequestDto request);
-    LearningProgressResponseDto patchLearningProgress(UUID learningProgressId, LearningProgressRequestDto request);
+    LearningProgressResponseDto createLearningProgress(LearningProgressRequestDto request, UUID userId);
+    LearningProgressResponseDto getLearningProgressById(UUID learningProgressId, UUID userId);
+    List<LearningProgressResponseDto> getLearningProgressByEnrollmentId(UUID enrollmentId, UUID userId);
+    LearningProgressResponseDto getLearningProgressByLessonIdAndEnrollmentId(UUID lessonId, UUID enrollmentId, UUID userId);
+    LearningProgressResponseDto updateLearningProgress(UUID learningProgressId, LearningProgressRequestDto request, UUID userId);
+    LearningProgressResponseDto patchLearningProgress(UUID learningProgressId, LearningProgressRequestDto request, UUID userId);
     LearningProgressResponseDto markAsCompleted(UUID lessonId, UUID enrollmentId);
     LearningProgressResponseDto updateLastAccessed(UUID learningProgressId);
 }

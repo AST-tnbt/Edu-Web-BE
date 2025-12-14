@@ -14,6 +14,15 @@ public abstract class CourseProgressException extends RuntimeException {
     }
     
     /**
+     * Exception thrown when user does not have access to course progress
+     */
+    public static class UnauthorizedAccessException extends CourseProgressException {
+        public UnauthorizedAccessException(String message) {
+            super("Unauthorized access: " + message);
+        }
+    }
+
+    /**
      * Exception thrown when course progress is not found
      */
     public static class CourseProgressNotFoundException extends CourseProgressException {

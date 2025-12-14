@@ -11,14 +11,15 @@ import java.util.UUID;
 
 public interface EnrollmentService {
     EnrollmentResponseDto createEnrollment(EnrollmentRequestDto request);
-    EnrollmentResponseDto getEnrollmentById(UUID enrollmentId);
-    EnrollmentResponseDto updateEnrollment(UUID enrollmentId, EnrollmentRequestDto request);
-    Enrollment toEnrollment(UUID enrollmentId);
-    List<EnrollmentResponseDto> getEnrollmentsByStudentId(UUID studentId);
+    EnrollmentResponseDto getEnrollmentById(UUID enrollmentId, UUID userId);
+    EnrollmentResponseDto updateEnrollment(UUID enrollmentId, EnrollmentRequestDto request, UUID userId);
+    List<EnrollmentResponseDto> getEnrollmentsByStudentId(UUID studentId, UUID userId);
     List<EnrollmentResponseDto> getEnrollmentsByCourseId(UUID courseId);
     List<EnrollmentResponseDto> getEnrollmentsByCourseIdAndStudentId(UUID courseId, UUID studentId);
+    List<EnrollmentResponseDto> getMyCourses(UUID userId);
     List<EnrollmentResponseDto> getAllEnrollments();
     boolean isEnrollmentExists(UUID enrollmentId);
+    Enrollment toEnrollment(UUID enrollmentId);
     EnrollmentResponseDto updateEnrollmentStatus(UUID enrollmentId, EnrollmentStatus newStatus);
     EnrollmentResponseDto updatePaymentStatus(UUID enrollmentId, PaymentStatus newStatus);
     EnrollmentResponseDto updateStatuses(UUID enrollmentId, EnrollmentStatus enrollmentStatus, PaymentStatus paymentStatus);

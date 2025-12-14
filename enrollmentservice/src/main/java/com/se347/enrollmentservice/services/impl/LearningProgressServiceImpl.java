@@ -1,117 +1,130 @@
 package com.se347.enrollmentservice.services.impl;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.se347.enrollmentservice.services.LearningProgressService;
+import com.se347.enrollmentservice.domains.EnrollmentDomainService;
+import com.se347.enrollmentservice.domains.LearningProgressDomainService;
 import com.se347.enrollmentservice.dtos.LearningProgressRequestDto;
 import com.se347.enrollmentservice.dtos.LearningProgressResponseDto;
 import com.se347.enrollmentservice.repositories.LearningProgressRepository;
 import com.se347.enrollmentservice.entities.LearningProgress;
 import com.se347.enrollmentservice.exceptions.LearningProgressException;
-import com.se347.enrollmentservice.services.EnrollmentDomainService;
 
 import java.util.UUID;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RequiredArgsConstructor
 @Service
 public class LearningProgressServiceImpl implements LearningProgressService {
-
-    private static final Logger logger = LoggerFactory.getLogger(LearningProgressServiceImpl.class);
     
     private final LearningProgressRepository learningProgressRepository;
     private final EnrollmentDomainService enrollmentDomainService;
+    private final LearningProgressDomainService learningProgressDomainService;
 
     // ========== Public API ==========
 
     @Transactional
     @Override
-    public LearningProgressResponseDto createLearningProgress(LearningProgressRequestDto request) {
-        validateCreateRequest(request);
-        
+    public LearningProgressResponseDto createLearningProgress(LearningProgressRequestDto request, UUID userId) {
         // Validate enrollment có thể truy cập (status, payment)
         enrollmentDomainService.ensureEnrollmentAccessible(request.getEnrollmentId());
 
-        // Check for duplicate learning progress
-        LearningProgress existing = learningProgressRepository.findByLessonIdAndEnrollmentId(
-            request.getLessonId(), request.getEnrollmentId());
-        if (existing != null) {
-            throw new LearningProgressException.DuplicateLearningProgressException(
-                "Learning progress already exists for lesson " + request.getLessonId() + 
-                " and enrollment " + request.getEnrollmentId());
+        // Validate business rules through domain service
+        learningProgressDomainService.validateLearningProgressCreation(request);
+
+        // Validate user has access to enrollment
+        if (!enrollmentDomainService.canUserAccessEnrollment(enrollmentDomainService.findEnrollmentById(request.getEnrollmentId()), userId)) {
+            throw new LearningProgressException.UnauthorizedAccessException("User does not have access to this enrollment");
         }
 
-        LearningProgress learningProgress = LearningProgress.builder()
-            .enrollmentId(request.getEnrollmentId())
-            .lessonId(request.getLessonId())
-            .isCompleted(false)
-            .lastAccessedAt(LocalDateTime.now())
-            .build();
-
+        // Create entity through domain service
+        LearningProgress learningProgress = learningProgressDomainService.createLearningProgressEntity(request);
+        
+        // Save through repository (infrastructure concern)
         learningProgressRepository.save(learningProgress);
         return mapToResponse(learningProgress);
     }
 
     @Override
-    public LearningProgressResponseDto getLearningProgressById(UUID learningProgressId) {
-        LearningProgress learningProgress = learningProgressRepository.findById(learningProgressId)
-            .orElseThrow(() -> new LearningProgressException.LearningProgressNotFoundException(
-                "Learning progress not found with ID: " + learningProgressId));
+    @Transactional(readOnly = true)
+    public LearningProgressResponseDto getLearningProgressById(UUID learningProgressId, UUID userId) {
+        LearningProgress learningProgress = learningProgressDomainService.findLearningProgressById(learningProgressId);
+        if (!learningProgressDomainService.canUserAccessLearningProgress(learningProgress, userId)) {
+            throw new LearningProgressException.UnauthorizedAccessException("User does not have access to this learning progress");
+        }
         return mapToResponse(learningProgress);
     }
 
     @Transactional
     @Override
-    public LearningProgressResponseDto getLearningProgressByLessonIdAndEnrollmentId(UUID lessonId, UUID enrollmentId) {
+    public LearningProgressResponseDto getLearningProgressByLessonIdAndEnrollmentId(UUID lessonId, UUID enrollmentId, UUID userId) {
         // 1. Validate enrollment có thể truy cập (status, payment)
         enrollmentDomainService.ensureEnrollmentAccessible(enrollmentId);
-        
         // 2. Get or create learning progress với retry logic để tránh race condition
-        LearningProgress learningProgress = getOrCreateLearningProgress(lessonId, enrollmentId);
+        LearningProgress learningProgress = learningProgressDomainService.getOrCreateLearningProgress(lessonId, enrollmentId);
         
-        // 3. Update last accessed time
-        learningProgress.setLastAccessedAt(LocalDateTime.now());
+        // Validate user has access to learning progress
+        if (!learningProgressDomainService.canUserAccessLearningProgress(learningProgress, userId)) {
+            throw new LearningProgressException.UnauthorizedAccessException("User does not have access to this learning progress");
+        }
+
+        // 3. Update last accessed time through domain service
+        learningProgressDomainService.updateLastAccessedEntity(learningProgress);
         learningProgressRepository.save(learningProgress);
         
         return mapToResponse(learningProgress);
     }
 
     @Override
-    public List<LearningProgressResponseDto> getLearningProgressByEnrollmentId(UUID enrollmentId) {
-        return learningProgressRepository.findByEnrollmentId(enrollmentId)
-            .stream()
+    @Transactional(readOnly = true)
+    public List<LearningProgressResponseDto> getLearningProgressByEnrollmentId(UUID enrollmentId, UUID userId) {
+        // Validate enrollment exists
+        if (!enrollmentDomainService.enrollmentExists(enrollmentId)) {
+            throw new LearningProgressException.EnrollmentNotFoundException("Enrollment not found with ID: " + enrollmentId);
+        }
+        // Validate user has access to enrollment
+        if (!enrollmentDomainService.canUserAccessEnrollment(enrollmentDomainService.findEnrollmentById(enrollmentId), userId)) {
+            throw new LearningProgressException.UnauthorizedAccessException("User does not have access to this enrollment");
+        }
+
+        List<LearningProgress> learningProgresses = learningProgressDomainService.findLearningProgressByEnrollmentId(enrollmentId);
+        return learningProgresses.stream()
             .map(this::mapToResponse)
             .collect(Collectors.toList());
     }
 
     @Transactional
     @Override
-    public LearningProgressResponseDto updateLearningProgress(UUID learningProgressId, LearningProgressRequestDto request) {
-        validateUpdateRequest(learningProgressId, request);
+    public LearningProgressResponseDto updateLearningProgress(UUID learningProgressId, LearningProgressRequestDto request, UUID userId) {
+        if (learningProgressId == null) {
+            throw new LearningProgressException.InvalidRequestException("Learning progress ID cannot be null");
+        }
+        if (request == null) {
+            throw new LearningProgressException.InvalidRequestException("Request cannot be null");
+        }
 
-        LearningProgress learningProgress = learningProgressRepository.findById(learningProgressId)
-            .orElseThrow(() -> new LearningProgressException.LearningProgressNotFoundException(
-                "Learning progress not found with ID: " + learningProgressId));
-
-        // Store original completion status for validation
+        // Get learning progress through domain service
+        LearningProgress learningProgress = learningProgressDomainService.findLearningProgressById(learningProgressId);
+        if (!learningProgressDomainService.canUserAccessLearningProgress(learningProgress, userId)) {
+            throw new LearningProgressException.UnauthorizedAccessException("User does not have access to this learning progress");
+        }
+        // Store original completion status for sync
         boolean originalCompleted = learningProgress.isCompleted();
 
-        // Apply updates
-        learningProgress.setCompleted(request.isCompleted());
-        learningProgress.setLastAccessedAt(LocalDateTime.now());
+        // Validate business rules through domain service
+        learningProgressDomainService.validateLearningProgressUpdate(learningProgress, request);
 
-        // Handle completion status change
-        updateCompletionStatus(learningProgress, originalCompleted);
+        // Update entity through domain service
+        learningProgressDomainService.updateLearningProgressEntity(learningProgress, request);
         
+        // Save through repository (infrastructure concern)
         learningProgressRepository.save(learningProgress);
         
-        // Sync with CourseProgress if completion status changed
+        // Sync with CourseProgress if completion status changed (orchestration)
         syncCourseProgressOnCompletionChange(learningProgress, originalCompleted);
 
         return mapToResponse(learningProgress);
@@ -120,33 +133,29 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     // PATCH: Update only provided fields
     @Transactional
     @Override
-    public LearningProgressResponseDto patchLearningProgress(UUID learningProgressId, LearningProgressRequestDto request) {
-        validatePatchRequest(learningProgressId, request);
-
-        LearningProgress learningProgress = learningProgressRepository.findById(learningProgressId)
-            .orElseThrow(() -> new LearningProgressException.LearningProgressNotFoundException(
-                "Learning progress not found with ID: " + learningProgressId));
-
-        boolean originalCompleted = learningProgress.isCompleted();
-
-        // Update completed status if provided in request
-        // Note: boolean default is false, so we need to check if it was explicitly set
-        // For PATCH, we'll update if request.isCompleted() is true (to mark as completed)
-        // or if we want to uncomplete, we need a different approach
-        // For now, we'll update if the value is different from current
-        if (request.isCompleted() != learningProgress.isCompleted()) {
-            learningProgress.setCompleted(request.isCompleted());
+    public LearningProgressResponseDto patchLearningProgress(UUID learningProgressId, LearningProgressRequestDto request, UUID userId) {
+        if (learningProgressId == null) {
+            throw new LearningProgressException.InvalidRequestException("Learning progress ID cannot be null");
+        }
+        if (request == null) {
+            throw new LearningProgressException.InvalidRequestException("Request cannot be null");
         }
 
-        // Always update last accessed time
-        learningProgress.setLastAccessedAt(LocalDateTime.now());
+        // Get learning progress through domain service
+        LearningProgress learningProgress = learningProgressDomainService.findLearningProgressById(learningProgressId);
+        if (!learningProgressDomainService.canUserAccessLearningProgress(learningProgress, userId)) {
+            throw new LearningProgressException.UnauthorizedAccessException("User does not have access to this learning progress");
+        }
+        // Store original completion status for sync
+        boolean originalCompleted = learningProgress.isCompleted();
 
-        // Handle completion status change
-        updateCompletionStatus(learningProgress, originalCompleted);
+        // Patch entity through domain service
+        learningProgressDomainService.patchLearningProgressEntity(learningProgress, request);
         
+        // Save through repository (infrastructure concern)
         learningProgressRepository.save(learningProgress);
         
-        // Sync with CourseProgress if completion status changed
+        // Sync with CourseProgress if completion status changed (orchestration)
         syncCourseProgressOnCompletionChange(learningProgress, originalCompleted);
 
         return mapToResponse(learningProgress);
@@ -156,23 +165,19 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     @Transactional
     @Override
     public LearningProgressResponseDto markAsCompleted(UUID lessonId, UUID enrollmentId) {
-        LearningProgress learningProgress = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
-        if (learningProgress == null) {
-            throw new LearningProgressException.LearningProgressNotFoundException(
-                "Learning progress not found for lesson " + lessonId + " and enrollment " + enrollmentId);
-        }
+        // Get learning progress through domain service
+        LearningProgress learningProgress = learningProgressDomainService.findLearningProgressByLessonIdAndEnrollmentId(lessonId, enrollmentId);
 
         boolean originalCompleted = learningProgress.isCompleted();
         
-        if (!learningProgress.isCompleted()) {
-            learningProgress.setCompleted(true);
-            learningProgress.setCompletedAt(LocalDateTime.now());
-            learningProgress.setLastAccessedAt(LocalDateTime.now());
-            learningProgressRepository.save(learningProgress);
-            
-            // Sync with CourseProgress
-            syncCourseProgressOnCompletionChange(learningProgress, originalCompleted);
-        }
+        // Mark as completed through domain service
+        learningProgressDomainService.markAsCompletedEntity(learningProgress);
+        
+        // Save through repository (infrastructure concern)
+        learningProgressRepository.save(learningProgress);
+        
+        // Sync with CourseProgress if completion status changed (orchestration)
+        syncCourseProgressOnCompletionChange(learningProgress, originalCompleted);
 
         return mapToResponse(learningProgress);
     }
@@ -181,11 +186,13 @@ public class LearningProgressServiceImpl implements LearningProgressService {
     @Transactional
     @Override
     public LearningProgressResponseDto updateLastAccessed(UUID learningProgressId) {
-        LearningProgress learningProgress = learningProgressRepository.findById(learningProgressId)
-            .orElseThrow(() -> new LearningProgressException.LearningProgressNotFoundException(
-                "Learning progress not found with ID: " + learningProgressId));
+        // Get learning progress through domain service
+        LearningProgress learningProgress = learningProgressDomainService.findLearningProgressById(learningProgressId);
 
-        learningProgress.setLastAccessedAt(LocalDateTime.now());
+        // Update last accessed through domain service
+        learningProgressDomainService.updateLastAccessedEntity(learningProgress);
+        
+        // Save through repository (infrastructure concern)
         learningProgressRepository.save(learningProgress);
 
         return mapToResponse(learningProgress);
@@ -204,121 +211,7 @@ public class LearningProgressServiceImpl implements LearningProgressService {
             .build();
     }
 
-    // ========== Validation ==========
-
-    /**
-     * Get or create learning progress với retry logic để tránh race condition
-     * Nếu 2 requests cùng lúc truy cập lesson lần đầu, sẽ retry nếu gặp duplicate key exception
-     */
-    private LearningProgress getOrCreateLearningProgress(UUID lessonId, UUID enrollmentId) {
-        // Thử tìm trước
-        LearningProgress existing = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
-        if (existing != null) {
-            return existing;
-        }
-        
-        // Nếu không tìm thấy, thử tạo mới với retry logic
-        int maxRetries = 3;
-        for (int attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                LearningProgress newProgress = LearningProgress.builder()
-                    .enrollmentId(enrollmentId)
-                    .lessonId(lessonId)
-                    .isCompleted(false)
-                    .lastAccessedAt(LocalDateTime.now())
-                    .build();
-                
-                return learningProgressRepository.save(newProgress);
-            } catch (DataIntegrityViolationException e) {
-                // Duplicate key - có thể do race condition, thử lại
-                logger.debug("Duplicate key detected for lesson {} and enrollment {}, attempt {}/{}", 
-                    lessonId, enrollmentId, attempt + 1, maxRetries);
-                
-                if (attempt < maxRetries - 1) {
-                    // Wait một chút trước khi retry (exponential backoff)
-                    try {
-                        Thread.sleep(50 * (attempt + 1)); // 50ms, 100ms, 150ms
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new LearningProgressException.InvalidRequestException(
-                            "Interrupted during retry for learning progress creation");
-                    }
-                    // Thử tìm lại (có thể request khác đã tạo xong)
-                    existing = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
-                    if (existing != null) {
-                        logger.debug("Found existing learning progress after retry");
-                        return existing;
-                    }
-                } else {
-                    // Lần cuối, thử tìm lại một lần nữa
-                    existing = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
-                    if (existing != null) {
-                        logger.debug("Found existing learning progress on final attempt");
-                        return existing;
-                    }
-                    // Nếu vẫn không tìm thấy, throw exception
-                    logger.error("Failed to create learning progress after {} retries for lesson {} and enrollment {}", 
-                        maxRetries, lessonId, enrollmentId);
-                    throw new LearningProgressException.InvalidRequestException(
-                        "Failed to create learning progress after retries: " + e.getMessage());
-                }
-            }
-        }
-        
-        // Fallback: thử tìm lại một lần cuối
-        existing = learningProgressRepository.findByLessonIdAndEnrollmentId(lessonId, enrollmentId);
-        if (existing != null) {
-            return existing;
-        }
-        
-        throw new LearningProgressException.InvalidRequestException(
-            "Failed to create learning progress for lesson " + lessonId + " and enrollment " + enrollmentId);
-    }
-
-    private void validateCreateRequest(LearningProgressRequestDto request) {
-        if (request == null) {
-            throw new LearningProgressException.InvalidRequestException("Request cannot be null");
-        }
-        if (request.getEnrollmentId() == null) {
-            throw new LearningProgressException.InvalidRequestException("Enrollment ID cannot be null");
-        }
-        if (request.getLessonId() == null) {
-            throw new LearningProgressException.InvalidRequestException("Lesson ID cannot be null");
-        }
-    }
-
-    private void validateUpdateRequest(UUID learningProgressId, LearningProgressRequestDto request) {
-        if (learningProgressId == null) {
-            throw new LearningProgressException.InvalidRequestException("Learning progress ID cannot be null");
-        }
-        if (request == null) {
-            throw new LearningProgressException.InvalidRequestException("Request cannot be null");
-        }
-    }
-
-    private void validatePatchRequest(UUID learningProgressId, LearningProgressRequestDto request) {
-        if (learningProgressId == null) {
-            throw new LearningProgressException.InvalidRequestException("Learning progress ID cannot be null");
-        }
-        if (request == null) {
-            throw new LearningProgressException.InvalidRequestException("Request cannot be null");
-        }
-    }
-
-    // ========== Business Logic ==========
-
-    private void updateCompletionStatus(LearningProgress learningProgress, boolean originalCompleted) {
-        boolean currentCompleted = learningProgress.isCompleted();
-        
-        if (currentCompleted && !originalCompleted) {
-            // Just completed
-            learningProgress.setCompletedAt(LocalDateTime.now());
-        } else if (!currentCompleted && originalCompleted) {
-            // Uncompleted (rare case, but handle it)
-            learningProgress.setCompletedAt(null);
-        }
-        // If status didn't change, leave completedAt as is
-    }
+    // ========== Orchestration ==========
     
     /**
      * Syncs CourseProgress when a lesson completion status changes

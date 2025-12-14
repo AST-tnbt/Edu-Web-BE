@@ -20,31 +20,44 @@ public class LearningProgressController {
     }
 
     @PostMapping
-    public ResponseEntity<LearningProgressResponseDto> createLearningProgress(@RequestBody LearningProgressRequestDto request) {
-        return ResponseEntity.ok(learningProgressService.createLearningProgress(request));
+    public ResponseEntity<LearningProgressResponseDto> createLearningProgress(
+        @RequestBody LearningProgressRequestDto request,
+        @RequestHeader("X-User-Id") UUID userId
+    ) {
+        return ResponseEntity.ok(learningProgressService.createLearningProgress(request, userId));
     }
 
-    @GetMapping("/{learningProgressId}")
-    public ResponseEntity<LearningProgressResponseDto> getLearningProgressById(@PathVariable UUID learningProgressId) {
-        return ResponseEntity.ok(learningProgressService.getLearningProgressById(learningProgressId));
+    @GetMapping("/id/{learningProgressId}")
+    public ResponseEntity<LearningProgressResponseDto> getLearningProgressById(
+            @PathVariable UUID learningProgressId, 
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(learningProgressService.getLearningProgressById(learningProgressId, userId));
     }
 
-    @GetMapping("/enrollment/{enrollmentId}")
-    public ResponseEntity<List<LearningProgressResponseDto>> getLearningProgressByEnrollmentId(@PathVariable UUID enrollmentId) {
-        return ResponseEntity.ok(learningProgressService.getLearningProgressByEnrollmentId(enrollmentId));
+    @GetMapping("/enrollment/id/{enrollmentId}")
+    public ResponseEntity<List<LearningProgressResponseDto>> getLearningProgressByEnrollmentId(
+            @PathVariable UUID enrollmentId, 
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(learningProgressService.getLearningProgressByEnrollmentId(enrollmentId, userId));
     } 
 
-    @GetMapping("/lesson/{lessonId}/enrollment/{enrollmentId}")
-    public ResponseEntity<LearningProgressResponseDto> getLearningProgressByLessonIdAndEnrollmentId(@PathVariable UUID lessonId, @PathVariable UUID enrollmentId) {
-        return ResponseEntity.ok(learningProgressService.getLearningProgressByLessonIdAndEnrollmentId(lessonId, enrollmentId));
+    @GetMapping("/lesson/id/{lessonId}/enrollment/id/{enrollmentId}")
+    public ResponseEntity<LearningProgressResponseDto> getLearningProgressByLessonIdAndEnrollmentId(
+        @PathVariable UUID lessonId, 
+        @PathVariable UUID enrollmentId,
+        @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(learningProgressService.getLearningProgressByLessonIdAndEnrollmentId(lessonId, enrollmentId, userId));
     }
 
-    @PutMapping("/{learningProgressId}") 
-    public ResponseEntity<LearningProgressResponseDto> updateLearningProgress(@PathVariable UUID learningProgressId, @RequestBody LearningProgressRequestDto request) {
-        return ResponseEntity.ok(learningProgressService.updateLearningProgress(learningProgressId, request));
+    @PutMapping("/id/{learningProgressId}") 
+    public ResponseEntity<LearningProgressResponseDto> updateLearningProgress(
+        @PathVariable UUID learningProgressId,
+        @RequestBody LearningProgressRequestDto request,
+        @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(learningProgressService.updateLearningProgress(learningProgressId, request, userId));
     }
     
-    @PostMapping("/lesson/{lessonId}/enrollment/{enrollmentId}/complete")
+    @PostMapping("/lesson/id/{lessonId}/enrollment/id/{enrollmentId}/complete")
     public ResponseEntity<LearningProgressResponseDto> markAsCompleted(@PathVariable UUID lessonId, @PathVariable UUID enrollmentId) {
         return ResponseEntity.ok(learningProgressService.markAsCompleted(lessonId, enrollmentId));
     }

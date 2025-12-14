@@ -9,7 +9,7 @@ public interface CourseProgressService {
     CourseProgressResponseDto createCourseProgress(CourseProgressRequestDto request);
     CourseProgressResponseDto getCourseProgressById(UUID courseProgressId);
     CourseProgressResponseDto getCourseProgressByEnrollmentId(UUID enrollmentId);
-    CourseProgressResponseDto updateCourseProgress(UUID courseProgressId, CourseProgressRequestDto request);
+    CourseProgressResponseDto updateCourseProgress(UUID courseProgressId, CourseProgressRequestDto request, UUID userId);
     CourseProgressResponseDto patchCourseProgress(UUID courseProgressId, CourseProgressRequestDto request);
     void setTotalLessons(UUID courseProgressId, Integer totalLessons);
 }

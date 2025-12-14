@@ -22,6 +22,12 @@ public abstract class EnrollmentException extends RuntimeException {
         }
     }
     
+
+    public static class UnauthorizedAccessException extends EnrollmentException {
+        public UnauthorizedAccessException(String message) {
+            super("Unauthorized access: " + message);
+        }
+    }
     /**
      * Exception thrown when request data is invalid
      */
@@ -108,12 +114,6 @@ public abstract class EnrollmentException extends RuntimeException {
     
     public static class InvalidPaymentStatusTransitionException extends EnrollmentException {
         public InvalidPaymentStatusTransitionException(String message) {
-            super(message);
-        }
-    }
-
-    public static class UnauthorizedAccessException extends EnrollmentException {
-        public UnauthorizedAccessException(String message) {
             super(message);
         }
     }

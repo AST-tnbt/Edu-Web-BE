@@ -4,7 +4,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 
-import com.se347.courseservice.services.CourseService;
+import com.se347.courseservice.services.CourseQueryService;
+import com.se347.courseservice.services.CourseCommandService;
 import com.se347.courseservice.dtos.CourseResponseDto;
 import com.se347.courseservice.dtos.CourseRequestDto;
 
@@ -13,16 +14,16 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequestMapping("/api/courses")
+@RequiredArgsConstructor
 public class CourseController {
 
-    private final CourseService courseService;
+    private final CourseCommandService courseService;
+    private final CourseQueryService courseQueryService;
 
-    CourseController(CourseService courseService){
-        this.courseService = courseService;
-    }
-    
     @PostMapping
     public ResponseEntity<CourseResponseDto> createCourse(
         @RequestBody CourseRequestDto request,
@@ -32,13 +33,13 @@ public class CourseController {
 
     @GetMapping("/id/{courseId}")
     public ResponseEntity<CourseResponseDto> getCourseById(@PathVariable String courseId) {
-        return ResponseEntity.ok(courseService.getCourseById(UUID.fromString(courseId)));
+        return ResponseEntity.ok(courseQueryService.getCourseById(UUID.fromString(courseId)));
     }
 
     @GetMapping("/slug/{courseSlug}")
     public ResponseEntity<CourseResponseDto> getCourseByCourseSlug(
             @PathVariable String courseSlug) {
-        return ResponseEntity.ok(courseService.getCourseByCourseSlug(courseSlug));
+        return ResponseEntity.ok(courseQueryService.getCourseByCourseSlug(courseSlug));
     }
 
     @PutMapping("/id/{courseId}")
@@ -59,16 +60,16 @@ public class CourseController {
 
     @GetMapping
     public ResponseEntity<Page<CourseResponseDto>> getAllCourses(Pageable pageable) {
-        return ResponseEntity.ok(courseService.getAllCourses(pageable));
+        return ResponseEntity.ok(courseQueryService.getAllCourses(pageable));
     }
 
     @GetMapping("/category/{categoryName}")
     public ResponseEntity<List<CourseResponseDto>> getCoursesByCategoryName(@PathVariable String categoryName) {
-        return ResponseEntity.ok(courseService.getCoursesByCategoryName(categoryName));
+        return ResponseEntity.ok(courseQueryService.getCoursesByCategoryName(categoryName));
     }
 
     @GetMapping("/{courseId}/total-lessons")
     public ResponseEntity<Integer> getTotalLessonsByCourseId(@PathVariable UUID courseId) {
-        return ResponseEntity.ok(courseService.getToltalLessonsByCourseId(courseId));
+        return ResponseEntity.ok(courseQueryService.getToltalLessonsByCourseId(courseId));
     }
 }

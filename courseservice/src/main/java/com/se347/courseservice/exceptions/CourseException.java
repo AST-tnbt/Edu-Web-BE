@@ -142,4 +142,41 @@ public class CourseException extends RuntimeException {
             super("Internal server error: " + message, cause);
         }
     }
+
+    /**
+     * Exception thrown when course invariant is violated
+     * Invariant = business rule that must always be true
+     */
+    public static class CourseInvariantViolationException extends CourseException {
+        public CourseInvariantViolationException(String message) {
+            super("Course invariant violated: " + message);
+        }
+    }
+
+    /**
+     * Exception thrown when section invariant is violated
+     */
+    public static class SectionInvariantViolationException extends CourseException {
+        public SectionInvariantViolationException(String message) {
+            super("Section invariant violated: " + message);
+        }
+    }
+
+    /**
+     * Exception thrown when lesson invariant is violated
+     */
+    public static class LessonInvariantViolationException extends CourseException {
+        public LessonInvariantViolationException(String message) {
+            super("Lesson invariant violated: " + message);
+        }
+    }
+
+    /**
+     * Exception thrown when trying to access entity outside aggregate boundary
+     */
+    public static class AggregateBoundaryViolationException extends CourseException {
+        public AggregateBoundaryViolationException(String message) {
+            super("Aggregate boundary violated: " + message);
+        }
+    }
 }

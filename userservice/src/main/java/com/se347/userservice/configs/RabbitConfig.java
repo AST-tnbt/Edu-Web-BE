@@ -12,8 +12,8 @@ import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFacto
 @Configuration
 public class RabbitConfig {
 
-    @Value("${app.rabbitmq.exchange.auth_user}")
-    private String authAndUserExchangeName;
+    @Value("${app.rabbitmq.exchange.auth}")
+    private String authExchangeName;
 
     @Value("${app.rabbitmq.queue.user-created}")
     private String userCreatedQueueName;
@@ -21,15 +21,9 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.routing-key.user-created}")
     private String userCreatedRoutingKey;
 
-    @Value("${app.rabbitmq.queue.user-profile-completed}")
-    private String userProfileCompletedQueueName;
-
-    @Value("${app.rabbitmq.routing-key.user-profile-completed}")
-    private String userProfileCompletedRoutingKey;
-
     @Bean
-    public TopicExchange authUserExchange() {
-        return new TopicExchange(authAndUserExchangeName, true, false);
+    public TopicExchange authExchange() {
+        return new TopicExchange(authExchangeName, true, false);
     }
 
     @Bean
@@ -38,21 +32,10 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authUserExchange) {
-        return BindingBuilder.bind(userCreatedQueue).to(authUserExchange).with(userCreatedRoutingKey);
+    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authExchange) {
+        return BindingBuilder.bind(userCreatedQueue).to(authExchange).with(userCreatedRoutingKey);
     }
 
-    @Bean
-    public Queue userProfileCompletedQueue() {
-        return new Queue(userProfileCompletedQueueName, true);
-    }
-
-    @Bean
-    public Binding bindingUserProfileCompleted(Queue userProfileCompletedQueue, TopicExchange authUserExchange) {
-        return BindingBuilder.bind(userProfileCompletedQueue).to(authUserExchange).with(userProfileCompletedRoutingKey);
-    }
-
-    // JSON serializer for messages
     @Bean
     public Jackson2JsonMessageConverter producerJackson2MessageConverter() {
         return new Jackson2JsonMessageConverter();

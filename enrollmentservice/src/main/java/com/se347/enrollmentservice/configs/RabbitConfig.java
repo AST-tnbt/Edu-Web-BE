@@ -17,13 +17,13 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 @Configuration
 public class RabbitConfig {
 
-    @Value("${app.rabbitmq.exchange.enrollment_payment}")
-    private String enrollmentPaymentExchangeName;
+    @Value("${app.rabbitmq.exchange.payment}")
+    private String paymentExchangeName;
 
     @Value("${app.rabbitmq.routing-key.payment.completed}")
     private String paymentCompletedRoutingKey;
 
-    @Value("${app.rabbitmq.queue.payment.completed}")
+    @Value("${app.rabbitmq.queue.enrollment-payment.completed}")
     private String paymentCompletedQueueName;
 
     @Value("${app.rabbitmq.exchange.enrollment-course}")
@@ -37,7 +37,7 @@ public class RabbitConfig {
 
     @Bean
     public TopicExchange enrollmentPaymentExchange() {
-        return new TopicExchange(enrollmentPaymentExchangeName, true, false);
+        return new TopicExchange(paymentExchangeName, true, false);
     }
 
     @Bean

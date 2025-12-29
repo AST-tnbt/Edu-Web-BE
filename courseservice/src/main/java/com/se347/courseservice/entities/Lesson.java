@@ -21,7 +21,6 @@ import java.util.UUID;
 public class Lesson {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID lessonId;
 
     @Embedded
@@ -132,6 +131,20 @@ public class Lesson {
     }
     
     /**
+     * Update content details
+     */
+    public Content updateContent(UUID contentId, String title, String contentUrl, String textContent, int orderIndex) {
+        Content content = contents.stream()
+            .filter(c -> c.getContentId().equals(contentId))
+            .findFirst()
+            .orElseThrow(() -> new ContentNotFoundException(contentId.toString()));
+        content.updateDetails(title, contentUrl, textContent, orderIndex);
+        return content;
+    }
+
+
+
+    /**
      * Get read-only view of contents
      */
     public List<Content> getContents() {
@@ -159,6 +172,25 @@ public class Lesson {
         return this.contents.size();
     }
     
+    public Content findContentById(UUID contentId) {
+        return contents.stream()
+            .filter(c -> c.getContentId().equals(contentId))
+            .findFirst()
+            .orElseThrow(() -> new ContentNotFoundException(contentId.toString()));
+    }
+
+    public Content publishContent(UUID contentId) {
+        Content content = findContentById(contentId);
+        content.publish();
+        return content;
+    }
+
+    public Content unpublishContent(UUID contentId) {
+        Content content = findContentById(contentId);
+        content.unpublish();
+        return content;
+    }
+
     /**
      * Authorization: Check if this lesson is owned by the given user
      * 

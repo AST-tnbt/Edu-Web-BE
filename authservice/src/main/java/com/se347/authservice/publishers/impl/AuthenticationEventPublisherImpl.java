@@ -14,8 +14,8 @@ public class AuthenticationEventPublisherImpl implements AuthenticationEventPubl
     @Autowired
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${app.rabbitmq.exchange.auth_user}")
-    private String authAndUserExchangeName;
+    @Value("${app.rabbitmq.exchange.auth}")
+    private String authExchangeName;
 
     @Value("${app.rabbitmq.routing-key.user-created}")
     private String userCreatedRoutingKey;
@@ -28,8 +28,9 @@ public class AuthenticationEventPublisherImpl implements AuthenticationEventPubl
         UserCreatedEventDto userCreatedEvent = UserCreatedEventDto.builder()
                 .userId(user.getId())
                 .email(user.getEmail())
+                .createdAt(user.getCreatedAt())
                 .build();
-        rabbitTemplate.convertAndSend(authAndUserExchangeName, 
+        rabbitTemplate.convertAndSend(authExchangeName, 
                                     userCreatedRoutingKey, 
                                     userCreatedEvent);
     }

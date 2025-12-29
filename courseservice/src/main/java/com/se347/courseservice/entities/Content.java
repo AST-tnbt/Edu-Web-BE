@@ -18,7 +18,6 @@ import java.util.UUID;
 public class Content {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID contentId;
 
     @Column(nullable = false)

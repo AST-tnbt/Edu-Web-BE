@@ -2,12 +2,12 @@ package com.se347.enrollmentservice.listeners.impl;
 
 import com.se347.enrollmentservice.dtos.events.TotalLessonsEventDto;
 import com.se347.enrollmentservice.listeners.CourseTotalLessonsListener;
-import com.se347.enrollmentservice.services.EnrollmentService;
-import com.se347.enrollmentservice.services.CourseProgressService;
+import com.se347.enrollmentservice.services.EnrollmentCommandService;
+import com.se347.enrollmentservice.services.CourseProgressQueryService;
 import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
 import com.se347.enrollmentservice.dtos.CourseProgressResponseDto;
-import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
 import com.se347.enrollmentservice.exceptions.CourseProgressException;
+import com.se347.enrollmentservice.services.EnrollmentQueryService;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import com.rabbitmq.client.Channel;
@@ -27,8 +27,9 @@ public class CourseTotalLessonsListenerImpl implements CourseTotalLessonsListene
 
     private static final Logger logger = LoggerFactory.getLogger(CourseTotalLessonsListenerImpl.class);
     
-    private final EnrollmentService enrollmentService;
-    private final CourseProgressService courseProgressService;
+    private final CourseProgressQueryService courseProgressQueryService;
+    private final EnrollmentQueryService enrollmentQueryService;
+    private final EnrollmentCommandService enrollmentCommandService;
 
     @RabbitListener(queues = "${app.rabbitmq.queue.set-total-lessons}", containerFactory = "rabbitListenerContainerFactory")
     public void handleSetTotalLessonsEvent(TotalLessonsEventDto event,
@@ -42,10 +43,7 @@ public class CourseTotalLessonsListenerImpl implements CourseTotalLessonsListene
             // Validate event
             validateEvent(event);
             
-            // Get all enrollments for this course
-            List<EnrollmentResponseDto> enrollments = enrollmentService.getEnrollmentsByCourseId(courseId);
-            
-            if (enrollments.isEmpty()) {
+            if (enrollmentQueryService.isEnrollmentEmpty(courseId)) {
                 logger.info("✅ [COURSE] No enrollments found for course: {}, skipping update", courseId);
                 acknowledgeMessage(channel, deliveryTag, "No enrollments to update");
                 return;
@@ -55,37 +53,23 @@ public class CourseTotalLessonsListenerImpl implements CourseTotalLessonsListene
             int updatedCount = 0;
             int failedCount = 0;
             
+            // Use internal method - no authorization check needed for system events
+            List<EnrollmentResponseDto> enrollments = enrollmentQueryService.getEnrollmentsByCourseIdInternal(courseId);
+
             for (EnrollmentResponseDto enrollment : enrollments) {
                 try {
                     // Get CourseProgress by enrollmentId
-                    CourseProgressResponseDto courseProgress = courseProgressService.getCourseProgressByEnrollmentId(enrollment.getEnrollmentId());
+                    CourseProgressResponseDto courseProgress = courseProgressQueryService.getCourseProgressByEnrollmentId(enrollment.getEnrollmentId());
                     
                     // Update totalLessons (this will recalculate progress automatically)
-                    courseProgressService.setTotalLessons(courseProgress.getCourseProgressId(), newTotalLessons);
+                    enrollmentCommandService.setTotalLessons(courseProgress.getCourseProgressId(), newTotalLessons);
                     
                     updatedCount++;
                 } catch (CourseProgressException.CourseProgressNotFoundException notFoundEx) {
-                    try {
-                        CourseProgressRequestDto createRequest = CourseProgressRequestDto.builder()
-                            .enrollmentId(enrollment.getEnrollmentId())
-                            .lessonsCompleted(0)
-                            .totalLessons(newTotalLessons)
-                            .build();
-                        
-                        courseProgressService.createCourseProgress(createRequest);
-                        updatedCount++;
-                        logger.info("ℹ️ [COURSE] Created missing CourseProgress for enrollment: {}", enrollment.getEnrollmentId());
-                    } catch (Exception createEx) {
                         failedCount++;
-                        logger.error("❌ [COURSE] Failed to create CourseProgress for enrollment: {} - Error: {}", 
-                            enrollment.getEnrollmentId(), createEx.getMessage(), createEx);
+                        logger.error("❌ [COURSE] Failed to update CourseProgress for enrollment: {} - Error: {}", 
+                            enrollment.getEnrollmentId(), notFoundEx.getMessage(), notFoundEx);
                     }
-                } catch (Exception e) {
-                    failedCount++;
-                    logger.error("❌ [COURSE] Failed to update CourseProgress for enrollment: {} - Error: {}", 
-                        enrollment.getEnrollmentId(), e.getMessage(), e);
-                    // Continue with other enrollments
-                }
             }
             
             // Acknowledge message after processing

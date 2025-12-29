@@ -1,0 +1,107 @@
+# ============================================================
+# APPLICATION CONFIGURATION EXAMPLE FOR ANALYTICSSERVICE
+# ============================================================
+
+# Copy relevant sections to your application.yml or application.properties
+
+# ============================================================
+# RabbitMQ Configuration
+# ============================================================
+app:
+  rabbitmq:
+    # Auth/User Service Exchange and Queues
+    exchange:
+      auth: "auth.exchange"
+      payment: "payment.exchange"
+      course: "course.exchange"
+      enrollment: "enrollment.exchange"
+    
+    # Routing Keys
+    routing-key:
+      user-created: "user.created"
+      user-login: "user.login"
+      payment:
+        completed: "payment.completed"
+      course:
+        created: "course.created"
+        updated: "course.updated"
+      enrollment:
+        created: "enrollment.created"
+        completed: "enrollment.completed"
+    
+    # Queue Names for AnalyticsService
+    queue:
+      # User events
+      user-created: "analytics.user.created"
+      user-login: "analytics.user.login"
+      
+      # Payment events
+      analytics-payment:
+        completed: "analytics.payment.completed"
+      
+      # Course events
+      course:
+        created: "analytics.course.created"
+        updated: "analytics.course.updated"
+      
+      # Enrollment events
+      enrollment:
+        created: "analytics.enrollment.created"
+        completed: "analytics.enrollment.completed"
+
+# ============================================================
+# Spring RabbitMQ Configuration
+# ============================================================
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual  # Manual ack/nack for better control
+        prefetch: 10              # Number of messages to prefetch
+        retry:
+          enabled: true
+          initial-interval: 1000   # 1 second
+          max-attempts: 3
+          max-interval: 10000      # 10 seconds
+          multiplier: 2.0
+        default-requeue-rejected: false  # Don't requeue by default
+
+# ============================================================
+# IMPORTANT: Auth/User Service Configuration
+# ============================================================
+# The Auth/User Service needs to PUBLISH events to the auth.exchange
+# with the following routing keys:
+#   - user.created (when user registers)
+#   - user.login (when user logs in)
+#
+# Example publisher in Auth/User Service:
+#
+# @Service
+# public class UserEventPublisher {
+#     private final RabbitTemplate rabbitTemplate;
+#     
+#     @Value("${app.rabbitmq.exchange.auth}")
+#     private String authExchange;
+#     
+#     public void publishUserRegistered(UserRegisteredEvent event) {
+#         rabbitTemplate.convertAndSend(
+#             authExchange,
+#             "user.created",  // routing key
+#             event
+#         );
+#     }
+#     
+#     public void publishUserLogin(UserLoginEvent event) {
+#         rabbitTemplate.convertAndSend(
+#             authExchange,
+#             "user.login",    // routing key
+#             event
+#         );
+#     }
+# }
+

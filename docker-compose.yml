@@ -218,9 +218,10 @@ services:
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
 
-      - APP_RABBITMQ_EXCHANGE_AUTH_USER=auth_user.exchange
+      - APP_RABBITMQ_EXCHANGE_AUTH=auth.exchange
       - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
-      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+
+      - APP_RABBITMQ_EXCHANGE_USER_PROFILE=user.profile.exchange
       - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
       - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
 
@@ -276,11 +277,12 @@ services:
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
 
-      - APP_RABBITMQ_EXCHANGE_AUTH_USER=auth_user.exchange
+      - APP_RABBITMQ_EXCHANGE_AUTH=auth.exchange
       - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
       - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+
+      - APP_RABBITMQ_EXCHANGE_USER_PROFILE=user.profile.exchange
       - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
-      - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
     ports:
       - "8006:8006"
     depends_on:
@@ -379,9 +381,9 @@ services:
       - SPRING_RABBITMQ_PASSWORD=password
 
       # Application Rabbit settings - Payment Events
-      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT:-enrollment_payment.exchange}
+      - APP_RABBITMQ_EXCHANGE_PAYMENT=${APP_RABBITMQ_EXCHANGE_PAYMENT:-payment.exchange}
       - APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED=${APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED:-payment.completed}
-      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED:-payment.completed.queue}
+      - APP_RABBITMQ_QUEUE_ENROLLMENT_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_ENROLLMENT_PAYMENT_COMPLETED:-enrollment-payment.completed.queue}
 
       # Application Rabbit settings - Course Events
       - APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE:-enrollment_course.exchange}
@@ -478,9 +480,9 @@ services:
       - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-paymentservice}
 
       # Application Rabbit settings - Payment Events
-      - APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_PAYMENT:-enrollment_payment.exchange}
+      - APP_RABBITMQ_EXCHANGE_PAYMENT=${APP_RABBITMQ_EXCHANGE_PAYMENT:-payment.exchange}
       - APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED=${APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED:-payment.completed}
-      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED:-payment.completed.queue}
+    
     ports:
       - "8010:8010"
     depends_on:

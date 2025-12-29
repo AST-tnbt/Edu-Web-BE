@@ -20,6 +20,7 @@
         <module>contentservice</module>
         <module>paymentservice</module>
         <module>enrollmentservice</module>
+        <module>analysticservice</module>
     </modules>
 
     <name>EduWeb Backend</name>

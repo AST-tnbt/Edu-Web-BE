@@ -72,9 +72,9 @@ public class UserProfileServiceImpl implements UserProfileService {
                             .userId(userCreatedEvent.getUserId())
                             .userSlug(SlugUtil.toSlug("default-user"))
                             .email(userCreatedEvent.getEmail())
+                            .createdAt(userCreatedEvent.getCreatedAt())
                             .profileCompleted(false)
                             .build();
-                    profile.onCreate();
                     try {
                         userProfileRepository.save(profile);
                         return mapToResponse(profile);

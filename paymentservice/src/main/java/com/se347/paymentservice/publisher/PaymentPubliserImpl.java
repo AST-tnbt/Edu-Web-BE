@@ -16,7 +16,7 @@ public class PaymentPubliserImpl implements PaymentPublisher{
 
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${app.rabbitmq.exchange.enrollment_payment}")
+    @Value("${app.rabbitmq.exchange.payment}")
     private String paymentExchangeName;
 
     @Value("${app.rabbitmq.routing-key.payment.completed}")

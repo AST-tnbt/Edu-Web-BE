@@ -105,14 +105,16 @@ public class ContentMetadataController {
      * 
      * DDD + CQRS: Write operation → goes through CourseCommandService
      */
-    @PostMapping("/courses/content/id/{contentId}/publish")
+    @PostMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}/publish")
     public ResponseEntity<ContentMetadataResponseDto> publishContent(
+        @PathVariable UUID courseId,
+        @PathVariable UUID sectionId,
         @PathVariable UUID lessonId,
         @PathVariable UUID contentId,
         @RequestHeader("X-User-Id") UUID userId) {
         
         return ResponseEntity.ok(
-            courseCommandService.publishContent(lessonId, contentId, userId)
+            courseCommandService.publishContent(courseId, sectionId, lessonId, contentId, userId)
         );
     }
 
@@ -123,14 +125,16 @@ public class ContentMetadataController {
      * 
      * DDD + CQRS: Write operation → goes through CourseCommandService
      */
-    @PostMapping("/courses/content/id/{contentId}/unpublish")
+    @PostMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}/unpublish")
     public ResponseEntity<ContentMetadataResponseDto> unpublishContent(
+        @PathVariable UUID courseId,
+        @PathVariable UUID sectionId,
         @PathVariable UUID lessonId,
         @PathVariable UUID contentId,
         @RequestHeader("X-User-Id") UUID userId) {
         
         return ResponseEntity.ok(
-            courseCommandService.unpublishContent(lessonId, contentId, userId)
+            courseCommandService.unpublishContent(courseId, sectionId, lessonId, contentId, userId)
         );
     }
 }

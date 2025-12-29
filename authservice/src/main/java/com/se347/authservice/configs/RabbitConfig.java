@@ -12,34 +12,18 @@ import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFacto
 @Configuration
 public class RabbitConfig {
 
-    @Value("${app.rabbitmq.exchange.auth_user}")
-    private String authAndUserExchangeName;
+    @Value("${app.rabbitmq.exchange.user-profile}")
+    private String userProfileExchangeName;
 
-    @Value("${app.rabbitmq.queue.user-created}")
-    private String userCreatedQueueName;
-
-    @Value("${app.rabbitmq.routing-key.user-created}")
-    private String userCreatedRoutingKey;
-
-    @Value("${app.rabbitmq.queue.user-profile-completed}")
+    @Value("${app.rabbitmq.queue.user-profile.completed}")
     private String userProfileCompletedQueueName;
 
-    @Value("${app.rabbitmq.routing-key.user-profile-completed}")
+    @Value("${app.rabbitmq.routing-key.user-profile.completed}")
     private String userProfileCompletedRoutingKey;
 
     @Bean
-    public TopicExchange authUserExchange() {
-        return new TopicExchange(authAndUserExchangeName, true, false);
-    }
-
-    @Bean
-    public Queue userCreatedQueue() {
-        return QueueBuilder.durable(userCreatedQueueName).build();
-    }
-
-    @Bean
-    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authUserExchange) {
-        return BindingBuilder.bind(userCreatedQueue).to(authUserExchange).with(userCreatedRoutingKey);
+    public TopicExchange userProfileExchange() {
+        return new TopicExchange(userProfileExchangeName, true, false);
     }
 
     @Bean

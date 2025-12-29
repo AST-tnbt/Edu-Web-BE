@@ -10,7 +10,6 @@ import java.lang.Integer;
 @Builder
 public class CourseProgressRequestDto {
     private UUID courseProgressId;
-    private UUID enrollmentId;
     private Integer lessonsCompleted;
     private Integer totalLessons;
 }

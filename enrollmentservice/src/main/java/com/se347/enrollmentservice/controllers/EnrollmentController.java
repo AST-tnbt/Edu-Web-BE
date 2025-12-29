@@ -2,10 +2,11 @@ package com.se347.enrollmentservice.controllers;
 
 import org.springframework.web.bind.annotation.*;
 
-import com.se347.enrollmentservice.services.EnrollmentService;
+import com.se347.enrollmentservice.services.EnrollmentCommandService;
 import com.se347.enrollmentservice.dtos.EnrollmentRequestDto;
 import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
 import com.se347.enrollmentservice.exceptions.EnrollmentException;
+import com.se347.enrollmentservice.services.EnrollmentQueryService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,8 @@ import java.util.UUID;
 @RequestMapping("/api")
 public class EnrollmentController {
 
-    private final EnrollmentService enrollmentService;
+    private final EnrollmentCommandService enrollmentCommandService;
+    private final EnrollmentQueryService enrollmentQueryService;
 
     @PostMapping("/admin/enrollments")
     public ResponseEntity<EnrollmentResponseDto> createEnrollmentInternal(
@@ -30,42 +32,34 @@ public class EnrollmentController {
         if (userRoles == null || !userRoles.equals("ADMIN")) {
             throw new EnrollmentException.UnauthorizedAccessException("User does not have ADMIN role");
         }
-        return ResponseEntity.ok(enrollmentService.createEnrollment(request));
+        return ResponseEntity.ok(enrollmentCommandService.createEnrollment(request));
     }
 
     @GetMapping("/enrollments/id/{enrollmentId}")
     public ResponseEntity<EnrollmentResponseDto> getEnrollmentById(
             @PathVariable UUID enrollmentId,
             @RequestHeader("X-User-Id") UUID userId) {
-        return ResponseEntity.ok(enrollmentService.getEnrollmentById(enrollmentId, userId));
-    }
-
-    @GetMapping("/enrollments/student/id/{studentId}")
-    public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByStudentId(
-        @PathVariable UUID studentId,
-        @RequestHeader("X-User-Id") UUID userId
-    ) {
-        return ResponseEntity.ok(enrollmentService.getEnrollmentsByStudentId(studentId, userId));
+        return ResponseEntity.ok(enrollmentQueryService.getEnrollmentById(enrollmentId, userId));
     }
 
     @GetMapping("/courses/id/{courseId}/enrollments")
     public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByCourseId(@PathVariable UUID courseId) {
-        return ResponseEntity.ok(enrollmentService.getEnrollmentsByCourseId(courseId));
+        return ResponseEntity.ok(enrollmentQueryService.getEnrollmentsByCourseId(courseId));
     }
 
     @GetMapping("/courses/id/{courseId}/enrollments/student/id/{studentId}")
-    public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByCourseIdAndStudentId(
+    public ResponseEntity<EnrollmentResponseDto> getEnrollmentByCourseIdAndStudentId(
             @PathVariable UUID courseId, 
             @PathVariable UUID studentId
         ) {
-        return ResponseEntity.ok(enrollmentService.getEnrollmentsByCourseIdAndStudentId(courseId, studentId));
+        return ResponseEntity.ok(enrollmentQueryService.getEnrollmentByCourseIdAndStudentId(courseId, studentId));
     }
 
     @GetMapping("/enrollments/my-courses")
     public ResponseEntity<List<EnrollmentResponseDto>> getMyCourses(
         @RequestHeader("X-User-Id") UUID userId
     ) {
-        return ResponseEntity.ok(enrollmentService.getMyCourses(userId));
+        return ResponseEntity.ok(enrollmentQueryService.getEnrollmentsByStudentId(userId));
     }
 
     @PutMapping("/enrollments/id/{enrollmentId}")
@@ -74,6 +68,6 @@ public class EnrollmentController {
         @RequestBody EnrollmentRequestDto request,
         @RequestHeader("X-User-Id") UUID userId
     ) {
-        return ResponseEntity.ok(enrollmentService.updateEnrollment(enrollmentId, request, userId));
+        return ResponseEntity.ok(enrollmentCommandService.updateEnrollmentStatus(enrollmentId, request.getEnrollmentStatus(), userId));
     }
 }

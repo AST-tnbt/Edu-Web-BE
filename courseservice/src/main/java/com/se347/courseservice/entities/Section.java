@@ -20,7 +20,6 @@ import java.util.UUID;
 public class Section {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID sectionId;
     
     @Embedded
@@ -80,6 +79,20 @@ public class Section {
     
     // ========== DOMAIN METHODS ==========
     
+    public Lesson findLessonById(UUID lessonId) {
+        return lessons.stream()
+            .filter(l -> l.getLessonId().equals(lessonId))
+            .findFirst()
+            .orElseThrow(() -> new LessonNotFoundException(lessonId.toString()));
+    }
+
+    public Lesson findLessonByLessonSlug(String lessonSlug) {
+        return lessons.stream()
+            .filter(l -> l.getLessonSlug().getValue().equals(lessonSlug))
+            .findFirst()
+            .orElseThrow(() -> new LessonNotFoundException(lessonSlug));
+    }
+
     /**
      * Update section details
      */
@@ -119,7 +132,25 @@ public class Section {
         this.lessons.remove(lesson);
         this.updatedAt = LocalDateTime.now();
     }
-    
+
+    public Lesson updateLessonInSection(UUID lessonId, String title, int orderIndex) {
+        Lesson lesson = lessons.stream()
+            .filter(l -> l.getLessonId().equals(lessonId))
+            .findFirst()
+            .orElseThrow(() -> new LessonNotFoundException(lessonId.toString()));
+        lesson.updateDetails(title, orderIndex);
+        return lesson;
+    }
+
+    public Lesson updateLessonInSectionSlug(String lessonSlug, String title, int orderIndex) {
+        Lesson lesson = lessons.stream()
+            .filter(l -> l.getLessonSlug().getValue().equals(lessonSlug))
+            .findFirst()
+            .orElseThrow(() -> new LessonNotFoundException(lessonSlug));
+        lesson.updateDetails(title, orderIndex);
+        return lesson;
+    }
+
     /**
      * Get read-only view of lessons
      */

@@ -1,11 +1,13 @@
 package com.se347.courseservice.entities;
 
 import com.se347.courseservice.enums.CourseLevel;
+import com.se347.courseservice.enums.ContentType;
 import com.se347.courseservice.entities.valueobjects.Money;
 import com.se347.courseservice.entities.valueobjects.Slug;
 import com.se347.courseservice.domains.events.CourseCreatedEvent;
 import com.se347.courseservice.domains.events.CourseUpdatedEvent;
 import com.se347.courseservice.domains.events.SectionAddedToCourseEvent;
+import com.se347.courseservice.domains.events.CourseLessonChangedEvent;
 import com.se347.courseservice.exceptions.CourseException;
 import com.se347.courseservice.exceptions.SectionException;
 
@@ -23,7 +25,6 @@ import java.util.Collections;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Course extends AbstractAggregateRoot<Course> {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID courseId;
 
     @Embedded
@@ -154,7 +155,7 @@ public class Course extends AbstractAggregateRoot<Course> {
         this.updatedAt = LocalDateTime.now();
         
         // Register event
-        registerEvent(CourseUpdatedEvent.from(this.courseId, this.title));
+        registerEvent(CourseUpdatedEvent.from(this.courseId, this.title, this.description, this.thumbnailUrl, this.price, this.level));
     }
 
     /**
@@ -201,6 +202,24 @@ public class Course extends AbstractAggregateRoot<Course> {
         
         this.sections.remove(section);
         this.updatedAt = LocalDateTime.now();
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+    }
+
+    /**
+     * Update a section
+     */
+    public Section updateSectionById(UUID sectionId, String title, String description, int orderIndex) {
+        Section section = findSectionById(sectionId);
+        section.updateDetails(title, description, orderIndex);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return section;
+    }
+
+    public Section updateSectionBySectionSlug(String sectionSlug, String title, String description, int orderIndex) {
+        Section section = findSectionBySectionSlug(sectionSlug);
+        section.updateDetails(title, description, orderIndex);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return section;
     }
 
     /**
@@ -218,6 +237,15 @@ public class Course extends AbstractAggregateRoot<Course> {
                 new SectionException.SectionNotFoundException(sectionId.toString())
             );
     }
+
+    private Section findSectionBySectionSlug(String sectionSlug) {
+        return this.sections.stream()
+            .filter(s -> s.getSectionSlug().getValue().equals(sectionSlug))
+            .findFirst()
+            .orElseThrow(() ->
+                new SectionException.SectionNotFoundException(sectionSlug)
+            );
+    }
     
     /** 
      * Add a new lesson to a section
@@ -228,9 +256,63 @@ public class Course extends AbstractAggregateRoot<Course> {
         int orderIndex
     ) {
         Section section = findSectionById(sectionId);
-        return section.addLesson(title, orderIndex);
+        Lesson lesson = section.addLesson(title, orderIndex);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return lesson;
     }
     
+    public void removeLessonFromSection(UUID sectionId, UUID lessonId) {
+        Section section = findSectionById(sectionId);
+        section.removeLesson(lessonId);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+    }
+
+    public Lesson updateLessonInSection(UUID sectionId, UUID lessonId, String title, int orderIndex) {
+        Section section = findSectionById(sectionId);
+        Lesson lesson = section.updateLessonInSection(lessonId, title, orderIndex);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return lesson;
+    }
+
+    public Lesson updateLessonInSectionSlug(String sectionSlug, String lessonSlug, String title, int orderIndex) {
+        Section section = findSectionBySectionSlug(sectionSlug);
+        Lesson lesson = section.updateLessonInSectionSlug(lessonSlug, title, orderIndex);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return lesson;
+    }
+
+    public Content addContentToLesson(UUID sectionId, UUID lessonId, ContentType type, String title, String contentUrl, String textContent, int orderIndex) {
+        Section section = findSectionById(sectionId);
+        Lesson lesson = section.findLessonById(lessonId);
+        Content content = lesson.addContent(type, title, contentUrl, textContent, orderIndex);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return content;
+    }
+
+    public Content updateContentByLessonId(UUID sectionId, UUID lessonId, UUID contentId, String title, String contentUrl, String textContent, int orderIndex) {
+        Section section = findSectionById(sectionId);
+        Lesson lesson = section.findLessonById(lessonId);
+        Content content = lesson.updateContent(contentId, title, contentUrl, textContent, orderIndex);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return content;
+    }
+
+    public Content publishContentByLessonId(UUID sectionId, UUID lessonId, UUID contentId) {
+        Section section = findSectionById(sectionId);
+        Lesson lesson = section.findLessonById(lessonId);
+        Content content = lesson.publishContent(contentId);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return content;
+    }
+
+    public Content unpublishContentByLessonId(UUID sectionId, UUID lessonId, UUID contentId) {
+        Section section = findSectionById(sectionId);
+        Lesson lesson = section.findLessonById(lessonId);
+        Content content = lesson.unpublishContent(contentId);
+        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
+        return content;
+    }
+
     /**
      * Check if course is owned by instructor
      * 

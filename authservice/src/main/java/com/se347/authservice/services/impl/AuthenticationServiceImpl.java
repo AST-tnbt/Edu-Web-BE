@@ -58,7 +58,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         User user = User.builder()
                 .email(signupRequest.getEmail())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
-                .role(Role.USER) // mặc định role USER
+                .role(Role.STUDENT) // mặc định role STUDENT (matches API contract)
                 .firstLogin(true)
                 .accountNonExpired(true)
                 .accountNonLocked(true)

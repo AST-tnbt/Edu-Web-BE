@@ -59,7 +59,14 @@ public class UserProfileController {
             @PathVariable UUID userId,
             @RequestBody UserProfileRequestDto request,
             @RequestHeader("X-User-Roles") String userRoles) {
-        if (!userRoles.equals("ADMIN")) {
+        boolean isAdmin = false;
+        for (String role : userRoles.split(",")) {
+            if ("ADMIN".equals(role.trim())) {
+                isAdmin = true;
+                break;
+            }
+        }
+        if (!isAdmin) {
             throw new UserException.UnauthorizedAccessException("User not authorized to access this resource");
         }
         UserProfileResponseDto profile = userProfileService.updateProfile(userId, request);

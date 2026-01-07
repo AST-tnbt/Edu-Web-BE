@@ -1,8 +1,8 @@
 package com.se347.analysticservice.entities.admin.platform;
 
+import com.se347.analysticservice.domains.events.platform.UserGrowthMetricsUpdatedEvent;
+import com.se347.analysticservice.domains.events.platform.UserGrowthRecordedEvent;
 import com.se347.analysticservice.entities.AbstractAggregateRoot;
-import com.se347.analysticservice.entities.events.platform.UserGrowthRecordedEvent;
-import com.se347.analysticservice.entities.events.platform.UserGrowthMetricsUpdatedEvent;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
 import jakarta.persistence.*;

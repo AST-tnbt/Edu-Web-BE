@@ -1,7 +1,7 @@
 package com.se347.analysticservice.entities.admin.revenue;
 
+import com.se347.analysticservice.domains.events.revenue.InstructorRevenueCalculatedEvent;
 import com.se347.analysticservice.entities.AbstractAggregateRoot;
-import com.se347.analysticservice.entities.events.revenue.InstructorRevenueCalculatedEvent;
 import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import com.se347.analysticservice.enums.Period;

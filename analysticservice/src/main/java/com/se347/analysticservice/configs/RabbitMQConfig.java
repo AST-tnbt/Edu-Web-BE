@@ -15,74 +15,65 @@ import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFacto
 @Configuration
 public class RabbitMQConfig {
     
-    @Value("${app.rabbitmq.exchange.payment}")
-    private String paymentExchangeName;
-
-    @Value("${app.rabbitmq.routing-key.payment.completed}")
-    private String paymentCompletedRoutingKey;
-
-    @Value("${app.rabbitmq.queue.analytics-payment.completed}")
-    private String analyticsPaymentCompletedQueueName;
-
     @Value("${app.rabbitmq.exchange.auth}")
     private String authExchangeName;
-
-    @Value("${app.rabbitmq.routing-key.user-created}")
-    private String userCreatedRoutingKey;
 
     @Value("${app.rabbitmq.queue.user-created}")
     private String userCreatedQueueName;
     
-    @Value("${app.rabbitmq.routing-key.user-login}")
-    private String userLoginRoutingKey;
-
+    @Value("${app.rabbitmq.routing-key.user-created:user.created}")
+    private String userCreatedRoutingKey;
+    
     @Value("${app.rabbitmq.queue.user-login}")
     private String userLoginQueueName;
+
+    @Value("${app.rabbitmq.routing-key.user-login:user.login}")
+    private String userLoginRoutingKey;
+
+    @Value("${app.rabbitmq.exchange.payment}")
+    private String paymentExchangeName;
+
+    @Value("${app.rabbitmq.queue.payment-completed}")
+    private String paymentCompletedQueueName;
+
+    @Value("${app.rabbitmq.routing-key.payment-completed:payment.completed}")
+    private String paymentCompletedRoutingKey;
 
     @Value("${app.rabbitmq.exchange.course}")
     private String courseExchangeName;
 
-    @Value("${app.rabbitmq.routing-key.course-created}")
-    private String courseCreatedRoutingKey;
-
     @Value("${app.rabbitmq.queue.course-created}")
     private String courseCreatedQueueName;
     
-    @Value("${app.rabbitmq.routing-key.course-published}")
-    private String coursePublishedRoutingKey;
-
+    @Value("${app.rabbitmq.routing-key.course-created:course-created}")
+    private String courseCreatedRoutingKey;
+    
     @Value("${app.rabbitmq.queue.course-published}")
     private String coursePublishedQueueName;
+
+    @Value("${app.rabbitmq.routing-key.course-published:course-published}")
+    private String coursePublishedRoutingKey;
 
     @Value("${app.rabbitmq.exchange.enrollment}")
     private String enrollmentExchangeName;
 
-    @Value("${app.rabbitmq.routing-key.enrollment-created}")
-    private String enrollmentCreatedRoutingKey;
-
     @Value("${app.rabbitmq.queue.enrollment-created}")
     private String enrollmentCreatedQueueName;
     
-    @Value("${app.rabbitmq.routing-key.payment-completed}")
-    private String paymentCompletedNewRoutingKey;
-
-    @Value("${app.rabbitmq.queue.payment-completed}")
-    private String paymentCompletedQueueName;
+    @Value("${app.rabbitmq.routing-key.enrollment-created:enrollment-created}")
+    private String enrollmentCreatedRoutingKey;
     
-    @Value("${app.rabbitmq.exchange.progress}")
-    private String progressExchangeName;
-    
-    @Value("${app.rabbitmq.routing-key.course-completed}")
-    private String courseCompletedRoutingKey;
-
     @Value("${app.rabbitmq.queue.course-completed}")
     private String courseCompletedQueueName;
     
-    @Value("${app.rabbitmq.routing-key.course-progress-updated}")
-    private String courseProgressUpdatedRoutingKey;
-
+    @Value("${app.rabbitmq.routing-key.course-completed:course-completed}")
+    private String courseCompletedRoutingKey;
+    
     @Value("${app.rabbitmq.queue.course-progress-updated}")
     private String courseProgressUpdatedQueueName;
+
+    @Value("${app.rabbitmq.routing-key.course-progress-updated:course-progress-updated}")
+    private String courseProgressUpdatedRoutingKey;
 
     @Bean
     public TopicExchange authExchange() {
@@ -95,13 +86,13 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authExchange) {
-        return BindingBuilder.bind(userCreatedQueue).to(authExchange).with(userCreatedRoutingKey);
-    }
-    
-    @Bean
     public Queue userLoginQueue() {
         return new Queue(userLoginQueueName, true);
+    }
+
+    @Bean
+    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authExchange) {
+        return BindingBuilder.bind(userCreatedQueue).to(authExchange).with(userCreatedRoutingKey);
     }
 
     @Bean
@@ -109,22 +100,23 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(userLoginQueue).to(authExchange).with(userLoginRoutingKey);
     }
 
+    // Payment Exchange and Queue
     @Bean
     public TopicExchange paymentExchange() {
         return new TopicExchange(paymentExchangeName, true, false);
     }
-    
+
     @Bean
-    public Queue analyticsPaymentCompletedQueue() {
-        return new Queue(analyticsPaymentCompletedQueueName, true);
-    }
-    
-    @Bean
-    public Binding bindingAnalyticsPaymentCompleted(Queue analyticsPaymentCompletedQueue, TopicExchange paymentExchange) {
-        return BindingBuilder.bind(analyticsPaymentCompletedQueue).to(paymentExchange).with(paymentCompletedRoutingKey);
+    public Queue paymentCompletedQueue() {
+        return new Queue(paymentCompletedQueueName, true);
     }
 
+    @Bean
+    public Binding bindingPaymentCompleted(Queue paymentCompletedQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentCompletedQueue).to(paymentExchange).with(paymentCompletedRoutingKey);
+    }
 
+    // Course Exchange and Queue
     @Bean
     public TopicExchange courseExchange() {
         return new TopicExchange(courseExchangeName, true, false);
@@ -134,7 +126,6 @@ public class RabbitMQConfig {
     public Queue courseCreatedQueue() {
         return new Queue(courseCreatedQueueName, true);
     }
-
     @Bean
     public Binding bindingCourseCreated(Queue courseCreatedQueue, TopicExchange courseExchange) {
         return BindingBuilder.bind(courseCreatedQueue).to(courseExchange).with(courseCreatedRoutingKey);
@@ -144,12 +135,13 @@ public class RabbitMQConfig {
     public Queue coursePublishedQueue() {
         return new Queue(coursePublishedQueueName, true);
     }
-
+    
     @Bean
     public Binding bindingCoursePublished(Queue coursePublishedQueue, TopicExchange courseExchange) {
         return BindingBuilder.bind(coursePublishedQueue).to(courseExchange).with(coursePublishedRoutingKey);
     }
 
+    // Enrollment Exchange and Queue
     @Bean
     public TopicExchange enrollmentExchange() {
         return new TopicExchange(enrollmentExchangeName, true, false);
@@ -159,47 +151,30 @@ public class RabbitMQConfig {
     public Queue enrollmentCreatedQueue() {
         return new Queue(enrollmentCreatedQueueName, true);
     }
-
-    @Bean
-    public Binding bindingEnrollmentCreated(Queue enrollmentCreatedQueue, TopicExchange enrollmentExchange) {
-        return BindingBuilder.bind(enrollmentCreatedQueue).to(enrollmentExchange).with(enrollmentCreatedRoutingKey);
-    }
-    
-    // Payment Completed Queue (for platform overview)
-    @Bean
-    public Queue paymentCompletedQueue() {
-        return new Queue(paymentCompletedQueueName, true);
-    }
-
-    @Bean
-    public Binding bindingPaymentCompleted(Queue paymentCompletedQueue, TopicExchange paymentExchange) {
-        return BindingBuilder.bind(paymentCompletedQueue).to(paymentExchange).with(paymentCompletedNewRoutingKey);
-    }
-    
-    // Progress Exchange and Queues
-    @Bean
-    public TopicExchange progressExchange() {
-        return new TopicExchange(progressExchangeName, true, false);
-    }
     
     @Bean
     public Queue courseCompletedQueue() {
         return new Queue(courseCompletedQueueName, true);
     }
-
+    
     @Bean
-    public Binding bindingCourseCompleted(Queue courseCompletedQueue, TopicExchange progressExchange) {
-        return BindingBuilder.bind(courseCompletedQueue).to(progressExchange).with(courseCompletedRoutingKey);
+    public Binding bindingEnrollmentCreated(Queue enrollmentCreatedQueue, TopicExchange enrollmentExchange) {
+        return BindingBuilder.bind(enrollmentCreatedQueue).to(enrollmentExchange).with(enrollmentCreatedRoutingKey);
+    }
+    
+    @Bean
+    public Binding bindingCourseCompleted(Queue courseCompletedQueue, TopicExchange enrollmentExchange) {
+        return BindingBuilder.bind(courseCompletedQueue).to(enrollmentExchange).with(courseCompletedRoutingKey);
     }
     
     @Bean
     public Queue courseProgressUpdatedQueue() {
         return new Queue(courseProgressUpdatedQueueName, true);
     }
-
+    
     @Bean
-    public Binding bindingCourseProgressUpdated(Queue courseProgressUpdatedQueue, TopicExchange progressExchange) {
-        return BindingBuilder.bind(courseProgressUpdatedQueue).to(progressExchange).with(courseProgressUpdatedRoutingKey);
+    public Binding bindingCourseProgressUpdated(Queue courseProgressUpdatedQueue, TopicExchange enrollmentExchange) {
+        return BindingBuilder.bind(courseProgressUpdatedQueue).to(enrollmentExchange).with(courseProgressUpdatedRoutingKey);
     }
 
     @Bean

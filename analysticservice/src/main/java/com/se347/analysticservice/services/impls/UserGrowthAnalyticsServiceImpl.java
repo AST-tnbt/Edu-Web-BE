@@ -1,159 +1,119 @@
 package com.se347.analysticservice.services.impls;
 
+import com.se347.analysticservice.domains.services.platform.PlatformMetricsAggregationService;
 import com.se347.analysticservice.entities.admin.platform.UserGrowthAnalytics;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
 import com.se347.analysticservice.repositories.UserGrowthAnalyticsRepository;
 import com.se347.analysticservice.services.UserGrowthAnalyticsService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@Transactional
+@Slf4j
 @RequiredArgsConstructor
 public class UserGrowthAnalyticsServiceImpl implements UserGrowthAnalyticsService {
     
-    private final UserGrowthAnalyticsRepository analyticsRepository;
+    private final UserGrowthAnalyticsRepository repository;
+    private final PlatformMetricsAggregationService aggregationService;
     
-    /**
-     * Records a new user registration.
-     * Business flow:
-     * 1. Load or create analytics for registration date
-     * 2. Call domain method to record new user
-     * 3. Save aggregate (domain events auto-published)
-     */
     @Override
+    @Transactional
     public void recordUserRegistration(UUID userId, LocalDate registrationDate) {
+        UserGrowthAnalytics analytics = repository.findByDate(registrationDate)
+            .orElseGet(() -> createInitialAnalytics(registrationDate));
         
-        try {
-            // Load or create analytics for the date
-            UserGrowthAnalytics analytics = analyticsRepository.findByDate(registrationDate)
-                .orElseGet(() -> createInitialAnalytics(registrationDate));
-            
-            // Domain method: Record new user (business logic in domain)
-            analytics.recordNewUser();
-            
-            // Save aggregate (triggers domain event publication)
-            analyticsRepository.save(analytics);
-                
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to record user registration", e);
-        }
+        analytics.recordNewUser();
+        
+        repository.save(analytics);
     }
     
-    /**
-     * Records user activity (login, course view, etc.).
-     * Business flow:
-     * 1. Load or create analytics for activity date
-     * 2. Call domain method to record active user
-     * 3. Save aggregate
-     */
     @Override
+    @Transactional
     public void recordUserActivity(UUID userId, LocalDate activityDate) {
-
-        try {
-            // Load or create analytics for the date
-            UserGrowthAnalytics analytics = analyticsRepository.findByDate(activityDate)
-                .orElseGet(() -> createInitialAnalytics(activityDate));
-            
-            // Domain method: Record active user
-            analytics.recordActiveUser();
-            
-            // Save aggregate
-            analyticsRepository.save(analytics);
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to record user activity", e);
-        }
+        UserGrowthAnalytics analytics = repository.findByDate(activityDate)
+            .orElseGet(() -> createInitialAnalytics(activityDate));
+        
+        analytics.recordActiveUser();
+        
+        repository.save(analytics);
     }
     
-    /**
-     * Calculates daily retention rate.
-     * Business flow:
-     * 1. Get yesterday's analytics
-     * 2. Get today's analytics
-     * 3. Calculate retention = (today active / yesterday active) * 100%
-     * 4. Update today's retention rate
-     */
     @Override
+    @Transactional
     public void calculateDailyRetention(LocalDate date) {
+        LocalDate yesterday = date.minusDays(1);
         
-        try {
-            LocalDate yesterday = date.minusDays(1);
-            
-            // Get yesterday's analytics
-            UserGrowthAnalytics yesterdayAnalytics = analyticsRepository.findByDate(yesterday)
-                .orElse(null);
-            
-            if (yesterdayAnalytics == null) {
-                return;
-            }
-            
-            // Get today's analytics
-            UserGrowthAnalytics todayAnalytics = analyticsRepository.findByDate(date)
-                .orElse(null);
-            
-            if (todayAnalytics == null) {
-                return;
-            }
-            
-            // Calculate retention using domain method
-            Percentage retention = todayAnalytics.calculateRetentionRate(
-                yesterdayAnalytics.getActiveUsersCount()
-            );
-            
-            // Update retention rate
-            todayAnalytics.updateRetentionRate(retention);
-            
-            // Save
-            analyticsRepository.save(todayAnalytics);
-                
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to calculate daily retention", e);
-        }
-    }
-    
-    /**
-     * Initializes analytics for a new day.
-     * Gets previous day's total users as starting point.
-     */
-    @Override
-    public Count initializeAnalyticsForDate(LocalDate date) {
+        UserGrowthAnalytics yesterdayAnalytics = repository.findByDate(yesterday).orElse(null);
+        if (yesterdayAnalytics == null) return;
         
-        // Get most recent analytics to get total users
-        UserGrowthAnalytics previousAnalytics = analyticsRepository.findMostRecent()
-            .orElse(null);
+        UserGrowthAnalytics todayAnalytics = repository.findByDate(date).orElse(null);
+        if (todayAnalytics == null) return;
         
-        Count totalUsers = (previousAnalytics != null) 
-            ? previousAnalytics.getTotalUsers() 
-            : Count.zero();
-        
-        return totalUsers;
-    }
-    
-    /**
-     * Creates initial analytics record for a date.
-     * Private helper method for internal use.
-     */
-    private UserGrowthAnalytics createInitialAnalytics(LocalDate date) {
-        
-        // Get total users from most recent analytics
-        Count totalUsers = initializeAnalyticsForDate(date);
-        
-        // Create new analytics with zero counts
-        UserGrowthAnalytics analytics = UserGrowthAnalytics.create(
-            date,
-            Count.zero(),      // newUsersCount - will be incremented
-            Count.zero(),      // activeUsersCount - will be incremented
-            totalUsers,        // totalUsers from previous day
-            Percentage.zero()  // retentionRate - will be calculated later
+        Percentage retention = todayAnalytics.calculateRetentionRate(
+            yesterdayAnalytics.getActiveUsersCount()
         );
         
-        return analytics;
+        todayAnalytics.updateRetentionRate(retention);
+        repository.save(todayAnalytics);
+    }
+    
+    @Override
+    @Transactional
+    public Count initializeAnalyticsForDate(LocalDate date) {
+        return aggregationService.getMostRecentTotalUsers();
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UserGrowthAnalytics> getAnalyticsForDate(LocalDate date) {
+        return repository.findByDate(date);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserGrowthAnalytics> getAnalyticsForPeriod(LocalDate startDate, LocalDate endDate) {
+        return repository.findByDateBetween(startDate, endDate);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Percentage getAverageRetentionRate(LocalDate startDate, LocalDate endDate) {
+        return aggregationService.getAverageRetentionInPeriod(startDate, endDate);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Count getTotalActiveUsers(LocalDate date) {
+        return repository.findByDate(date)
+            .map(UserGrowthAnalytics::getActiveUsersCount)
+            .orElse(Count.zero());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public UserGrowthAnalytics getMostRecentAnalytics() {
+        return repository.findMostRecent()
+            .orElseThrow(() -> new IllegalStateException("No analytics data available"));
+    }
+    
+    private UserGrowthAnalytics createInitialAnalytics(LocalDate date) {
+        Count totalUsers = initializeAnalyticsForDate(date);
+        
+        return UserGrowthAnalytics.create(
+            date,
+            Count.zero(),
+            Count.zero(),
+            totalUsers,
+            Percentage.zero()
+        );
     }
 }
 

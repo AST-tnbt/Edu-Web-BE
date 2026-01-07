@@ -44,16 +44,6 @@ public class EnrollmentCreatedEvent {
     private UUID instructorId;
     
     /**
-     * Course title (for analytics).
-     */
-    private String courseTitle;
-    
-    /**
-     * Enrollment type (FREE, PAID).
-     */
-    private String enrollmentType;
-    
-    /**
      * Timestamp when enrollment was created.
      */
     private LocalDateTime enrolledAt;
@@ -62,10 +52,5 @@ public class EnrollmentCreatedEvent {
      * Event occurrence timestamp.
      */
     private LocalDateTime occurredAt;
-    
-    /**
-     * Event version for compatibility.
-     */
-    private Integer version;
 }
 

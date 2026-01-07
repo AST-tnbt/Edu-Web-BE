@@ -40,42 +40,12 @@ public class PaymentCompletedEvent {
     private UUID courseId;
     
     /**
-     * ID of the instructor receiving the payment (for revenue split).
-     */
-    private UUID instructorId;
-    
-    /**
      * Payment amount.
      */
     private BigDecimal amount;
     
     /**
-     * Currency code (e.g., USD, VND).
-     */
-    private String currency;
-    
-    /**
-     * Platform fee/commission amount.
-     */
-    private BigDecimal platformFee;
-    
-    /**
-     * Instructor's earning (amount - platformFee).
-     */
-    private BigDecimal instructorEarning;
-    
-    /**
-     * Payment method (CREDIT_CARD, PAYPAL, etc.).
-     */
-    private String paymentMethod;
-    
-    /**
-     * Payment status (should be COMPLETED for this event).
-     */
-    private String status;
-    
-    /**
-     * Timestamp when payment was completed.
+     * Payment completion timestamp.
      */
     private LocalDateTime completedAt;
     
@@ -83,10 +53,5 @@ public class PaymentCompletedEvent {
      * Event occurrence timestamp.
      */
     private LocalDateTime occurredAt;
-    
-    /**
-     * Event version for compatibility.
-     */
-    private Integer version;
 }
 

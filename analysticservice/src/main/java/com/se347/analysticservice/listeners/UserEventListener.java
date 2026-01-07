@@ -1,8 +1,9 @@
 package com.se347.analysticservice.listeners;
 
 import com.rabbitmq.client.Channel;
-import com.se347.analysticservice.dtos.events.UserLoginEvent;
-import com.se347.analysticservice.dtos.events.UserRegisteredEvent;
+import com.se347.analysticservice.dtos.events.user.UserLoginEvent;
+import com.se347.analysticservice.dtos.events.user.UserRegisteredEvent;
+import com.se347.analysticservice.services.PlatformOverviewService;
 import com.se347.analysticservice.services.UserGrowthAnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -17,7 +18,7 @@ import java.io.IOException;
 public class UserEventListener {
     
     private final UserGrowthAnalyticsService userGrowthAnalyticsService;
-    
+    private final PlatformOverviewService platformOverviewService;
     @RabbitListener(
         queues = "${app.rabbitmq.queue.user-created}",
         containerFactory = "rabbitListenerContainerFactory"
@@ -32,16 +33,10 @@ public class UserEventListener {
             // Validate event
             validateUserRegisteredEvent(event);
             
-            // Filter: Only track non-admin users
-            if ("ADMIN".equalsIgnoreCase(event.getRole())) {
-                acknowledgeMessage(channel, deliveryTag, "Admin user - not tracked");
-                return;
-            }
-            
             // Delegate to application service (transaction boundary)
             userGrowthAnalyticsService.recordUserRegistration(
                 event.getUserId(),
-                event.getRegisteredAt().toLocalDate()
+                event.getCreatedAt().toLocalDate()
             );
             
             // Acknowledge success
@@ -97,12 +92,6 @@ public class UserEventListener {
         }
         if (event.getUserId() == null) {
             throw new IllegalArgumentException("UserId cannot be null in UserRegisteredEvent");
-        }
-        if (event.getRegisteredAt() == null) {
-            throw new IllegalArgumentException("RegisteredAt cannot be null in UserRegisteredEvent");
-        }
-        if (event.getRole() == null || event.getRole().trim().isEmpty()) {
-            throw new IllegalArgumentException("Role cannot be null or empty in UserRegisteredEvent");
         }
     }
     

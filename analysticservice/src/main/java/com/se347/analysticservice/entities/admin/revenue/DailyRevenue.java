@@ -1,16 +1,14 @@
 package com.se347.analysticservice.entities.admin.revenue;
 
+import com.se347.analysticservice.domains.events.revenue.DailyRevenueCreatedEvent;
+import com.se347.analysticservice.domains.events.revenue.DailyRevenueUpdatedEvent;
 import com.se347.analysticservice.entities.AbstractAggregateRoot;
-import com.se347.analysticservice.entities.events.revenue.DailyRevenueCreatedEvent;
-import com.se347.analysticservice.entities.events.revenue.DailyRevenueUpdatedEvent;
 import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -44,10 +42,6 @@ public class DailyRevenue extends AbstractAggregateRoot<DailyRevenue> {
     @AttributeOverride(name = "value", column = @Column(name = "total_transactions", nullable = false))
     private Count totalTransactions;
     
-    // Detailed transaction snapshots
-    @OneToMany(mappedBy = "dailyRevenue", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TransactionSnapshot> transactions = new ArrayList<>();
-    
     @Column(nullable = false)
     private LocalDateTime createdAt;
     
@@ -75,7 +69,6 @@ public class DailyRevenue extends AbstractAggregateRoot<DailyRevenue> {
         dailyRevenue.date = date;
         dailyRevenue.totalRevenue = totalRevenue;
         dailyRevenue.totalTransactions = totalTransactions;
-        dailyRevenue.transactions = new ArrayList<>();
         dailyRevenue.onCreate();
         
         // Register domain event (now ID is available)

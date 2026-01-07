@@ -1,8 +1,8 @@
 package com.se347.analysticservice.entities.admin.instructor;
 
+import com.se347.analysticservice.domains.events.instructor.InstructorStatsCreatedEvent;
+import com.se347.analysticservice.domains.events.instructor.InstructorStatsUpdatedEvent;
 import com.se347.analysticservice.entities.AbstractAggregateRoot;
-import com.se347.analysticservice.entities.events.instructor.InstructorStatsCreatedEvent;
-import com.se347.analysticservice.entities.events.instructor.InstructorStatsUpdatedEvent;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import jakarta.persistence.*;
 import lombok.*;

@@ -4,6 +4,8 @@ import com.rabbitmq.client.Channel;
 import com.se347.analysticservice.dtos.events.progress.CourseCompletedEvent;
 import com.se347.analysticservice.dtos.events.progress.CourseProgressUpdatedEvent;
 import com.se347.analysticservice.dtos.events.enrollment.EnrollmentCreatedEvent;
+import com.se347.analysticservice.entities.shared.valueobjects.Count;
+import com.se347.analysticservice.services.InstructorAnalyticsService;
 import com.se347.analysticservice.services.PlatformOverviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -18,6 +20,7 @@ import java.io.IOException;
 public class EnrollmentEventListener {
     
     private final PlatformOverviewService platformOverviewService;
+    private final InstructorAnalyticsService instructorAnalyticsService;
     
     /**
      * Handles EnrollmentCreatedEvent.
@@ -36,13 +39,18 @@ public class EnrollmentEventListener {
             // Validate event
             validateEnrollmentCreatedEvent(event);
             
-            // Delegate to application service
+            // Delegate to application services
             platformOverviewService.recordEnrollment(
                 event.getEnrollmentId(),
                 event.getStudentId(),
                 event.getCourseId(),
                 event.getInstructorId(),
                 event.getEnrolledAt().toLocalDate()
+            );
+            
+            instructorAnalyticsService.recordStudentsAddedToInstructor(
+                event.getInstructorId(),
+                Count.one()
             );
             
             // Acknowledge success

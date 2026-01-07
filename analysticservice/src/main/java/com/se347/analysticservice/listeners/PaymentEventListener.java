@@ -2,7 +2,7 @@ package com.se347.analysticservice.listeners;
 
 import com.rabbitmq.client.Channel;
 import com.se347.analysticservice.dtos.events.payment.PaymentCompletedEvent;
-import com.se347.analysticservice.services.PlatformOverviewService;
+import com.se347.analysticservice.services.RevenueAnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -19,11 +19,11 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class PaymentEventListener {
     
-    private final PlatformOverviewService platformOverviewService;
+    private final RevenueAnalyticsService revenueAnalyticsService;
     
     /**
      * Handles PaymentCompletedEvent from Payment Service.
-     * Updates revenue metrics for platform and instructor.
+     * Updates daily revenue metrics.
      */
     @RabbitListener(
         queues = "${app.rabbitmq.queue.payment-completed}",
@@ -38,14 +38,9 @@ public class PaymentEventListener {
             // Validate event
             validatePaymentCompletedEvent(event);
             
-            // Delegate to application service
-            platformOverviewService.recordPayment(
-                event.getPaymentId(),
-                event.getCourseId(),
-                event.getInstructorId(),
+            // Delegate to application services
+            revenueAnalyticsService.recordRevenue(
                 event.getAmount(),
-                event.getPlatformFee(),
-                event.getInstructorEarning(),
                 event.getCompletedAt().toLocalDate()
             );
             
@@ -73,17 +68,8 @@ public class PaymentEventListener {
         if (event.getAmount() == null) {
             throw new IllegalArgumentException("Amount cannot be null in PaymentCompletedEvent");
         }
-        if (event.getCurrency() == null || event.getCurrency().trim().isEmpty()) {
-            throw new IllegalArgumentException("Currency cannot be null or empty in PaymentCompletedEvent");
-        }
         if (event.getCompletedAt() == null) {
             throw new IllegalArgumentException("CompletedAt cannot be null in PaymentCompletedEvent");
-        }
-        if (event.getPlatformFee() == null) {
-            throw new IllegalArgumentException("PlatformFee cannot be null in PaymentCompletedEvent");
-        }
-        if (event.getInstructorEarning() == null) {
-            throw new IllegalArgumentException("InstructorEarning cannot be null in PaymentCompletedEvent");
         }
     }
     

@@ -1,48 +1,31 @@
 package com.se347.analysticservice.services;
 
+import com.se347.analysticservice.entities.admin.platform.UserGrowthAnalytics;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
+import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Application Service for User Growth Analytics.
- * Orchestrates business workflows for tracking user registration and activity.
- */
 public interface UserGrowthAnalyticsService {
     
-    /**
-     * Records a new user registration.
-     * Creates or updates analytics record for the registration date.
-     * 
-     * @param userId ID of the registered user
-     * @param registrationDate Date of registration
-     */
     void recordUserRegistration(UUID userId, LocalDate registrationDate);
     
-    /**
-     * Records user activity (login).
-     * Updates active users count for the activity date.
-     * 
-     * @param userId ID of the active user
-     * @param activityDate Date of activity
-     */
     void recordUserActivity(UUID userId, LocalDate activityDate);
     
-    /**
-     * Calculates and updates daily retention rate.
-     * Should be called at end of day or via scheduled job.
-     * 
-     * @param date Date to calculate retention for
-     */
     void calculateDailyRetention(LocalDate date);
     
-    /**
-     * Initializes analytics for a new day.
-     * 
-     * @param date Date to initialize
-     * @return Count of total users at that date
-     */
     Count initializeAnalyticsForDate(LocalDate date);
+    
+    Optional<UserGrowthAnalytics> getAnalyticsForDate(LocalDate date);
+    
+    List<UserGrowthAnalytics> getAnalyticsForPeriod(LocalDate startDate, LocalDate endDate);
+    
+    Percentage getAverageRetentionRate(LocalDate startDate, LocalDate endDate);
+    
+    Count getTotalActiveUsers(LocalDate date);
+    
+    UserGrowthAnalytics getMostRecentAnalytics();
 }
-

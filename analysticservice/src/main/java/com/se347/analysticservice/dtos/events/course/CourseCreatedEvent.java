@@ -30,20 +30,20 @@ public class CourseCreatedEvent {
     private UUID courseId;
     
     /**
+     * Course title.
+     */
+    private String courseTitle;
+    
+    /**
+     * Course slug.
+     */
+    private String courseSlug;
+
+    /**
      * ID of the instructor who created the course.
      */
     private UUID instructorId;
-    
-    /**
-     * Course title.
-     */
-    private String title;
-    
-    /**
-     * Course status (e.g., DRAFT, PUBLISHED).
-     */
-    private String status;
-    
+
     /**
      * Course price (for revenue tracking).
      */
@@ -52,21 +52,11 @@ public class CourseCreatedEvent {
     /**
      * Currency code (e.g., USD, VND).
      */
-    private String currency;
-    
-    /**
-     * Timestamp when the course was created.
-     */
-    private LocalDateTime createdAt;
+    private String categoryName;
     
     /**
      * Event occurrence timestamp.
      */
     private LocalDateTime occurredAt;
-    
-    /**
-     * Event version for compatibility.
-     */
-    private Integer version;
 }
 

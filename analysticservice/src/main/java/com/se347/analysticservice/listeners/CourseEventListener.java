@@ -3,6 +3,7 @@ package com.se347.analysticservice.listeners;
 import com.rabbitmq.client.Channel;
 import com.se347.analysticservice.dtos.events.course.CourseCreatedEvent;
 import com.se347.analysticservice.dtos.events.course.CoursePublishedEvent;
+import com.se347.analysticservice.services.InstructorAnalyticsService;
 import com.se347.analysticservice.services.PlatformOverviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -17,6 +18,7 @@ import java.io.IOException;
 public class CourseEventListener {
     
     private final PlatformOverviewService platformOverviewService;
+    private final InstructorAnalyticsService instructorAnalyticsService;
     
     /**
      * Handles CourseCreatedEvent from Course Service.
@@ -35,11 +37,16 @@ public class CourseEventListener {
             // Validate event
             validateCourseCreatedEvent(event);
             
-            // Delegate to application service
+            // Delegate to application services
             platformOverviewService.recordCourseCreation(
                 event.getCourseId(),
                 event.getInstructorId(),
-                event.getCreatedAt().toLocalDate()
+                event.getOccurredAt().toLocalDate()
+            );
+            
+            instructorAnalyticsService.recordCourseAddedToInstructor(
+                event.getInstructorId(),
+                event.getCourseId()
             );
             
             // Acknowledge success
@@ -54,39 +61,35 @@ public class CourseEventListener {
         }
     }
     
-    /**
-     * Handles CoursePublishedEvent from Course Service.
-     * Updates active course count in platform metrics.
-     */
-    @RabbitListener(
-        queues = "${app.rabbitmq.queue.course-published}",
-        containerFactory = "rabbitListenerContainerFactory"
-    )
-    public void handleCoursePublished(
-        CoursePublishedEvent event,
-        Channel channel,
-        @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
-    ) {
-        try {
-            // Validate event
-            validateCoursePublishedEvent(event);
+    // @RabbitListener(
+    //     queues = "${app.rabbitmq.queue.course-published}",
+    //     containerFactory = "rabbitListenerContainerFactory"
+    // )
+    // public void handleCoursePublished(
+    //     CoursePublishedEvent event,
+    //     Channel channel,
+    //     @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
+    // ) {
+    //     try {
+    //         // Validate event
+    //         validateCoursePublishedEvent(event);
             
-            // Delegate to application service
-            platformOverviewService.recordCoursePublication(
-                event.getCourseId(),
-                event.getInstructorId(),
-                event.getPublishedAt().toLocalDate()
-            );
+    //         // Delegate to application service
+    //         platformOverviewService.recordCoursePublication(
+    //             event.getCourseId(),
+    //             event.getInstructorId(),
+    //             event.getPublishedAt().toLocalDate()
+    //         );
             
-            // Acknowledge success
-            acknowledgeMessage(channel, deliveryTag);
-        } catch (IllegalArgumentException e) {
-            rejectMessage(channel, deliveryTag, false);
+    //         // Acknowledge success
+    //         acknowledgeMessage(channel, deliveryTag);
+    //     } catch (IllegalArgumentException e) {
+    //         rejectMessage(channel, deliveryTag, false);
             
-        } catch (Exception e) {
-            rejectMessage(channel, deliveryTag, true);
-        }
-    }
+    //     } catch (Exception e) {
+    //         rejectMessage(channel, deliveryTag, true);
+    //     }
+    // }
     
     // ==================== Validation Methods ====================
     
@@ -100,8 +103,8 @@ public class CourseEventListener {
         if (event.getInstructorId() == null) {
             throw new IllegalArgumentException("InstructorId cannot be null in CourseCreatedEvent");
         }
-        if (event.getCreatedAt() == null) {
-            throw new IllegalArgumentException("CreatedAt cannot be null in CourseCreatedEvent");
+        if (event.getOccurredAt() == null) {
+            throw new IllegalArgumentException("OccurredAt cannot be null in CourseCreatedEvent");
         }
     }
     

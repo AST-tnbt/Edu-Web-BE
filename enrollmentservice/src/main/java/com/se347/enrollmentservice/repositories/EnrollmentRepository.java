@@ -30,4 +30,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
 
     @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END FROM Enrollment e WHERE e.courseId = :courseId")
     boolean existsByCourseId(@Param("courseId") UUID courseId);
+
+    @Query("SELECT e.instructorId FROM Enrollment e WHERE e.courseId = :courseId")
+    UUID findInstructorIdByCourseId(@Param("courseId") UUID courseId);
 }

@@ -103,6 +103,26 @@ services:
       retries: 10
       interval: 10s
 
+  mysql_analytics:
+    image: mysql:8.0
+    container_name: eduweb-mysql-analytics
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${ANALYTICS_DB_NAME}
+      MYSQL_USER: ${ANALYTICS_DB_USERNAME}
+      MYSQL_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+    ports:
+      - "3312:3306"
+    volumes:
+      - mysql_analytics_data:/var/lib/mysql
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
   redis:
     image: redis:7.2-alpine
     container_name: eduweb-redis
@@ -218,12 +238,17 @@ services:
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
 
+      # Application Rabbit settings - Auth Exchange
       - APP_RABBITMQ_EXCHANGE_AUTH=auth.exchange
+      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
       - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
+      - APP_RABBITMQ_QUEUE_USER_LOGIN=user.login.queue
+      - APP_RABBITMQ_ROUTING_KEY_USER_LOGIN=user.login
 
+      # Application Rabbit settings - User Profile Exchange
       - APP_RABBITMQ_EXCHANGE_USER_PROFILE=user.profile.exchange
-      - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
       - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
+      - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
 
       # Admin initialization
       - ADMIN_DEFAULT_EMAIL=${ADMIN_DEFAULT_EMAIL}
@@ -277,12 +302,16 @@ services:
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
 
+      # Application Rabbit settings - Auth Exchange
       - APP_RABBITMQ_EXCHANGE_AUTH=auth.exchange
-      - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
       - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+      - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
 
+      # Application Rabbit settings - User Profile Exchange
       - APP_RABBITMQ_EXCHANGE_USER_PROFILE=user.profile.exchange
+      - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
       - APP_RABBITMQ_ROUTING_KEY_USER_PROFILE_COMPLETED=user.profile.completed
+
     ports:
       - "8006:8006"
     depends_on:
@@ -328,9 +357,15 @@ services:
       - SPRING_RABBITMQ_USERNAME=user
       - SPRING_RABBITMQ_PASSWORD=password
 
+      # Application Rabbit settings - Enrollment-Course Events
       - APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE:-enrollment_course.exchange}
       - APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS=${APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS:-set.total.lessons}
       - APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS=${APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS:-set.total.lessons.queue}
+
+      # Application Rabbit settings - Course Events
+      - APP_RABBITMQ_EXCHANGE_COURSE=${APP_RABBITMQ_EXCHANGE_COURSE:-course.exchange}
+      - APP_RABBITMQ_QUEUE_COURSE_CREATED=${APP_RABBITMQ_QUEUE_COURSE_CREATED:-course-created}
+      - APP_RABBITMQ_ROUTING_KEY_COURSE_CREATED=${APP_RABBITMQ_ROUTING_KEY_COURSE_CREATED:-course-created}
 
       # Enrollment Service Client
       - COURSESERVICE_ENROLLMENT_BASE_URL=http://enrollmentservice:8008
@@ -383,12 +418,17 @@ services:
       # Application Rabbit settings - Payment Events
       - APP_RABBITMQ_EXCHANGE_PAYMENT=${APP_RABBITMQ_EXCHANGE_PAYMENT:-payment.exchange}
       - APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED=${APP_RABBITMQ_ROUTING_KEY_PAYMENT_COMPLETED:-payment.completed}
-      - APP_RABBITMQ_QUEUE_ENROLLMENT_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_ENROLLMENT_PAYMENT_COMPLETED:-enrollment-payment.completed.queue}
+      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=${APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED:-payment-completed}
 
       # Application Rabbit settings - Course Events
       - APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE=${APP_RABBITMQ_EXCHANGE_ENROLLMENT_COURSE:-enrollment_course.exchange}
       - APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS=${APP_RABBITMQ_ROUTING_KEY_SET_TOTAL_LESSONS:-set.total.lessons}
       - APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS=${APP_RABBITMQ_QUEUE_SET_TOTAL_LESSONS:-set.total.lessons.queue}
+
+      # Application Rabbit settings - Enrollment Events
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT=${APP_RABBITMQ_EXCHANGE_ENROLLMENT:-enrollment.exchange}
+      - APP_RABBITMQ_QUEUE_ENROLLMENT_CREATED=${APP_RABBITMQ_QUEUE_ENROLLMENT_CREATED:-enrollment-created}
+      - APP_RABBITMQ_ROUTING_KEY_ENROLLMENT_CREATED=${APP_RABBITMQ_ROUTING_KEY_ENROLLMENT_CREATED:-enrollment-created}
     
       # Course Service Client
       - ENROLLMENT_SERVICE_COURSE_BASE_URL=http://courseservice:8007
@@ -497,6 +537,73 @@ services:
       interval: 10s
       start_period: 60s
 
+  analysticservice:
+    build: ./analysticservice
+    container_name: eduweb-analytics
+    environment:
+      # Application config
+      - SPRING_APPLICATION_NAME=analysticservice
+      - SERVER_PORT=8011
+
+      # Database config
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql_analytics:3306/analyticsdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=${ANALYTICS_DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${ANALYTICS_DB_PASSWORD}
+
+      # Eureka config
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_HOSTNAME=${EUREKA_INSTANCE_HOSTNAME:-analysticservice}
+
+      # RabbitMQ config
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=user
+      - SPRING_RABBITMQ_PASSWORD=password
+
+      # HMAC config
+      - GATEWAY_HMAC_SECRET=${GATEWAY_HMAC_SECRET}
+      - GATEWAY_HMAC_ENABLED=${GATEWAY_HMAC_ENABLED}
+
+      # Application Rabbit settings - Auth Events
+      - APP_RABBITMQ_EXCHANGE_AUTH=auth.exchange
+      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+      - APP_RABBITMQ_QUEUE_USER_LOGIN=user.login.queue
+      - APP_RABBITMQ_EXCHANGE_USER_PROFILE=user.profile.exchange
+      - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue
+
+      # Application Rabbit settings - Payment Events
+      - APP_RABBITMQ_EXCHANGE_PAYMENT=payment.exchange
+      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=payment-completed
+
+      # Application Rabbit settings - Course Events
+      - APP_RABBITMQ_EXCHANGE_COURSE=course.exchange
+      - APP_RABBITMQ_QUEUE_COURSE_CREATED=course-created
+      - APP_RABBITMQ_QUEUE_COURSE_PUBLISHED=course-published
+
+      # Application Rabbit settings - Enrollment Events
+      - APP_RABBITMQ_EXCHANGE_ENROLLMENT=enrollment.exchange
+      - APP_RABBITMQ_QUEUE_ENROLLMENT_CREATED=enrollment-created
+      - APP_RABBITMQ_QUEUE_COURSE_COMPLETED=course-completed
+      - APP_RABBITMQ_QUEUE_COURSE_PROGRESS_UPDATED=course-progress-updated
+
+    ports:
+      - "8011:8011" 
+    depends_on:
+      mysql_analytics:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - eduweb-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8011/actuator/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 60s
+
   apigateway:
     build: ./apigateway
     container_name: eduweb-gateway
@@ -551,6 +658,7 @@ volumes:
   mysql_course_data:
   mysql_content_data:
   mysql_enrollment_data:
+  mysql_analytics_data:
   redis_data:
   minio_data:
   rabbitmq-data:

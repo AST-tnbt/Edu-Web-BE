@@ -15,6 +15,7 @@ public class EnrollmentRequestDto {
     private UUID courseId;
     private String courseSlug;
     private UUID studentId;
+    private UUID instructorId;
     private LocalDateTime enrolledAt;
     private EnrollmentStatus enrollmentStatus;
 }

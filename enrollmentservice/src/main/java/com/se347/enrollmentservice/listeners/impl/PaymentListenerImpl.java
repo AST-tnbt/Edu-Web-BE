@@ -29,13 +29,14 @@ public class PaymentListenerImpl implements PaymentListener {
     private final EnrollmentCommandService enrollmentCommandService;
 
     @Transactional
-    @RabbitListener(queues = "${app.rabbitmq.queue.enrollment-payment.completed}", containerFactory = "rabbitListenerContainerFactory")
+    @RabbitListener(queues = "${app.rabbitmq.queue.payment-completed}", containerFactory = "rabbitListenerContainerFactory")
     public void handlePaymentCompletedEvent(PaymentCompletedEventDto paymentCompletedEventDto,
                                             Channel channel,
                                             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         long startTime = System.currentTimeMillis();
         UUID courseId = paymentCompletedEventDto.getCourseId();
         UUID userId = paymentCompletedEventDto.getUserId();
+        UUID instructorId = paymentCompletedEventDto.getInstructorId();
         String courseSlug = paymentCompletedEventDto.getCourseSlug();
         
         try {
@@ -55,7 +56,7 @@ public class PaymentListenerImpl implements PaymentListener {
             }
 
             // Create new enrollment with proper statuses
-            EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId, courseSlug);
+            EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId, instructorId, courseSlug);
             enrollmentCommandService.createEnrollment(enrollmentRequest);
         } catch (IllegalArgumentException e) {
             // Validation errors - reject message without requeue
@@ -87,10 +88,11 @@ public class PaymentListenerImpl implements PaymentListener {
     /**
      * Builds enrollment request with proper statuses for paid enrollment
      */
-    private EnrollmentRequestDto buildEnrollmentRequest(UUID courseId, UUID userId, String courseSlug) {
+    private EnrollmentRequestDto buildEnrollmentRequest(UUID courseId, UUID userId, UUID instructorId, String courseSlug) {
         return EnrollmentRequestDto.builder()
             .courseId(courseId)
             .studentId(userId)
+            .instructorId(instructorId)
             .courseSlug(courseSlug)
             .enrolledAt(LocalDateTime.now())
             .enrollmentStatus(EnrollmentStatus.ACTIVE)

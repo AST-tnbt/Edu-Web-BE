@@ -24,6 +24,15 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.queue.set-total-lessons}")
     private String setTotalLessonsQueueName;
 
+    @Value("${app.rabbitmq.exchange.course}")
+    private String courseExchangeName;
+
+    @Value("${app.rabbitmq.queue.course-created}")
+    private String courseCreatedQueueName;
+
+    @Value("${app.rabbitmq.routing-key.course-created}")
+    private String courseCreatedRoutingKey;
+
     @Bean
     public TopicExchange enrollmentCourseExchange() {
         return new TopicExchange(enrollmentCourseExchangeName, true, false);
@@ -37,6 +46,22 @@ public class RabbitConfig {
     @Bean
     public Binding bindingSetTotalLessons(Queue setTotalLessonsQueue, TopicExchange enrollmentCourseExchange) {
         return BindingBuilder.bind(setTotalLessonsQueue).to(enrollmentCourseExchange).with(setTotalLessonsRoutingKey);
+    }
+
+    // Course Exchange and Queue
+    @Bean
+    public TopicExchange courseExchange() {
+        return new TopicExchange(courseExchangeName, true, false);
+    }
+
+    @Bean
+    public Queue courseCreatedQueue() {
+        return new Queue(courseCreatedQueueName, true);
+    }
+
+    @Bean
+    public Binding bindingCourseCreated(Queue courseCreatedQueue, TopicExchange courseExchange) {
+        return BindingBuilder.bind(courseCreatedQueue).to(courseExchange).with(courseCreatedRoutingKey);
     }
 
     @Bean

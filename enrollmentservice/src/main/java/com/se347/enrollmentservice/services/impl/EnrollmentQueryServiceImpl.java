@@ -6,7 +6,6 @@ import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
 import com.se347.enrollmentservice.domains.EnrollmentAuthorizationDomainService;
 import com.se347.enrollmentservice.entities.Enrollment;
 import com.se347.enrollmentservice.exceptions.EnrollmentException;
-import com.se347.enrollmentservice.clients.CourseServiceClient;
 import java.util.UUID;
 import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +19,6 @@ public class EnrollmentQueryServiceImpl implements EnrollmentQueryService {
 
     private final EnrollmentRepository enrollmentRepository;
     private final EnrollmentAuthorizationDomainService enrollmentAuthorizationDomainService;
-    private final CourseServiceClient courseServiceClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -79,7 +77,7 @@ public class EnrollmentQueryServiceImpl implements EnrollmentQueryService {
         Enrollment enrollment = enrollmentRepository.findByCourseIdAndStudentId(courseId, studentId);
 
         enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, studentId);
-        enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(courseId, courseServiceClient.getInstructorIdByCourseId(courseId));
+        enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(courseId, enrollment.getInstructorId());
 
         return mapToResponse(enrollment);
     }

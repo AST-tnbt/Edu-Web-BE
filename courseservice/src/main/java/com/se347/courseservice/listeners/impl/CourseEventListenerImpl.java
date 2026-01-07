@@ -19,11 +19,12 @@ public class CourseEventListenerImpl implements CourseEventListener {
     
     private final CoursePublisher coursePublisher;
 
-    @Override
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleCourseCreatedEvent(CourseCreatedEvent courseCreatedEvent) {
+        coursePublisher.publishCourseCreatedEvent(courseCreatedEvent);
     }
     
-    @Override
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleCourseUpdatedEvent(CourseUpdatedEvent courseUpdatedEvent) {
     }
 

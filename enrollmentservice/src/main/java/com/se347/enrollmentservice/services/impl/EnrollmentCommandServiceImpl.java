@@ -39,8 +39,8 @@ public class EnrollmentCommandServiceImpl implements EnrollmentCommandService {
             request.getCourseId(), 
             request.getCourseSlug(), 
             request.getStudentId(), 
-            totalLessons,
-            false);
+            request.getInstructorId(),
+            totalLessons);
 
         // Save through repository (infrastructure concern)
         enrollmentRepository.save(enrollment);

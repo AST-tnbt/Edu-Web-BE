@@ -18,8 +18,17 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.queue.user-created}")
     private String userCreatedQueueName;
 
-    @Value("${app.rabbitmq.routing-key.user-created}")
+    @Value("${app.rabbitmq.routing-key.user-created:user.created}")
     private String userCreatedRoutingKey;
+
+    @Value("${app.rabbitmq.exchange.user-profile}")
+    private String userProfileExchangeName;
+
+    @Value("${app.rabbitmq.routing-key.user-profile.completed}")
+    private String userProfileCompletedRoutingKey;
+
+    @Value("${app.rabbitmq.queue.user-profile.completed}")
+    private String userProfileCompletedQueueName;
 
     @Bean
     public TopicExchange authExchange() {
@@ -34,6 +43,21 @@ public class RabbitConfig {
     @Bean
     public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authExchange) {
         return BindingBuilder.bind(userCreatedQueue).to(authExchange).with(userCreatedRoutingKey);
+    }
+
+    @Bean
+    public TopicExchange userProfileExchange() {
+        return new TopicExchange(userProfileExchangeName, true, false);
+    }
+
+    @Bean
+    public Queue userProfileCompletedQueue() {
+        return new Queue(userProfileCompletedQueueName, true);
+    }
+
+    @Bean
+    public Binding bindingUserProfileCompleted(Queue userProfileCompletedQueue, TopicExchange userProfileExchange) {
+        return BindingBuilder.bind(userProfileCompletedQueue).to(userProfileExchange).with(userProfileCompletedRoutingKey);
     }
 
     @Bean

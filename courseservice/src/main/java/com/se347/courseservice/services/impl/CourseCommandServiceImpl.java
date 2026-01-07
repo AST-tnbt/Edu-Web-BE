@@ -54,7 +54,7 @@ public class CourseCommandServiceImpl implements CourseCommandService {
         
         // 4. Save aggregate root (will publish domain events automatically)
         courseRepository.save(course);
-        
+
         // 5. Map to DTO for presentation layer
         return mapToResponse(course);
     }

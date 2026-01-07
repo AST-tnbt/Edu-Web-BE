@@ -35,6 +35,9 @@ public class Enrollment extends AbstractAggregateRoot {
     private UUID studentId;
 
     @Column(nullable = false)
+    private UUID instructorId;
+
+    @Column(nullable = false)
     private LocalDateTime enrolledAt;
 
     @Enumerated(EnumType.STRING)
@@ -79,15 +82,15 @@ public class Enrollment extends AbstractAggregateRoot {
      * @param courseSlug The course slug for easy lookup
      * @param studentId The student UUID
      * @param totalLessons Total number of lessons in the course
-     * @param isFree Whether the course is free
+     * @param instructorId The instructor UUID
      * @return New enrollment
      */
     public static Enrollment enroll(
         UUID courseId, 
         String courseSlug,
         UUID studentId, 
-        int totalLessons,
-        boolean isFree
+        UUID instructorId,
+        int totalLessons
     ) {
         // Guards
         guardAgainstNull(courseId, "Course ID");
@@ -100,6 +103,7 @@ public class Enrollment extends AbstractAggregateRoot {
         enrollment.courseId = courseId;
         enrollment.courseSlug = courseSlug;
         enrollment.studentId = studentId;
+        enrollment.instructorId = instructorId;
         enrollment.enrolledAt = LocalDateTime.now();
         enrollment.enrollmentStatus = EnrollmentStatus.ACTIVE;
         
@@ -109,7 +113,7 @@ public class Enrollment extends AbstractAggregateRoot {
         
         // Register domain event
         enrollment.registerEvent(
-            EnrollmentCreatedEvent.now(enrollment.enrollmentId, courseId, studentId) // enrollmentId set after save
+            EnrollmentCreatedEvent.now(enrollment.enrollmentId, courseId, studentId, instructorId, enrollment.enrolledAt) // enrollmentId set after save
         );
         
         return enrollment;

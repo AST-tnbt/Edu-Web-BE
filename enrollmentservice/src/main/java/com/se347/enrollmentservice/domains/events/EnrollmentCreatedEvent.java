@@ -24,17 +24,23 @@ public class EnrollmentCreatedEvent implements DomainEvent {
     private final UUID enrollmentId;
     private final UUID courseId;
     private final UUID studentId;
+    private final UUID instructorId;
+    private final LocalDateTime enrolledAt;
     private final LocalDateTime occurredAt;
     
     public static EnrollmentCreatedEvent now(
             UUID enrollmentId, 
             UUID courseId, 
-            UUID studentId) {
+            UUID studentId,
+            UUID instructorId,
+            LocalDateTime enrolledAt) {
         return new EnrollmentCreatedEvent(
                 UUID.randomUUID(),
                 enrollmentId, 
                 courseId, 
                 studentId, 
+                instructorId,
+                enrolledAt,
                 LocalDateTime.now());
     }
 }

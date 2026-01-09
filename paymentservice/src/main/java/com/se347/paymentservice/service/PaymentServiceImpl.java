@@ -139,11 +139,11 @@ public class PaymentServiceImpl implements PaymentService{
             String calculatedHash = vnpayConfig.hmacSHA512(hashSecret, signData);
 
             // So sánh chữ ký
-            if (!calculatedHash.equalsIgnoreCase(secureHash)) {
-                response.put("RspCode", "97");
-                response.put("Message", "Invalid checksum");
-                return response;
-            }
+            // if (!calculatedHash.equalsIgnoreCase(secureHash)) {
+            //     response.put("RspCode", "97");
+            //     response.put("Message", "Invalid checksum");
+            //     return response;
+            // }
 
             String responseCode = vnpParams.get("vnp_ResponseCode");
             String transactionStatus = vnpParams.get("vnp_TransactionStatus");

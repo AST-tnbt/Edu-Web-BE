@@ -55,12 +55,6 @@ public class PaymentServiceImpl implements PaymentService{
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_ReturnUrl", vnpayConfig.returnUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
-        
-        vnp_Params.put("userId", paymentRequest.getUserId().toString());
-        vnp_Params.put("courseId", paymentRequest.getCourseId().toString());
-        vnp_Params.put("instructorId", paymentRequest.getInstructorId().toString());
-        vnp_Params.put("courseSlug", paymentRequest.getCourseSlug());
-        vnp_Params.put("amount", paymentRequest.getAmount());
 
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");

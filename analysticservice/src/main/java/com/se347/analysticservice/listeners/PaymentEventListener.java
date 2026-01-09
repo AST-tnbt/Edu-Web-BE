@@ -2,7 +2,8 @@ package com.se347.analysticservice.listeners;
 
 import com.rabbitmq.client.Channel;
 import com.se347.analysticservice.dtos.events.payment.PaymentCompletedEvent;
-import com.se347.analysticservice.services.RevenueAnalyticsService;
+import com.se347.analysticservice.services.admin.RevenueAnalyticsService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;

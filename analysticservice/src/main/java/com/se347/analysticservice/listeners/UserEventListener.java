@@ -3,8 +3,9 @@ package com.se347.analysticservice.listeners;
 import com.rabbitmq.client.Channel;
 import com.se347.analysticservice.dtos.events.user.UserLoginEvent;
 import com.se347.analysticservice.dtos.events.user.UserRegisteredEvent;
-import com.se347.analysticservice.services.PlatformOverviewService;
-import com.se347.analysticservice.services.UserGrowthAnalyticsService;
+import com.se347.analysticservice.services.admin.PlatformOverviewService;
+import com.se347.analysticservice.services.admin.UserGrowthAnalyticsService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;

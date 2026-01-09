@@ -49,11 +49,6 @@ public class CourseCompletedEvent {
     private Double completionRate;
     
     /**
-     * Total time spent on the course (in minutes).
-     */
-    private Long totalTimeSpentMinutes;
-    
-    /**
      * Timestamp when the course was completed.
      */
     private LocalDateTime completedAt;
@@ -63,9 +58,5 @@ public class CourseCompletedEvent {
      */
     private LocalDateTime occurredAt;
     
-    /**
-     * Event version for compatibility.
-     */
-    private Integer version;
 }
 

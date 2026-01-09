@@ -1,4 +1,4 @@
-package com.se347.analysticservice.services;
+package com.se347.analysticservice.services.admin;
 
 import com.se347.analysticservice.entities.admin.platform.PlatformOverview;
 import com.se347.analysticservice.enums.Period;

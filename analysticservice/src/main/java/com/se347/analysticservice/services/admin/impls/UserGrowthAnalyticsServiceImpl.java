@@ -1,11 +1,12 @@
-package com.se347.analysticservice.services.impls;
+package com.se347.analysticservice.services.admin.impls;
 
 import com.se347.analysticservice.domains.services.platform.PlatformMetricsAggregationService;
 import com.se347.analysticservice.entities.admin.platform.UserGrowthAnalytics;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
 import com.se347.analysticservice.repositories.UserGrowthAnalyticsRepository;
-import com.se347.analysticservice.services.UserGrowthAnalyticsService;
+import com.se347.analysticservice.services.admin.UserGrowthAnalyticsService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,7 +1,8 @@
 package com.se347.analysticservice.schedulers;
 
 import com.se347.analysticservice.enums.Period;
-import com.se347.analysticservice.services.PlatformOverviewService;
+import com.se347.analysticservice.services.admin.PlatformOverviewService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

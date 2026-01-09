@@ -1,10 +1,11 @@
 package com.se347.analysticservice.schedulers;
 
-import com.se347.analysticservice.services.UserGrowthAnalyticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import com.se347.analysticservice.services.admin.UserGrowthAnalyticsService;
 
 import java.time.LocalDate;
 

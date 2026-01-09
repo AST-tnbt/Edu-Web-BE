@@ -3,8 +3,9 @@ package com.se347.analysticservice.listeners;
 import com.rabbitmq.client.Channel;
 import com.se347.analysticservice.dtos.events.course.CourseCreatedEvent;
 import com.se347.analysticservice.dtos.events.course.CoursePublishedEvent;
-import com.se347.analysticservice.services.InstructorAnalyticsService;
-import com.se347.analysticservice.services.PlatformOverviewService;
+import com.se347.analysticservice.services.admin.PlatformOverviewService;
+import com.se347.analysticservice.services.instructor.InstructorAnalyticsService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -44,7 +45,7 @@ public class CourseEventListener {
                 event.getOccurredAt().toLocalDate()
             );
             
-            instructorAnalyticsService.recordCourseAddedToInstructor(
+            instructorAnalyticsService.recordCourseForInstructorOverview(
                 event.getInstructorId(),
                 event.getCourseId()
             );

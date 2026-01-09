@@ -5,8 +5,9 @@ import com.se347.analysticservice.dtos.events.progress.CourseCompletedEvent;
 import com.se347.analysticservice.dtos.events.progress.CourseProgressUpdatedEvent;
 import com.se347.analysticservice.dtos.events.enrollment.EnrollmentCreatedEvent;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
-import com.se347.analysticservice.services.InstructorAnalyticsService;
-import com.se347.analysticservice.services.PlatformOverviewService;
+import com.se347.analysticservice.services.admin.PlatformOverviewService;
+import com.se347.analysticservice.services.instructor.InstructorAnalyticsService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -48,7 +49,7 @@ public class EnrollmentEventListener {
                 event.getEnrolledAt().toLocalDate()
             );
             
-            instructorAnalyticsService.recordStudentsAddedToInstructor(
+            instructorAnalyticsService.recordEnrollmentForInstructorOverview(
                 event.getInstructorId(),
                 Count.one()
             );
@@ -91,6 +92,16 @@ public class EnrollmentEventListener {
                 event.getCompletedAt().toLocalDate()
             );
             
+            if (event.getCompletionRate() != null) {
+                instructorAnalyticsService.recordEnrollmentCompletionRateUpdate(
+                    event.getInstructorId(),
+                    event.getCourseId(),
+                    event.getEnrollmentId(),
+                    null,
+                    event.getCompletionRate()
+                );
+            }
+            
             // Acknowledge success
             acknowledgeMessage(channel, deliveryTag);
         } catch (IllegalArgumentException e) {
@@ -125,6 +136,14 @@ public class EnrollmentEventListener {
                 event.getInstructorId(),
                 event.getCurrentCompletionRate(),
                 event.getUpdatedAt().toLocalDate()
+            );
+            
+            instructorAnalyticsService.recordEnrollmentCompletionRateUpdate(
+                event.getInstructorId(),
+                event.getCourseId(),
+                event.getEnrollmentId(),
+                event.getPreviousCompletionRate(),
+                event.getCurrentCompletionRate()
             );
             
             // Acknowledge success

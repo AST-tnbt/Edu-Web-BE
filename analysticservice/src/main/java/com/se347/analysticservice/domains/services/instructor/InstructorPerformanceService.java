@@ -1,11 +1,14 @@
 package com.se347.analysticservice.domains.services.instructor;
 
+import com.se347.analysticservice.domains.services.shared.PercentageCalculationHelper;
 import com.se347.analysticservice.entities.admin.instructor.InstructorStats;
 import com.se347.analysticservice.entities.admin.revenue.InstructorRevenue;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class InstructorPerformanceService {
@@ -97,6 +100,14 @@ public class InstructorPerformanceService {
         }
         
         return score;
+    }
+    
+    public Percentage calculateAverageCompletionRate(List<Double> courseCompletionRates) {
+        return PercentageCalculationHelper.calculateAverage(courseCompletionRates);
+    }
+    
+    public Percentage calculateAverageCompletionRateFromPercentages(List<Percentage> completionRates) {
+        return PercentageCalculationHelper.calculateAverageFromPercentages(completionRates);
     }
 }
 

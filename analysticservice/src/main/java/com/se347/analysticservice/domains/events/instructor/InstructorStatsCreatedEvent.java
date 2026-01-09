@@ -17,13 +17,15 @@ public class InstructorStatsCreatedEvent implements DomainEvent {
     UUID instructorId;
     Long totalCourses;
     Long totalStudents;
+    Double averageCompletionRate;
     LocalDateTime occurredAt;
     
     public static InstructorStatsCreatedEvent now(
         UUID instructorStatsId,
         UUID instructorId,
         Long totalCourses,
-        Long totalStudents
+        Long totalStudents,
+        Double averageCompletionRate
     ) {
         return new InstructorStatsCreatedEvent(
             UUID.randomUUID(),
@@ -31,6 +33,7 @@ public class InstructorStatsCreatedEvent implements DomainEvent {
             instructorId,
             totalCourses,
             totalStudents,
+            averageCompletionRate,
             LocalDateTime.now()
         );
     }

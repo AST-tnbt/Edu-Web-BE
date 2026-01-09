@@ -1,4 +1,4 @@
-package com.se347.analysticservice.services.impls;
+package com.se347.analysticservice.services.admin.impls;
 
 import com.se347.analysticservice.domains.services.platform.PlatformMetricsAggregationService;
 import com.se347.analysticservice.domains.services.platform.PlatformMetricsCalculationService;
@@ -8,7 +8,8 @@ import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
 import com.se347.analysticservice.enums.Period;
 import com.se347.analysticservice.repositories.PlatformOverviewRepository;
-import com.se347.analysticservice.services.PlatformOverviewService;
+import com.se347.analysticservice.services.admin.PlatformOverviewService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

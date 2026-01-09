@@ -1,11 +1,12 @@
-package com.se347.analysticservice.services.impls;
+package com.se347.analysticservice.services.admin.impls;
 
 import com.se347.analysticservice.domains.services.revenue.RevenueAggregationService;
 import com.se347.analysticservice.entities.admin.revenue.DailyRevenue;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.repositories.DailyRevenueRepository;
-import com.se347.analysticservice.services.RevenueAnalyticsService;
+import com.se347.analysticservice.services.admin.RevenueAnalyticsService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

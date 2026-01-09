@@ -1,7 +1,8 @@
 package com.se347.analysticservice.schedulers;
 
 import com.se347.analysticservice.enums.Period;
-import com.se347.analysticservice.services.InstructorAnalyticsService;
+import com.se347.analysticservice.services.admin.InstructorRevenueGenerationService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,7 +17,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class InstructorAnalyticsScheduler {
     
-    private final InstructorAnalyticsService instructorAnalyticsService;
+    private final InstructorRevenueGenerationService revenueGenerationService;
     
     @Scheduled(cron = "0 40 0 * * ?")
     public void generateDailyInstructorRevenue() {
@@ -28,7 +29,7 @@ public class InstructorAnalyticsScheduler {
             
             for (UUID instructorId : activeInstructors) {
                 try {
-                    instructorAnalyticsService.generateInstructorRevenue(
+                    revenueGenerationService.generateInstructorRevenue(
                         instructorId,
                         Period.DAILY,
                         yesterday,
@@ -59,7 +60,7 @@ public class InstructorAnalyticsScheduler {
             
             for (UUID instructorId : activeInstructors) {
                 try {
-                    instructorAnalyticsService.generateInstructorRevenue(
+                    revenueGenerationService.generateInstructorRevenue(
                         instructorId,
                         Period.WEEKLY,
                         startOfLastWeek,
@@ -92,7 +93,7 @@ public class InstructorAnalyticsScheduler {
             
             for (UUID instructorId : activeInstructors) {
                 try {
-                    instructorAnalyticsService.generateInstructorRevenue(
+                    revenueGenerationService.generateInstructorRevenue(
                         instructorId,
                         Period.MONTHLY,
                         firstDayOfLastMonth,

@@ -19,6 +19,7 @@ import com.se347.authservice.services.RedisTokenService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -40,8 +41,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final CustomUserDetailsService customUserDetailsService;
     private final RedisTokenService redisTokenService;
     private final JwtConfig jwtConfig;
-    private final AuthenticationEventPublisher userCreatedPublisher;
-
+    private final AuthenticationEventPublisher authenticationEventPublisher;
     @Transactional
     @Override
     public User signup(SignupRequestDto signupRequest) {
@@ -70,7 +70,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         User createdUser = userRepository.save(user);
         
         // Gửi event đến RabbitMQ
-        userCreatedPublisher.publishUserCreatedEvent(createdUser);
+        authenticationEventPublisher.publishUserCreatedEvent(createdUser);
         return createdUser;
     }
 
@@ -89,6 +89,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         redisTokenService.saveToken("access:" + userPrincipal.getUsername(), accessToken, jwtConfig.getAccessTokenExpiration());
         redisTokenService.saveToken("refresh:" + userPrincipal.getUsername(), refreshToken, jwtConfig.getRefreshTokenExpiration());
+
+        authenticationEventPublisher.publishUserLoginEvent(userPrincipal.getId(), LocalDateTime.now());
 
         return new LoginResponseDto(
                 userPrincipal.getId(),

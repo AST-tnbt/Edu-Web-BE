@@ -669,6 +669,56 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above, filtered by isPredefined = false)
 
+## Payment service
+
+Responsible for creating VNPay payment URLs and handling VNPay IPN callbacks to confirm payments and publish payment events.
+
+**API sample:**
+
+1. Tạo payment (lấy VNPay URL)
+- Method: POST
+- URL: `{{baseUrl}}/api/payment`
+- Body (raw JSON):
+```json
+{
+  "amount": "199000",
+  "userId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
+  "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "instructorId": "40b3dd3f-8e39-4ed9-ad60-f26244a15a11",
+  "courseSlug": "introduction-to-java-programming"
+}
+```
+- Response (raw JSON):
+```json
+{
+  "url": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?..."
+}
+```
+
+2. VNPay IPN callback (xử lý kết quả thanh toán)
+- Method: GET
+- URL: `{{baseUrl}}/api/payment/ipn?{VNPayParams}`
+- Query params (ví dụ):
+```text
+vnp_Amount=19900000
+vnp_ResponseCode=00
+vnp_TransactionStatus=00
+vnp_TxnRef=12345678
+userId=30a2cc2f-7d29-4cd9-bd60-f26244a15a78
+courseId=a1b2c3d4-e5f6-7890-abcd-ef1234567890
+instructorId=40b3dd3f-8e39-4ed9-ad60-f26244a15a11
+courseSlug=introduction-to-java-programming
+amount=199000
+vnp_SecureHash={generatedByVNPay}
+```
+- Response (raw JSON):
+```json
+{
+  "RspCode": "00",
+  "Message": "Payment confirmed successfully"
+}
+```
+
 ## Enrollment service
 
 Responsible for managing student enrollments, course progress, and learning progress.

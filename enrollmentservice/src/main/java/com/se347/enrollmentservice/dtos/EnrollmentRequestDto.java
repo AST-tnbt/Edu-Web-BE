@@ -1,7 +1,6 @@
 package com.se347.enrollmentservice.dtos;
 
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
-import com.se347.enrollmentservice.enums.PaymentStatus;
 
 import java.time.LocalDateTime;
 import lombok.*;
@@ -16,7 +15,7 @@ public class EnrollmentRequestDto {
     private UUID courseId;
     private String courseSlug;
     private UUID studentId;
+    private UUID instructorId;
     private LocalDateTime enrolledAt;
     private EnrollmentStatus enrollmentStatus;
-    private PaymentStatus paymentStatus;
 }

@@ -4,6 +4,7 @@ import java.util.UUID;
 import java.time.LocalDateTime;
 import lombok.*;
 import java.lang.Integer;
+import com.se347.enrollmentservice.entities.valueobjects.Percentage;
 
 @Data
 @NoArgsConstructor
@@ -11,12 +12,11 @@ import java.lang.Integer;
 @Builder
 public class CourseProgressResponseDto {
     private UUID courseProgressId;
-    private UUID enrollmentId;
-    private double overallProgress;
+    private Percentage overallProgress;
     private Integer lessonsCompleted;
     private Integer totalLessons;
-    private boolean isCourseCompleted;
-    private LocalDateTime courseCompletedAt;
+    private boolean isAllLessonsCompleted;
+    private LocalDateTime allLessonsCompletedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;  
 }

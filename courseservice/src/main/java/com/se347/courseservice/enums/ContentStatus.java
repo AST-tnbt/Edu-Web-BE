@@ -4,5 +4,7 @@ public enum ContentStatus {
     DRAFT, 
     PROCESSING, 
     READY, 
-    ERROR
+    ERROR,
+    PUBLISHED,
+    ARCHIVED
 }

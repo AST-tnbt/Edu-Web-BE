@@ -8,10 +8,13 @@ import com.se347.paymentservice.exception.AmountException;
 import com.se347.paymentservice.publisher.PaymentPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -22,6 +25,7 @@ public class PaymentServiceImpl implements PaymentService{
     private final PaymentPublisher paymentPublisher;
 
     @Override
+    @Transactional
     public PaymentUrlResponse createPayment(VnpayRequest paymentRequest) {
         String vnp_Version = "2.1.0";
         String vnp_Command = "pay";
@@ -37,7 +41,7 @@ public class PaymentServiceImpl implements PaymentService{
         String vnp_TxnRef = vnpayConfig.getRandomNumber(8);
         String vnp_IpAddr = "127.0.0.1";
         String vnp_TmnCode = vnpayConfig.tmnCode;
-
+        
         Map<String, String> vnp_Params = new HashMap<>();
         vnp_Params.put("vnp_Version", vnp_Version);
         vnp_Params.put("vnp_Command", vnp_Command);
@@ -88,23 +92,27 @@ public class PaymentServiceImpl implements PaymentService{
         return new PaymentUrlResponse(vnpayConfig.payUrl + "?" + query);
     }
 
+    @Transactional
     public Map<String, String> handleIpn(Map<String, String> vnpParams) {
         Map<String, String> response = new HashMap<>();
 
         try {
-            // Bước 1: Lấy SecureHash từ request
             String secureHash = vnpParams.get("vnp_SecureHash");
             vnpParams.remove("vnp_SecureHash");
             vnpParams.remove("vnp_SecureHashType");
 
-            PaymentCompletedEvent paymentCompletedEvent = new PaymentCompletedEvent(
-                    UUID.fromString(vnpParams.get("userId")),
-                    UUID.fromString(vnpParams.get("courseId")),
-                    vnpParams.get("courseSlug")
-            );
+            String vnpTxnRef = vnpParams.get("vnp_TxnRef");
+            UUID userId = UUID.fromString(vnpParams.get("userId"));
+            UUID courseId = UUID.fromString(vnpParams.get("courseId"));
+            UUID instructorId = UUID.fromString(vnpParams.get("instructorId"));
+            String courseSlug = vnpParams.get("courseSlug");
+            BigDecimal amount = new BigDecimal(vnpParams.get("amount"));
+            
             vnpParams.remove("userId");
             vnpParams.remove("courseId");
+            vnpParams.remove("instructorId");
             vnpParams.remove("courseSlug");
+            vnpParams.remove("amount");
 
             // Sắp xếp tham số theo tên (A-Z)
             Map<String, String> sortedParams = new TreeMap<>(vnpParams);
@@ -137,16 +145,25 @@ public class PaymentServiceImpl implements PaymentService{
                 return response;
             }
 
-            // Lấy thông tin cần thiết
-            String orderId = vnpParams.get("vnp_TxnRef");
             String responseCode = vnpParams.get("vnp_ResponseCode");
             String transactionStatus = vnpParams.get("vnp_TransactionStatus");
 
-            // Kiểm tra trạng thái giao dịch
             if ("00".equals(responseCode) && "00".equals(transactionStatus)) {
+                PaymentCompletedEvent paymentCompletedEvent = PaymentCompletedEvent.builder()
+                        .eventId(UUID.randomUUID())
+                        .userId(userId)
+                        .courseId(courseId)
+                        .instructorId(instructorId)
+                        .amount(amount)
+                        .courseSlug(courseSlug)
+                        .vnpTxnRef(vnpTxnRef)
+                        .occurredAt(LocalDateTime.now())
+                        .build();
+                
+                paymentPublisher.publishPaymentSuccessEvent(paymentCompletedEvent);
+                
                 response.put("RspCode", "00");
                 response.put("Message", "Payment confirmed successfully");
-                paymentPublisher.publishPaymentSuccessEvent(paymentCompletedEvent);
             } else {
                 response.put("RspCode", "02");
                 response.put("Message", "Payment failed");

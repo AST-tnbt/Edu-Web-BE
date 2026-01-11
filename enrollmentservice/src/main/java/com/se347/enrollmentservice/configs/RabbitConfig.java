@@ -17,13 +17,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 @Configuration
 public class RabbitConfig {
 
-    @Value("${app.rabbitmq.exchange.enrollment_payment}")
-    private String enrollmentPaymentExchangeName;
+    @Value("${app.rabbitmq.exchange.payment}")
+    private String paymentExchangeName;
 
-    @Value("${app.rabbitmq.routing-key.payment.completed}")
-    private String paymentCompletedRoutingKey;
-
-    @Value("${app.rabbitmq.queue.payment.completed}")
+    @Value("${app.rabbitmq.queue.payment-completed}")
     private String paymentCompletedQueueName;
 
     @Value("${app.rabbitmq.exchange.enrollment-course}")
@@ -35,9 +32,18 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.queue.set-total-lessons}")
     private String setTotalLessonsQueueName;
 
+    @Value("${app.rabbitmq.exchange.enrollment}")
+    private String enrollmentExchangeName;
+
+    @Value("${app.rabbitmq.queue.enrollment-created}")
+    private String enrollmentCreatedQueueName;
+
+    @Value("${app.rabbitmq.routing-key.enrollment-created}")
+    private String enrollmentCreatedRoutingKey;
+
     @Bean
     public TopicExchange enrollmentPaymentExchange() {
-        return new TopicExchange(enrollmentPaymentExchangeName, true, false);
+        return new TopicExchange(paymentExchangeName, true, false);
     }
 
     @Bean
@@ -45,11 +51,6 @@ public class RabbitConfig {
         return new Queue(paymentCompletedQueueName, true);
     }
     
-    @Bean
-    public Binding bindingPaymentCompleted(Queue paymentCompletedQueue, TopicExchange enrollmentPaymentExchange) {
-        return BindingBuilder.bind(paymentCompletedQueue).to(enrollmentPaymentExchange).with(paymentCompletedRoutingKey);
-    }
-
     @Bean
     public TopicExchange enrollmentCourseExchange() {
         return new TopicExchange(enrollmentCourseExchangeName, true, false);
@@ -63,6 +64,22 @@ public class RabbitConfig {
     @Bean
     public Binding bindingSetTotalLessons(Queue setTotalLessonsQueue, TopicExchange enrollmentCourseExchange) {
         return BindingBuilder.bind(setTotalLessonsQueue).to(enrollmentCourseExchange).with(setTotalLessonsRoutingKey);
+    }
+
+    // Enrollment Exchange and Queue
+    @Bean
+    public TopicExchange enrollmentExchange() {
+        return new TopicExchange(enrollmentExchangeName, true, false);
+    }
+
+    @Bean
+    public Queue enrollmentCreatedQueue() {
+        return new Queue(enrollmentCreatedQueueName, true);
+    }
+
+    @Bean
+    public Binding bindingEnrollmentCreated(Queue enrollmentCreatedQueue, TopicExchange enrollmentExchange) {
+        return BindingBuilder.bind(enrollmentCreatedQueue).to(enrollmentExchange).with(enrollmentCreatedRoutingKey);
     }
 
     @Bean

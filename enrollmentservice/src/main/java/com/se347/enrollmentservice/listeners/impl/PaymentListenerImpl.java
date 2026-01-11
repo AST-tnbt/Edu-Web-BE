@@ -1,12 +1,11 @@
 package com.se347.enrollmentservice.listeners.impl;
 
-import com.se347.enrollmentservice.domains.EnrollmentDomainService;
 import com.se347.enrollmentservice.dtos.EnrollmentRequestDto;
 import com.se347.enrollmentservice.dtos.events.PaymentCompletedEventDto;
 import com.se347.enrollmentservice.listeners.PaymentListener;
-import com.se347.enrollmentservice.services.EnrollmentService;
+import com.se347.enrollmentservice.services.EnrollmentCommandService;
+import com.se347.enrollmentservice.services.EnrollmentQueryService;
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
-import com.se347.enrollmentservice.enums.PaymentStatus;
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import com.rabbitmq.client.Channel;
@@ -26,17 +25,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentListenerImpl implements PaymentListener {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentListenerImpl.class);
-    private final EnrollmentService enrollmentService;
-    private final EnrollmentDomainService enrollmentDomainService;
+    private final EnrollmentQueryService enrollmentQueryService;
+    private final EnrollmentCommandService enrollmentCommandService;
 
     @Transactional
-    @RabbitListener(queues = "${app.rabbitmq.queue.payment.completed}", containerFactory = "rabbitListenerContainerFactory")
+    @RabbitListener(queues = "${app.rabbitmq.queue.payment-completed}", containerFactory = "rabbitListenerContainerFactory")
     public void handlePaymentCompletedEvent(PaymentCompletedEventDto paymentCompletedEventDto,
                                             Channel channel,
                                             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         long startTime = System.currentTimeMillis();
         UUID courseId = paymentCompletedEventDto.getCourseId();
         UUID userId = paymentCompletedEventDto.getUserId();
+        UUID instructorId = paymentCompletedEventDto.getInstructorId();
         String courseSlug = paymentCompletedEventDto.getCourseSlug();
         
         try {
@@ -44,9 +44,7 @@ public class PaymentListenerImpl implements PaymentListener {
             validatePaymentEvent(paymentCompletedEventDto);
             
             // Check if enrollment already exists (idempotency check)
-            boolean enrollmentExists = !enrollmentService
-                .getEnrollmentsByCourseIdAndStudentId(courseId, userId)
-                .isEmpty();
+            boolean enrollmentExists = enrollmentQueryService.isEnrollmentExists(courseId, userId);
             
             if (enrollmentExists) {
                 logger.info("✅ [PAYMENT] Enrollment already exists (idempotent) - CourseId: {}, UserId: {}", 
@@ -58,8 +56,8 @@ public class PaymentListenerImpl implements PaymentListener {
             }
 
             // Create new enrollment with proper statuses
-            EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId, courseSlug);
-            enrollmentDomainService.createEnrollment(enrollmentRequest);
+            EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId, instructorId, courseSlug);
+            enrollmentCommandService.createEnrollment(enrollmentRequest);
         } catch (IllegalArgumentException e) {
             // Validation errors - reject message without requeue
             logError(courseId, userId, startTime, deliveryTag, e, "Validation error");
@@ -90,14 +88,14 @@ public class PaymentListenerImpl implements PaymentListener {
     /**
      * Builds enrollment request with proper statuses for paid enrollment
      */
-    private EnrollmentRequestDto buildEnrollmentRequest(UUID courseId, UUID userId, String courseSlug) {
+    private EnrollmentRequestDto buildEnrollmentRequest(UUID courseId, UUID userId, UUID instructorId, String courseSlug) {
         return EnrollmentRequestDto.builder()
             .courseId(courseId)
             .studentId(userId)
+            .instructorId(instructorId)
             .courseSlug(courseSlug)
             .enrolledAt(LocalDateTime.now())
             .enrollmentStatus(EnrollmentStatus.ACTIVE)
-            .paymentStatus(PaymentStatus.PAID)
             .build();
     }
 

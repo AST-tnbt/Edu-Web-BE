@@ -1,8 +1,12 @@
 package com.se347.authservice.publishers.impl;
 
 import com.se347.authservice.dtos.UserCreatedEventDto;
+import com.se347.authservice.dtos.UserLoginEventDto;
 import com.se347.authservice.publishers.AuthenticationEventPublisher;
 import com.se347.authservice.entities.User;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,11 +18,14 @@ public class AuthenticationEventPublisherImpl implements AuthenticationEventPubl
     @Autowired
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${app.rabbitmq.exchange.auth_user}")
-    private String authAndUserExchangeName;
+    @Value("${app.rabbitmq.exchange.auth}")
+    private String authExchangeName;
 
     @Value("${app.rabbitmq.routing-key.user-created}")
     private String userCreatedRoutingKey;
+
+    @Value("${app.rabbitmq.routing-key.user-login}")
+    private String userLoginRoutingKey;
 
     public AuthenticationEventPublisherImpl(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
@@ -28,9 +35,20 @@ public class AuthenticationEventPublisherImpl implements AuthenticationEventPubl
         UserCreatedEventDto userCreatedEvent = UserCreatedEventDto.builder()
                 .userId(user.getId())
                 .email(user.getEmail())
+                .createdAt(user.getCreatedAt())
                 .build();
-        rabbitTemplate.convertAndSend(authAndUserExchangeName, 
+        rabbitTemplate.convertAndSend(authExchangeName, 
                                     userCreatedRoutingKey, 
                                     userCreatedEvent);
+    }
+
+    public void publishUserLoginEvent(UUID userId, LocalDateTime loginAt) {
+        UserLoginEventDto userLoginEvent = UserLoginEventDto.builder()
+            .userId(userId)
+            .loginAt(loginAt)
+            .build();
+        rabbitTemplate.convertAndSend(authExchangeName, 
+                                    userLoginRoutingKey, 
+                                    userLoginEvent);
     }
 }

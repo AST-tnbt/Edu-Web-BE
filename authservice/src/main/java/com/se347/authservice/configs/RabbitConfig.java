@@ -12,8 +12,8 @@ import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFacto
 @Configuration
 public class RabbitConfig {
 
-    @Value("${app.rabbitmq.exchange.auth_user}")
-    private String authAndUserExchangeName;
+    @Value("${app.rabbitmq.exchange.auth}")
+    private String authExchangeName;
 
     @Value("${app.rabbitmq.queue.user-created}")
     private String userCreatedQueueName;
@@ -21,25 +21,49 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.routing-key.user-created}")
     private String userCreatedRoutingKey;
 
-    @Value("${app.rabbitmq.queue.user-profile-completed}")
+    @Value("${app.rabbitmq.routing-key.user-login}")
+    private String userLoginRoutingKey;
+
+    @Value("${app.rabbitmq.queue.user-login}")
+    private String userLoginQueueName;
+
+    @Value("${app.rabbitmq.exchange.user-profile}")
+    private String userProfileExchangeName;
+
+    @Value("${app.rabbitmq.queue.user-profile.completed}")
     private String userProfileCompletedQueueName;
 
-    @Value("${app.rabbitmq.routing-key.user-profile-completed}")
+    @Value("${app.rabbitmq.routing-key.user-profile.completed:user.profile.completed}")
     private String userProfileCompletedRoutingKey;
 
     @Bean
-    public TopicExchange authUserExchange() {
-        return new TopicExchange(authAndUserExchangeName, true, false);
+    public TopicExchange authExchange() {
+        return new TopicExchange(authExchangeName, true, false);
     }
 
     @Bean
     public Queue userCreatedQueue() {
-        return QueueBuilder.durable(userCreatedQueueName).build();
+        return new Queue(userCreatedQueueName, true);
     }
 
     @Bean
-    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authUserExchange) {
-        return BindingBuilder.bind(userCreatedQueue).to(authUserExchange).with(userCreatedRoutingKey);
+    public Queue userLoginQueue() {
+        return new Queue(userLoginQueueName, true);
+    }
+
+    @Bean
+    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authExchange) {
+        return BindingBuilder.bind(userCreatedQueue).to(authExchange).with(userCreatedRoutingKey);
+    }
+
+    @Bean
+    public Binding bindingUserLogin(Queue userLoginQueue, TopicExchange authExchange) {
+        return BindingBuilder.bind(userLoginQueue).to(authExchange).with(userLoginRoutingKey);
+    }
+
+    @Bean
+    public TopicExchange userProfileExchange() {
+        return new TopicExchange(userProfileExchangeName, true, false);
     }
 
     @Bean
@@ -48,8 +72,8 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding bindingUserProfileCompleted(Queue userProfileCompletedQueue, TopicExchange authUserExchange) {
-        return BindingBuilder.bind(userProfileCompletedQueue).to(authUserExchange).with(userProfileCompletedRoutingKey);
+    public Binding bindingUserProfileCompleted(Queue userProfileCompletedQueue, TopicExchange userProfileExchange) {
+        return BindingBuilder.bind(userProfileCompletedQueue).to(userProfileExchange).with(userProfileCompletedRoutingKey);
     }
 
     // JSON serializer for messages

@@ -3,7 +3,8 @@ package com.se347.courseservice.controllers;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
-import com.se347.courseservice.services.SectionService;
+import com.se347.courseservice.services.SectionQueryService;
+import com.se347.courseservice.services.CourseCommandService;
 import com.se347.courseservice.dtos.SectionRequestDto;
 import com.se347.courseservice.dtos.SectionResponseDto;
 
@@ -17,7 +18,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SectionController {
 
-    private final SectionService sectionService;
+    private final SectionQueryService sectionService;
+    private final CourseCommandService courseCommandService;
 
     @PostMapping("/courses/id/{courseId}/sections")
     public ResponseEntity<SectionResponseDto> createSection(
@@ -25,14 +27,13 @@ public class SectionController {
         @RequestBody SectionRequestDto request,
         @RequestHeader("X-User-Id") UUID userId
     ) {
-        return ResponseEntity.ok(sectionService.createSection(courseId, request, userId));
+        return ResponseEntity.ok(courseCommandService.createSection(courseId, request, userId));
     }
 
-    @GetMapping("/courses/id/{courseId}/sections/id/{sectionId}")
+    @GetMapping("/courses/sections/id/{sectionId}")
     public ResponseEntity<SectionResponseDto> getSectionById(
-            @PathVariable UUID courseId,
             @PathVariable UUID sectionId) {
-        return ResponseEntity.ok(sectionService.getSectionById(courseId, sectionId));
+        return ResponseEntity.ok(sectionService.getSectionById(sectionId));
     }
 
     @PutMapping("/courses/id/{courseId}/sections/id/{sectionId}")
@@ -41,7 +42,7 @@ public class SectionController {
             @PathVariable UUID sectionId, 
             @RequestBody SectionRequestDto request, 
             @RequestHeader("X-User-Id") UUID userId) {
-        return ResponseEntity.ok(sectionService.updateSectionById(courseId, sectionId, request, userId));
+        return ResponseEntity.ok(courseCommandService.updateSectionById(courseId, sectionId, request, userId));
     }
 
     @GetMapping("/courses/id/{courseId}/sections")
@@ -58,12 +59,10 @@ public class SectionController {
         return ResponseEntity.ok(sectionService.getSectionsByCourseSlug(courseSlug));
     }
             
-    @GetMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}")
+    @GetMapping("/courses/sections/slug/{sectionSlug}")
     public ResponseEntity<SectionResponseDto> getSectionBySectionSlug(
-            @PathVariable String courseSlug,
-            @PathVariable String sectionSlug, 
-            @RequestHeader("X-User-Roles") String userRoles) {
-        return ResponseEntity.ok(sectionService.getSectionBySectionSlug(courseSlug, sectionSlug));
+            @PathVariable String sectionSlug) {
+        return ResponseEntity.ok(sectionService.getSectionBySectionSlug(sectionSlug));
     }
 
     @PutMapping("/courses/slug/{courseSlug}/sections/slug/{sectionSlug}")
@@ -72,6 +71,6 @@ public class SectionController {
             @PathVariable String sectionSlug, 
             @RequestBody SectionRequestDto request, 
             @RequestHeader("X-User-Id") UUID userId) {
-        return ResponseEntity.ok(sectionService.updateSectionBySectionSlug(courseSlug, sectionSlug, request, userId));
+        return ResponseEntity.ok(courseCommandService.updateSectionBySectionSlug(courseSlug, sectionSlug, request, userId));
     }
 }

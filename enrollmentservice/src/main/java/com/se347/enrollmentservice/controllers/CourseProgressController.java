@@ -3,8 +3,7 @@ package com.se347.enrollmentservice.controllers;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
-import com.se347.enrollmentservice.services.CourseProgressService;
-import com.se347.enrollmentservice.dtos.CourseProgressRequestDto;
+import com.se347.enrollmentservice.services.CourseProgressQueryService;
 import com.se347.enrollmentservice.dtos.CourseProgressResponseDto;
 import java.util.UUID;
 
@@ -15,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CourseProgressController {
     
-    private final CourseProgressService courseProgressService;
+    private final CourseProgressQueryService courseProgressService;
 
     @GetMapping("/id/{courseProgressId}")
     public ResponseEntity<CourseProgressResponseDto> getCourseProgressById(
@@ -27,14 +26,5 @@ public class CourseProgressController {
     public ResponseEntity<CourseProgressResponseDto> getCourseProgressByEnrollmentId(
         @PathVariable UUID enrollmentId) {
         return ResponseEntity.ok(courseProgressService.getCourseProgressByEnrollmentId(enrollmentId));
-    }
-
-    @PutMapping("/id/{courseProgressId}")
-    public ResponseEntity<CourseProgressResponseDto> updateCourseProgress(
-        @PathVariable UUID courseProgressId, 
-        @RequestBody CourseProgressRequestDto request,
-        @RequestHeader("X-User-Id") UUID userId
-    ) {
-        return ResponseEntity.ok(courseProgressService.updateCourseProgress(courseProgressId, request, userId));
     }
 }

@@ -12,24 +12,27 @@ import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFacto
 @Configuration
 public class RabbitConfig {
 
-    @Value("${app.rabbitmq.exchange.auth_user}")
-    private String authAndUserExchangeName;
+    @Value("${app.rabbitmq.exchange.auth}")
+    private String authExchangeName;
 
     @Value("${app.rabbitmq.queue.user-created}")
     private String userCreatedQueueName;
 
-    @Value("${app.rabbitmq.routing-key.user-created}")
+    @Value("${app.rabbitmq.routing-key.user-created:user.created}")
     private String userCreatedRoutingKey;
 
-    @Value("${app.rabbitmq.queue.user-profile-completed}")
-    private String userProfileCompletedQueueName;
+    @Value("${app.rabbitmq.exchange.user-profile}")
+    private String userProfileExchangeName;
 
-    @Value("${app.rabbitmq.routing-key.user-profile-completed}")
+    @Value("${app.rabbitmq.routing-key.user-profile.completed}")
     private String userProfileCompletedRoutingKey;
 
+    @Value("${app.rabbitmq.queue.user-profile.completed}")
+    private String userProfileCompletedQueueName;
+
     @Bean
-    public TopicExchange authUserExchange() {
-        return new TopicExchange(authAndUserExchangeName, true, false);
+    public TopicExchange authExchange() {
+        return new TopicExchange(authExchangeName, true, false);
     }
 
     @Bean
@@ -38,8 +41,13 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authUserExchange) {
-        return BindingBuilder.bind(userCreatedQueue).to(authUserExchange).with(userCreatedRoutingKey);
+    public Binding bindingUserCreated(Queue userCreatedQueue, TopicExchange authExchange) {
+        return BindingBuilder.bind(userCreatedQueue).to(authExchange).with(userCreatedRoutingKey);
+    }
+
+    @Bean
+    public TopicExchange userProfileExchange() {
+        return new TopicExchange(userProfileExchangeName, true, false);
     }
 
     @Bean
@@ -48,11 +56,10 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding bindingUserProfileCompleted(Queue userProfileCompletedQueue, TopicExchange authUserExchange) {
-        return BindingBuilder.bind(userProfileCompletedQueue).to(authUserExchange).with(userProfileCompletedRoutingKey);
+    public Binding bindingUserProfileCompleted(Queue userProfileCompletedQueue, TopicExchange userProfileExchange) {
+        return BindingBuilder.bind(userProfileCompletedQueue).to(userProfileExchange).with(userProfileCompletedRoutingKey);
     }
 
-    // JSON serializer for messages
     @Bean
     public Jackson2JsonMessageConverter producerJackson2MessageConverter() {
         return new Jackson2JsonMessageConverter();

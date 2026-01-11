@@ -15,10 +15,10 @@ public class UserProfileEventPublisherImpl implements UserProfileEventPublisher 
     @Autowired
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${app.rabbitmq.exchange.auth_user}")
-    private String authAndUserExchangeName;
+    @Value("${app.rabbitmq.exchange.user-profile}")
+    private String userProfileExchangeName;
 
-    @Value("${app.rabbitmq.routing-key.user-profile-completed}")
+    @Value("${app.rabbitmq.routing-key.user-profile.completed}")
     private String userProfileCompletedRoutingKey;
 
     public UserProfileEventPublisherImpl(RabbitTemplate rabbitTemplate) {
@@ -30,7 +30,7 @@ public class UserProfileEventPublisherImpl implements UserProfileEventPublisher 
         UserProfileCompletedEvent userProfileCompletedEvent = UserProfileCompletedEvent.builder()
                 .userId(userProfile.getUserId())
                 .build();
-        rabbitTemplate.convertAndSend(authAndUserExchangeName, 
+        rabbitTemplate.convertAndSend(userProfileExchangeName, 
                                     userProfileCompletedRoutingKey, 
                                     userProfileCompletedEvent);
     }

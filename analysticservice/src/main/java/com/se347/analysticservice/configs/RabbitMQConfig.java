@@ -33,11 +33,11 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.exchange.payment}")
     private String paymentExchangeName;
 
+    @Value("${app.rabbitmq.routing-key.payment.completed}")
+    private String paymentCompletedRoutingKey;
+
     @Value("${app.rabbitmq.queue.payment-completed}")
     private String paymentCompletedQueueName;
-
-    @Value("${app.rabbitmq.routing-key.payment-completed:payment.completed}")
-    private String paymentCompletedRoutingKey;
 
     @Value("${app.rabbitmq.exchange.course}")
     private String courseExchangeName;

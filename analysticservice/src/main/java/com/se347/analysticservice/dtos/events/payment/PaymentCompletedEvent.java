@@ -40,9 +40,24 @@ public class PaymentCompletedEvent {
     private UUID courseId;
     
     /**
+     * ID of the instructor (if applicable).
+     */
+    private UUID instructorId;
+    
+    /**
      * Payment amount.
      */
     private BigDecimal amount;
+    
+    /**
+     * Course slug (if applicable).
+     */
+    private String courseSlug;
+    
+    /**
+     * VNPay transaction reference.
+     */
+    private String vnpTxnRef;
     
     /**
      * Payment completion timestamp.

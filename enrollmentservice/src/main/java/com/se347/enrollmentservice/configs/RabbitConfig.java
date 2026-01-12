@@ -20,6 +20,9 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.exchange.payment}")
     private String paymentExchangeName;
 
+    @Value("${app.rabbitmq.routing-key.payment.completed}")
+    private String paymentCompletedRoutingKey;
+
     @Value("${app.rabbitmq.queue.payment-completed}")
     private String paymentCompletedQueueName;
 
@@ -49,6 +52,13 @@ public class RabbitConfig {
     @Bean
     public Queue paymentCompletedQueue() {
         return new Queue(paymentCompletedQueueName, true);
+    }
+    
+    @Bean
+    public Binding bindingPaymentCompleted(Queue paymentCompletedQueue, TopicExchange enrollmentPaymentExchange) {
+        return BindingBuilder.bind(paymentCompletedQueue)
+                .to(enrollmentPaymentExchange)
+                .with(paymentCompletedRoutingKey);
     }
     
     @Bean

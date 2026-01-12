@@ -149,15 +149,18 @@ public class PaymentServiceImpl implements PaymentService{
             String transactionStatus = vnpParams.get("vnp_TransactionStatus");
 
             if ("00".equals(responseCode) && "00".equals(transactionStatus)) {
+                LocalDateTime now = LocalDateTime.now();
                 PaymentCompletedEvent paymentCompletedEvent = PaymentCompletedEvent.builder()
                         .eventId(UUID.randomUUID())
+                        .paymentId(UUID.randomUUID()) // Generate payment ID for tracking
                         .userId(userId)
                         .courseId(courseId)
                         .instructorId(instructorId)
                         .amount(amount)
                         .courseSlug(courseSlug)
                         .vnpTxnRef(vnpTxnRef)
-                        .occurredAt(LocalDateTime.now())
+                        .completedAt(now) // Set completion time
+                        .occurredAt(now)
                         .build();
                 
                 paymentPublisher.publishPaymentSuccessEvent(paymentCompletedEvent);

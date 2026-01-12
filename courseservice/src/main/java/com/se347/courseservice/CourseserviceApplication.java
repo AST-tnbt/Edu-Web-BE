@@ -3,9 +3,11 @@ package com.se347.courseservice;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import java.util.TimeZone;
 
 @EnableScheduling
+@EnableRabbit
 @SpringBootApplication
 public class CourseserviceApplication {
 

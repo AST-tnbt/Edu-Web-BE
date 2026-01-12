@@ -574,7 +574,7 @@ services:
 
       # Application Rabbit settings - Payment Events
       - APP_RABBITMQ_EXCHANGE_PAYMENT=payment.exchange
-      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=payment-completed
+      - APP_RABBITMQ_QUEUE_PAYMENT_COMPLETED=payment-completed-analytics
 
       # Application Rabbit settings - Course Events
       - APP_RABBITMQ_EXCHANGE_COURSE=course.exchange

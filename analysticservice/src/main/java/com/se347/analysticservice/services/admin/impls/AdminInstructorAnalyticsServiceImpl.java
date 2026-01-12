@@ -7,7 +7,7 @@ import com.se347.analysticservice.entities.instructor.InstructorOverview;
 import com.se347.analysticservice.enums.Period;
 import com.se347.analysticservice.repositories.InstructorOverviewRepository;
 import com.se347.analysticservice.repositories.InstructorRevenueRepository;
-import com.se347.analysticservice.services.admin.InstructorAnalyticsService;
+import com.se347.analysticservice.services.admin.AdminInstructorAnalyticsService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class InstructorAnalyticsServiceImpl implements InstructorAnalyticsService {
+public class AdminInstructorAnalyticsServiceImpl implements AdminInstructorAnalyticsService {
     
     private final InstructorOverviewRepository overviewRepository;
     private final InstructorRevenueRepository revenueRepository;

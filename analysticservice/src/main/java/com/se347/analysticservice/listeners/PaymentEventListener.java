@@ -9,13 +9,14 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
-
 import java.io.IOException;
-
+import lombok.extern.slf4j.Slf4j;
 /**
  * Listener for Payment-related events from Payment Service.
  * Processes payment completion events to update revenue metrics.
  */
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class PaymentEventListener {
@@ -35,9 +36,21 @@ public class PaymentEventListener {
         Channel channel,
         @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
     ) {
+        log.info("🔔 [PAYMENT] Received PaymentCompletedEvent - DeliveryTag: {}, Event: {}", 
+            deliveryTag, event != null ? event.toString() : "NULL");
+        
+        if (event == null) {
+            log.error("❌ [PAYMENT] PaymentCompletedEvent is NULL - DeliveryTag: {}", deliveryTag);
+            rejectMessage(channel, deliveryTag, false);
+            return;
+        }
+        
         try {
             // Validate event
             validatePaymentCompletedEvent(event);
+            
+            log.info("✅ [PAYMENT] Validated PaymentCompletedEvent - PaymentId: {}, Amount: {}, CompletedAt: {}", 
+                event.getPaymentId(), event.getAmount(), event.getCompletedAt());
             
             // Delegate to application services
             revenueAnalyticsService.recordRevenue(
@@ -45,14 +58,19 @@ public class PaymentEventListener {
                 event.getCompletedAt().toLocalDate()
             );
             
+            log.info("✅ [PAYMENT] Successfully recorded revenue - PaymentId: {}, Amount: {}", 
+                event.getPaymentId(), event.getAmount());
+            
             // Acknowledge success
             acknowledgeMessage(channel, deliveryTag);
         } catch (IllegalArgumentException e) {
             // Validation errors - reject without requeue (poison message)
+            log.error("❌ [PAYMENT] Validation error - DeliveryTag: {}, Error: {}", deliveryTag, e.getMessage(), e);
             rejectMessage(channel, deliveryTag, false);
             
         } catch (Exception e) {
             // Business/infrastructure errors - reject WITH requeue (transient error)
+            log.error("❌ [PAYMENT] Processing error - DeliveryTag: {}, Error: {}", deliveryTag, e.getMessage(), e);
             rejectMessage(channel, deliveryTag, true);
         }
     }
@@ -80,6 +98,7 @@ public class PaymentEventListener {
         try {
             if (channel != null && channel.isOpen()) {
                 channel.basicAck(deliveryTag, false);
+                log.info("✅ [PAYMENT] Message acknowledged - DeliveryTag: {}", deliveryTag);
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to acknowledge message", e);
@@ -90,8 +109,12 @@ public class PaymentEventListener {
         try {
             if (channel != null && channel.isOpen()) {
                 channel.basicNack(deliveryTag, false, requeue);
+                log.warn("⚠️ [PAYMENT] Message rejected - DeliveryTag: {}, Requeue: {}", deliveryTag, requeue);
+            } else {
+                log.warn("⚠️ [PAYMENT] Channel is closed, cannot reject message - DeliveryTag: {}", deliveryTag);
             }
         } catch (IOException e) {
+            log.error("❌ [PAYMENT] Failed to reject message - DeliveryTag: {}, Error: {}", deliveryTag, e.getMessage(), e);
             throw new RuntimeException("Failed to reject message", e);
         }
     }

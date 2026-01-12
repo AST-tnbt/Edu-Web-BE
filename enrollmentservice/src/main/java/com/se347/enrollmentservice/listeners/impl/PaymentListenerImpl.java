@@ -33,7 +33,17 @@ public class PaymentListenerImpl implements PaymentListener {
     public void handlePaymentCompletedEvent(PaymentCompletedEventDto paymentCompletedEventDto,
                                             Channel channel,
                                             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+        logger.info("🔔 [PAYMENT] Received PaymentCompletedEvent - DeliveryTag: {}, Event: {}", 
+            deliveryTag, paymentCompletedEventDto != null ? paymentCompletedEventDto.toString() : "NULL");
+        
         long startTime = System.currentTimeMillis();
+        
+        if (paymentCompletedEventDto == null) {
+            logger.error("❌ [PAYMENT] PaymentCompletedEventDto is NULL - DeliveryTag: {}", deliveryTag);
+            rejectMessage(channel, deliveryTag, false);
+            return;
+        }
+        
         UUID courseId = paymentCompletedEventDto.getCourseId();
         UUID userId = paymentCompletedEventDto.getUserId();
         UUID instructorId = paymentCompletedEventDto.getInstructorId();
@@ -58,6 +68,10 @@ public class PaymentListenerImpl implements PaymentListener {
             // Create new enrollment with proper statuses
             EnrollmentRequestDto enrollmentRequest = buildEnrollmentRequest(courseId, userId, instructorId, courseSlug);
             enrollmentCommandService.createEnrollment(enrollmentRequest);
+            
+            // Acknowledge message after successful enrollment creation
+            acknowledgeMessage(channel, deliveryTag, "Enrollment created successfully");
+            logSuccess(courseId, userId, startTime, deliveryTag, "Enrollment created");
         } catch (IllegalArgumentException e) {
             // Validation errors - reject message without requeue
             logError(courseId, userId, startTime, deliveryTag, e, "Validation error");

@@ -20,7 +20,7 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.exchange.payment}")
     private String paymentExchangeName;
     
-    @Value("${app.rabbitmq.routing-key.payment-completed}")
+    @Value("${app.rabbitmq.routing-key.payment.completed}")
     private String paymentCompletedRoutingKey;
 
     @Value("${app.rabbitmq.queue.payment-completed}")

@@ -89,6 +89,66 @@ Signup successful for user: example@gmail.com
 Logged out successfully
 ```
 
+### Admin Login và Khởi tạo Analytics
+
+**Sau khi admin đăng nhập thành công, nên khởi tạo dữ liệu analytics ngay:**
+
+1. Login Admin
+- Method: POST
+- URL: `{{baseUrl}}/api/auth/login`
+- Body (raw JSON):
+```json
+{
+    "email": "email",
+    "password": "password"
+}
+```
+- Response (raw JSON):
+```json
+{
+    "userId": "admin-user-id-here",
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiJ9...",
+    "tokenType": "Bearer",
+    "email": "",
+    "role": "",
+    "firstLogin": false
+}
+```
+
+2. Khởi tạo tổng quan platform cho kỳ hiện tại (sau khi login admin)
+- Method: POST
+- URL: `{{baseUrl}}/api/analytics/admin/platform/overview/initialize?period=DAILY`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+- Response (raw JSON):
+```json
+{
+  "overviewId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "totalUsers": 0,
+  "totalCourses": 0,
+  "totalEnrollments": 0,
+  "totalRevenue": 0.00,
+  "averageCompletionRate": 0.0,
+  "startDate": "2025-12-13",
+  "endDate": "2025-12-13",
+  "createdAt": "2025-12-13T13:46:52.048922",
+  "updatedAt": "2025-12-13T13:46:52.048937"
+}
+```
+
+3. (Tùy chọn) Generate tổng quan platform cho khoảng thời gian cụ thể
+- Method: POST
+- URL: `{{baseUrl}}/api/analytics/admin/platform/overview/generate?period=DAILY&startDate=2025-12-01&endDate=2025-12-13`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+  - `startDate` (format: YYYY-MM-DD)
+  - `endDate` (format: YYYY-MM-DD)
+- Response: (same as above)
+
+***Note: Sau khi admin login lần đầu hoặc khởi tạo môi trường mới, nên gọi endpoint initialize để có bản ghi overview khởi điểm. Scheduler sẽ tự động chạy định kỳ sau đó.***
+
 ## User service
 
 Responsible for managing the user information.
@@ -525,12 +585,8 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 - Body (raw JSON):
 ```json
 {
-  "contentType": "VIDEO",
-  "title": "Introduction Video",
   "contentUrl": "https://example.com/video.mp4",
-  "textContent": null,
-  "orderIndex": 1,
-  "status": "PUBLISHED"
+  "orderIndex": 1
 }
 ```
 - Response (raw JSON):
@@ -538,12 +594,8 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 {
   "contentId": "d4e5f6a7-b8c9-0123-def4-234567890123",
   "lessonId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-  "contentType": "VIDEO",
-  "title": "Introduction Video",
   "contentUrl": "https://example.com/video.mp4",
-  "textContent": null,
   "orderIndex": 1,
-  "status": "PUBLISHED",
   "createdAt": "2025-12-13T13:46:52.048922",
   "updatedAt": "2025-12-13T13:46:52.048937"
 }
@@ -560,12 +612,8 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
   {
     "contentId": "d4e5f6a7-b8c9-0123-def4-234567890123",
     "lessonId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    "contentType": "VIDEO",
-    "title": "Introduction Video",
     "contentUrl": "https://example.com/video.mp4",
-    "textContent": null,
     "orderIndex": 1,
-    "status": "PUBLISHED",
     "createdAt": "2025-12-13T13:46:52.048922",
     "updatedAt": "2025-12-13T13:46:52.048937"
   }
@@ -589,32 +637,10 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 - Body (raw JSON):
 ```json
 {
-  "contentType": "VIDEO",
-  "title": "Updated Introduction Video",
   "contentUrl": "https://example.com/video2.mp4",
-  "textContent": null,
-  "orderIndex": 1,
-  "status": "PUBLISHED"
+  "orderIndex": 1
 }
 ```
-- Response: (same as above)
-
-5. Publish content
-- Method: POST
-- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}/publish`
-- Headers: 
-  - `Authorization: Bearer {{accessToken}}`
-  - `X-User-Id: {userId}`
-- Path params: `courseId`, `sectionId`, `lessonId`, `contentId`
-- Response: (same as above)
-
-6. Unpublish content
-- Method: POST
-- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}/unpublish`
-- Headers: 
-  - `Authorization: Bearer {{accessToken}}`
-  - `X-User-Id: {userId}`
-- Path params: `courseId`, `sectionId`, `lessonId`, `contentId`
 - Response: (same as above)
 
 ### Categories

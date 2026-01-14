@@ -26,7 +26,6 @@ import java.util.UUID;
  * GET    /api/lessons/{lessonId}/contents/{contentId}  - Get specific content
  * PUT    /api/lessons/{lessonId}/contents/{contentId}  - Update content
  * DELETE /api/lessons/{lessonId}/contents/{contentId}  - Delete content (future)
- * POST   /api/lessons/{lessonId}/contents/{contentId}/publish - Publish content
  */
 @RequiredArgsConstructor
 @RestController
@@ -98,43 +97,4 @@ public class ContentMetadataController {
         );
     }
 
-    /**
-     * Publish content (make it available to students)
-     * 
-     * POST /api/courses/content/id/{contentId}/publish
-     * 
-     * DDD + CQRS: Write operation → goes through CourseCommandService
-     */
-    @PostMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}/publish")
-    public ResponseEntity<ContentMetadataResponseDto> publishContent(
-        @PathVariable UUID courseId,
-        @PathVariable UUID sectionId,
-        @PathVariable UUID lessonId,
-        @PathVariable UUID contentId,
-        @RequestHeader("X-User-Id") UUID userId) {
-        
-        return ResponseEntity.ok(
-            courseCommandService.publishContent(courseId, sectionId, lessonId, contentId, userId)
-        );
-    }
-
-    /**
-     * Unpublish content (draft mode)
-     * 
-     * POST /api/courses/content/id/{contentId}/unpublish
-     * 
-     * DDD + CQRS: Write operation → goes through CourseCommandService
-     */
-    @PostMapping("/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}/unpublish")
-    public ResponseEntity<ContentMetadataResponseDto> unpublishContent(
-        @PathVariable UUID courseId,
-        @PathVariable UUID sectionId,
-        @PathVariable UUID lessonId,
-        @PathVariable UUID contentId,
-        @RequestHeader("X-User-Id") UUID userId) {
-        
-        return ResponseEntity.ok(
-            courseCommandService.unpublishContent(courseId, sectionId, lessonId, contentId, userId)
-        );
-    }
 }

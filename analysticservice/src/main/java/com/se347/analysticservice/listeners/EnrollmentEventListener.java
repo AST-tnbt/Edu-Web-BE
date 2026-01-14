@@ -5,8 +5,11 @@ import com.se347.analysticservice.dtos.events.progress.CourseCompletedEvent;
 import com.se347.analysticservice.dtos.events.progress.CourseProgressUpdatedEvent;
 import com.se347.analysticservice.dtos.events.enrollment.EnrollmentCreatedEvent;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
+import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
 import com.se347.analysticservice.services.admin.PlatformOverviewService;
-import com.se347.analysticservice.services.instructor.InstructorAnalyticsService;
+import com.se347.analysticservice.services.instructor.InstructorCourseStatsService;
+import com.se347.analysticservice.services.instructor.InstructorDailyStatsService;
+import com.se347.analysticservice.services.instructor.InstructorOverviewService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -21,7 +24,9 @@ import java.io.IOException;
 public class EnrollmentEventListener {
     
     private final PlatformOverviewService platformOverviewService;
-    private final InstructorAnalyticsService instructorAnalyticsService;
+    private final InstructorOverviewService instructorOverviewService;
+    private final InstructorCourseStatsService instructorCourseStatsService;
+    private final InstructorDailyStatsService instructorDailyStatsService;
     
     /**
      * Handles EnrollmentCreatedEvent.
@@ -40,19 +45,24 @@ public class EnrollmentEventListener {
             // Validate event
             validateEnrollmentCreatedEvent(event);
             
-            // Delegate to application services
+            var enrolledDate = event.getEnrolledAt().toLocalDate();
+            
             platformOverviewService.recordEnrollment(
                 event.getEnrollmentId(),
                 event.getStudentId(),
                 event.getCourseId(),
                 event.getInstructorId(),
-                event.getEnrolledAt().toLocalDate()
+                enrolledDate
             );
             
-            instructorAnalyticsService.recordEnrollmentForInstructorOverview(
-                event.getInstructorId(),
+            instructorOverviewService.recordEnrollment(event.getInstructorId(), Count.one());
+            instructorCourseStatsService.recordEnrollment(
+                event.getInstructorId(), 
+                event.getCourseId(), 
                 Count.one()
             );
+            instructorDailyStatsService.recordEnrollment(event.getInstructorId(), enrolledDate);
+            instructorDailyStatsService.recordActiveStudent(event.getInstructorId(), enrolledDate);
             
             // Acknowledge success
             acknowledgeMessage(channel, deliveryTag);
@@ -83,22 +93,32 @@ public class EnrollmentEventListener {
             // Validate event
             validateCourseCompletedEvent(event);
             
-            // Delegate to application service
+            var completedDate = event.getCompletedAt().toLocalDate();
+            
             platformOverviewService.recordCourseCompletion(
                 event.getStudentId(),
                 event.getCourseId(),
                 event.getInstructorId(),
                 event.getEnrollmentId(),
-                event.getCompletedAt().toLocalDate()
+                completedDate
             );
             
+            instructorDailyStatsService.recordCourseCompletion(event.getInstructorId(), completedDate);
+            instructorDailyStatsService.recordActiveStudent(event.getInstructorId(), completedDate);
+            
             if (event.getCompletionRate() != null) {
-                instructorAnalyticsService.recordEnrollmentCompletionRateUpdate(
+                instructorOverviewService.recordEnrollmentCompletionRateUpdate(
                     event.getInstructorId(),
                     event.getCourseId(),
                     event.getEnrollmentId(),
                     null,
                     event.getCompletionRate()
+                );
+                
+                instructorCourseStatsService.updateCompletionRate(
+                    event.getInstructorId(),
+                    event.getCourseId(),
+                    Percentage.of(event.getCompletionRate())
                 );
             }
             
@@ -129,21 +149,30 @@ public class EnrollmentEventListener {
             // Validate event
             validateCourseProgressUpdatedEvent(event);
             
-            // Delegate to application service
+            var updatedDate = event.getUpdatedAt().toLocalDate();
+            
             platformOverviewService.recordProgressUpdate(
                 event.getStudentId(),
                 event.getCourseId(),
                 event.getInstructorId(),
                 event.getCurrentCompletionRate(),
-                event.getUpdatedAt().toLocalDate()
+                updatedDate
             );
             
-            instructorAnalyticsService.recordEnrollmentCompletionRateUpdate(
+            instructorDailyStatsService.recordActiveStudent(event.getInstructorId(), updatedDate);
+            
+            instructorOverviewService.recordEnrollmentCompletionRateUpdate(
                 event.getInstructorId(),
                 event.getCourseId(),
                 event.getEnrollmentId(),
                 event.getPreviousCompletionRate(),
                 event.getCurrentCompletionRate()
+            );
+            
+            instructorCourseStatsService.updateCompletionRate(
+                event.getInstructorId(),
+                event.getCourseId(),
+                Percentage.of(event.getCurrentCompletionRate())
             );
             
             // Acknowledge success

@@ -1,8 +1,6 @@
 package com.se347.courseservice.entities;
 
-import com.se347.courseservice.entities.valueobjects.Slug;
 import com.se347.courseservice.entities.valueobjects.OrderIndex;
-import com.se347.courseservice.enums.ContentType;
 import com.se347.courseservice.exceptions.CourseException.*;
 
 import jakarta.persistence.*;
@@ -23,11 +21,8 @@ public class Lesson {
     @Id
     private UUID lessonId;
 
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "value", column = @Column(name = "lesson_slug", unique = true, nullable = false))
-    })
-    private Slug lessonSlug;
+    @Column(name = "lesson_slug", unique = true, nullable = false)
+    private String lessonSlug;
 
     @Column(nullable = false)
     private String title;
@@ -57,13 +52,13 @@ public class Lesson {
      * Create new lesson (can only be called from Section entity)
      * Package-private visibility enforces aggregate boundary
      */
-    static Lesson createNew(String title, int orderIndex, Section section) {
+    static Lesson createNew(String title, String lessonSlug, int orderIndex, Section section) {
         guardAgainstNullOrEmpty(title, "Lesson title");
         guardAgainstNull(section, "Section");
         
         Lesson lesson = new Lesson();
         lesson.lessonId = UUID.randomUUID();
-        lesson.lessonSlug = Slug.fromTitle(title);
+        lesson.lessonSlug = lessonSlug;
         lesson.title = title;
         lesson.orderIndex = OrderIndex.of(orderIndex);
         lesson.section = section;
@@ -83,7 +78,6 @@ public class Lesson {
         guardAgainstNullOrEmpty(title, "Title");
         
         this.title = title;
-        this.lessonSlug = Slug.fromTitle(title);
         this.orderIndex = OrderIndex.of(orderIndex);
         this.updatedAt = LocalDateTime.now();
     }
@@ -92,21 +86,11 @@ public class Lesson {
      * Add content to lesson
      */
     public Content addContent(
-        ContentType type,
-        String title,
         String contentUrl,
-        String textContent,
         int orderIndex
     ) {
-        guardAgainstNullOrEmpty(title, "Content title");
-        guardAgainstNull(type, "Content type");
-        guardAgainstDuplicateContentTitle(title);
-        
         Content content = Content.createNew(
-            type,
-            title,
             contentUrl,
-            textContent,
             orderIndex,
             this
         );
@@ -133,12 +117,12 @@ public class Lesson {
     /**
      * Update content details
      */
-    public Content updateContent(UUID contentId, String title, String contentUrl, String textContent, int orderIndex) {
+    public Content updateContent(UUID contentId, String contentUrl, int orderIndex) {
         Content content = contents.stream()
             .filter(c -> c.getContentId().equals(contentId))
             .findFirst()
             .orElseThrow(() -> new ContentNotFoundException(contentId.toString()));
-        content.updateDetails(title, contentUrl, textContent, orderIndex);
+        content.updateDetails(contentUrl, orderIndex);
         return content;
     }
 
@@ -179,17 +163,6 @@ public class Lesson {
             .orElseThrow(() -> new ContentNotFoundException(contentId.toString()));
     }
 
-    public Content publishContent(UUID contentId) {
-        Content content = findContentById(contentId);
-        content.publish();
-        return content;
-    }
-
-    public Content unpublishContent(UUID contentId) {
-        Content content = findContentById(contentId);
-        content.unpublish();
-        return content;
-    }
 
     /**
      * Authorization: Check if this lesson is owned by the given user
@@ -220,17 +193,6 @@ public class Lesson {
     private static void guardAgainstNullOrEmpty(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
             throw new LessonInvariantViolationException(fieldName + " cannot be null or empty");
-        }
-    }
-    
-    private void guardAgainstDuplicateContentTitle(String title) {
-        boolean exists = this.contents.stream()
-            .anyMatch(c -> c.getTitle().equalsIgnoreCase(title));
-        
-        if (exists) {
-            throw new LessonInvariantViolationException(
-                "Content with title '" + title + "' already exists in this lesson"
-            );
         }
     }
     

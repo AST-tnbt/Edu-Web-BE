@@ -1,6 +1,5 @@
 package com.se347.courseservice.entities;
 
-import com.se347.courseservice.entities.valueobjects.Slug;
 import com.se347.courseservice.entities.valueobjects.OrderIndex;
 import com.se347.courseservice.exceptions.CourseException.*;
 
@@ -22,11 +21,8 @@ public class Section {
     @Id
     private UUID sectionId;
     
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "value", column = @Column(name = "section_slug", unique = true, nullable = false))
-    })
-    private Slug sectionSlug;
+    @Column(name = "section_slug", unique = true, nullable = false)
+    private String sectionSlug;
     
     @Column(nullable = false)
     private String title;
@@ -59,13 +55,13 @@ public class Section {
      * Create new section (can only be called from Course aggregate)
      * Package-private visibility enforces aggregate boundary
      */
-    static Section createNew(String title, String description, int orderIndex, Course course) {
+    static Section createNew(String title, String description, String sectionSlug, int orderIndex, Course course) {
         guardAgainstNullOrEmpty(title, "Section title");
         guardAgainstNull(course, "Course");
         
         Section section = new Section();
         section.sectionId = UUID.randomUUID();
-        section.sectionSlug = Slug.fromTitle(title);
+        section.sectionSlug = sectionSlug;
         section.title = title;
         section.description = description;
         section.orderIndex = OrderIndex.of(orderIndex);
@@ -88,7 +84,7 @@ public class Section {
 
     public Lesson findLessonByLessonSlug(String lessonSlug) {
         return lessons.stream()
-            .filter(l -> l.getLessonSlug().getValue().equals(lessonSlug))
+            .filter(l -> l.getLessonSlug().equals(lessonSlug))
             .findFirst()
             .orElseThrow(() -> new LessonNotFoundException(lessonSlug));
     }
@@ -101,7 +97,6 @@ public class Section {
         
         this.title = title;
         this.description = description;
-        this.sectionSlug = Slug.fromTitle(title);
         this.orderIndex = OrderIndex.of(orderIndex);
         this.updatedAt = LocalDateTime.now();
     }
@@ -109,11 +104,11 @@ public class Section {
     /**
      * Add lesson to section
      */
-    public Lesson addLesson(String title, int orderIndex) {
+    public Lesson addLesson(String title, String lessonSlug, int orderIndex) {
         guardAgainstNullOrEmpty(title, "Lesson title");
         guardAgainstDuplicateLessonTitle(title);
         
-        Lesson lesson = Lesson.createNew(title, orderIndex, this);
+        Lesson lesson = Lesson.createNew(title, lessonSlug, orderIndex, this);
         this.lessons.add(lesson);
         this.updatedAt = LocalDateTime.now();
         
@@ -144,7 +139,7 @@ public class Section {
 
     public Lesson updateLessonInSectionSlug(String lessonSlug, String title, int orderIndex) {
         Lesson lesson = lessons.stream()
-            .filter(l -> l.getLessonSlug().getValue().equals(lessonSlug))
+            .filter(l -> l.getLessonSlug().equals(lessonSlug))
             .findFirst()
             .orElseThrow(() -> new LessonNotFoundException(lessonSlug));
         lesson.updateDetails(title, orderIndex);

@@ -113,7 +113,7 @@ public class SectionQueryServiceImpl implements SectionQueryService {
     private SectionResponseDto mapToResponse(Section section) {
         return SectionResponseDto.builder()
             .sectionId(section.getSectionId())
-            .sectionSlug(section.getSectionSlug().getValue()) // ← Value Object
+            .sectionSlug(section.getSectionSlug())
             .courseId(section.getCourse().getCourseId())
             .title(section.getTitle())
             .description(section.getDescription())

@@ -103,7 +103,7 @@ public class LessonQueryServiceImpl implements LessonQueryService {
     private LessonResponseDto mapToResponse(Lesson lesson) {
         return LessonResponseDto.builder()
             .lessonId(lesson.getLessonId())
-            .lessonSlug(lesson.getLessonSlug().getValue()) // ← Value Object
+            .lessonSlug(lesson.getLessonSlug())
             .title(lesson.getTitle())
             .sectionId(lesson.getSection().getSectionId())
             .orderIndex(lesson.getOrderIndex().getValue()) // ← Value Object

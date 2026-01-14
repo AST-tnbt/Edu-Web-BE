@@ -93,10 +93,10 @@ public class InstructorOverview extends AbstractAggregateRoot<InstructorOverview
         InstructorOverview overview = new InstructorOverview();
         overview.instructorOverviewId = UUID.randomUUID();
         overview.instructorId = instructorId;
-        overview.totalCourses = Count.of(1);
-        overview.totalStudents = Count.zero();
-        overview.totalRevenue = Money.of(0);
-        overview.averageCompletionRate = Percentage.zero();
+        overview.totalCourses = totalCourses;
+        overview.totalStudents = totalStudents;
+        overview.totalRevenue = totalRevenue;
+        overview.averageCompletionRate = averageCompletionRate != null ? averageCompletionRate : Percentage.zero();
         overview.onCreate();
 
         return overview;

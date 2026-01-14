@@ -2,9 +2,9 @@ package com.se347.analysticservice.listeners;
 
 import com.rabbitmq.client.Channel;
 import com.se347.analysticservice.dtos.events.course.CourseCreatedEvent;
-import com.se347.analysticservice.dtos.events.course.CoursePublishedEvent;
 import com.se347.analysticservice.services.admin.PlatformOverviewService;
-import com.se347.analysticservice.services.instructor.InstructorAnalyticsService;
+import com.se347.analysticservice.services.instructor.InstructorCourseStatsService;
+import com.se347.analysticservice.services.instructor.InstructorOverviewService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -19,7 +19,8 @@ import java.io.IOException;
 public class CourseEventListener {
     
     private final PlatformOverviewService platformOverviewService;
-    private final InstructorAnalyticsService instructorAnalyticsService;
+    private final InstructorOverviewService instructorOverviewService;
+    private final InstructorCourseStatsService instructorCourseStatsService;
     
     /**
      * Handles CourseCreatedEvent from Course Service.
@@ -38,17 +39,15 @@ public class CourseEventListener {
             // Validate event
             validateCourseCreatedEvent(event);
             
-            // Delegate to application services
             platformOverviewService.recordCourseCreation(
                 event.getCourseId(),
                 event.getInstructorId(),
                 event.getOccurredAt().toLocalDate()
             );
             
-            instructorAnalyticsService.recordCourseForInstructorOverview(
-                event.getInstructorId(),
-                event.getCourseId()
-            );
+            instructorOverviewService.recordCourse(event.getInstructorId(), event.getCourseId());
+            
+            instructorCourseStatsService.ensureCourseStatsExists(event.getInstructorId(), event.getCourseId());
             
             // Acknowledge success
             acknowledgeMessage(channel, deliveryTag);
@@ -109,20 +108,6 @@ public class CourseEventListener {
         }
     }
     
-    private void validateCoursePublishedEvent(CoursePublishedEvent event) {
-        if (event == null) {
-            throw new IllegalArgumentException("CoursePublishedEvent cannot be null");
-        }
-        if (event.getCourseId() == null) {
-            throw new IllegalArgumentException("CourseId cannot be null in CoursePublishedEvent");
-        }
-        if (event.getInstructorId() == null) {
-            throw new IllegalArgumentException("InstructorId cannot be null in CoursePublishedEvent");
-        }
-        if (event.getPublishedAt() == null) {
-            throw new IllegalArgumentException("PublishedAt cannot be null in CoursePublishedEvent");
-        }
-    }
     
     // ==================== Message Acknowledgment Methods ====================
     

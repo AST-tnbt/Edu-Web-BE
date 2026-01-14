@@ -121,7 +121,7 @@ public class CourseQueryServiceImpl implements CourseQueryService {
     private CourseResponseDto mapToResponse(Course course) {
         return CourseResponseDto.builder()
             .courseId(course.getCourseId())
-            .courseSlug(course.getCourseSlug().getValue()) // ← Value Object: need .getValue()
+            .courseSlug(course.getCourseSlug())
             .title(course.getTitle())
             .description(course.getDescription())
             .thumbnailUrl(course.getThumbnailUrl())

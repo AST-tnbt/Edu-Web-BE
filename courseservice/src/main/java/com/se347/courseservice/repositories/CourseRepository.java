@@ -27,11 +27,9 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     Optional<Course> findByTitle(String title);
     
     /**
-     * Find course by slug (using Value Object field)
-     * Note: Access embedded value object with underscore notation
+     * Find course by slug
      */
-    @Query("SELECT c FROM Course c WHERE c.courseSlug.value = :slugValue")
-    Optional<Course> findByCourseSlug(@Param("slugValue") String slugValue);
+    Optional<Course> findByCourseSlug(String courseSlug);
     
     Page<Course> findAll(Pageable pageable);
     

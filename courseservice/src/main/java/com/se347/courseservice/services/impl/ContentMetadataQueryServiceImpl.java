@@ -95,12 +95,8 @@ public class ContentMetadataQueryServiceImpl implements ContentMetadataQueryServ
         return ContentMetadataResponseDto.builder()
             .contentId(content.getContentId())
             .lessonId(content.getLesson().getLessonId())
-            .contentType(content.getType())
-            .title(content.getTitle())
             .contentUrl(content.getContentUrl())
-            .textContent(content.getTextContent())
             .orderIndex(content.getOrderIndex().getValue()) // Extract from Value Object
-            .status(content.getStatus())
             .createdAt(content.getCreatedAt())
             .updatedAt(content.getUpdatedAt())
             .build();

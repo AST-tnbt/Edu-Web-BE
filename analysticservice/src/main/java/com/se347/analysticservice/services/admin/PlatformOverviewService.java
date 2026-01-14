@@ -52,8 +52,8 @@ public interface PlatformOverviewService {
         LocalDate endDate
     );
     
-    Optional<PlatformOverview> getLatestOverview(Period period);
-    
+    PlatformOverview getLatestOverview(Period period);
+
     Optional<PlatformOverview> getOverviewForPeriod(
         Period period,
         LocalDate startDate,
@@ -62,7 +62,6 @@ public interface PlatformOverviewService {
     
     List<PlatformOverview> getOverviewHistory(Period period, int limit);
     
-    void recalculateOverview(UUID overviewId);
     
     PlatformOverview initializeCurrentPeriodOverview(Period period);
 }

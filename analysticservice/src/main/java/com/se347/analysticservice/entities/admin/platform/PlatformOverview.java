@@ -20,10 +20,18 @@ import java.util.UUID;
  * Represents a snapshot of platform health and growth for admin dashboard.
  */
 @Entity
-@Table(name = "platform_overview", indexes = {
-    @Index(name = "idx_period_dates", columnList = "period, start_date, end_date"),
-    @Index(name = "idx_end_date", columnList = "end_date DESC")
-})
+@Table(
+    name = "platform_overview", indexes = {
+        @Index(name = "idx_period_dates", columnList = "period, start_date, end_date"),
+        @Index(name = "idx_end_date", columnList = "end_date DESC")
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_period_dates", 
+            columnNames = {"period", "start_date", "end_date"}
+        )
+    }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PlatformOverview extends AbstractAggregateRoot<PlatformOverview> {

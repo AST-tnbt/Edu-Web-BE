@@ -6,7 +6,8 @@ The project currently includes several modules (services):
 4. Course service
 5. Content service
 6. Enrollment service
-7. Payment service  
+7. Payment service
+8. Analytics service
 
 The description of each service will be described bellow.
 
@@ -382,13 +383,13 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 
 2. Lấy section theo ID
 - Method: GET
-- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}`
+- URL: `{{baseUrl}}/api/courses/sections/id/{sectionId}`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above)
 
 3. Lấy section theo slug
 - Method: GET
-- URL: `{{baseUrl}}/api/courses/slug/{courseSlug}/sections/slug/{sectionSlug}`
+- URL: `{{baseUrl}}/api/courses/sections/slug/{sectionSlug}`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above)
 
@@ -462,13 +463,13 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 
 2. Lấy lesson theo ID
 - Method: GET
-- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}`
+- URL: `{{baseUrl}}/api/courses/lessons/id/{lessonId}`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above)
 
 3. Lấy lesson theo slug
 - Method: GET
-- URL: `{{baseUrl}}/api/courses/slug/{courseSlug}/sections/slug/{sectionSlug}/lessons/slug/{lessonSlug}`
+- URL: `{{baseUrl}}/api/courses/lessons/slug/{lessonSlug}`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above)
 
@@ -489,7 +490,7 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 
 5. Lấy tất cả lessons của section (theo ID)
 - Method: GET
-- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}/lessons`
+- URL: `{{baseUrl}}/api/courses/sections/id/{sectionId}/lessons`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response (raw JSON):
 ```json
@@ -508,7 +509,7 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 
 6. Lấy tất cả lessons của section (theo slug)
 - Method: GET
-- URL: `{{baseUrl}}/api/courses/slug/{courseSlug}/sections/slug/{sectionSlug}/lessons`
+- URL: `{{baseUrl}}/api/courses/sections/slug/{sectionSlug}/lessons`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above)
 
@@ -516,14 +517,14 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 
 1. Tạo content metadata cho lesson
 - Method: POST
-- URL: `{{baseUrl}}/api/contents`
+- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents`
 - Headers: 
   - `Authorization: Bearer {{accessToken}}`
   - `X-User-Id: {userId}`
+- Path params: `courseId`, `sectionId`, `lessonId`
 - Body (raw JSON):
 ```json
 {
-  "lessonId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
   "contentType": "VIDEO",
   "title": "Introduction Video",
   "contentUrl": "https://example.com/video.mp4",
@@ -548,36 +549,11 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
 }
 ```
 
-2. Lấy content metadata theo ID
+2. Lấy tất cả content metadata của lesson
 - Method: GET
-- URL: `{{baseUrl}}/api/contents/{contentId}`
+- URL: `{{baseUrl}}/api/courses/lessons/id/{lessonId}/contents`
 - Headers: `Authorization: Bearer {{accessToken}}`
-- Response: (same as above)
-
-3. Cập nhật content metadata
-- Method: PUT
-- URL: `{{baseUrl}}/api/contents/{contentId}`
-- Headers: 
-  - `Authorization: Bearer {{accessToken}}`
-  - `X-User-Id: {userId}`
-- Body (raw JSON):
-```json
-{
-  "lessonId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-  "contentType": "VIDEO",
-  "title": "Updated Introduction Video",
-  "contentUrl": "https://example.com/video2.mp4",
-  "textContent": null,
-  "orderIndex": 1,
-  "status": "PUBLISHED"
-}
-```
-- Response: (same as above)
-
-4. Lấy tất cả content metadata của lesson
-- Method: GET
-- URL: `{{baseUrl}}/api/contents/lesson/{lessonId}`
-- Headers: `Authorization: Bearer {{accessToken}}`
+- Path params: `lessonId`
 - Response (raw JSON):
 ```json
 [
@@ -595,6 +571,51 @@ Responsible for managing courses, sections, lessons, content metadata, and categ
   }
 ]
 ```
+
+3. Lấy content metadata theo ID
+- Method: GET
+- URL: `{{baseUrl}}/api/courses/content/id/{contentId}`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Path params: `contentId`
+- Response: (same as above, single object)
+
+4. Cập nhật content metadata
+- Method: PUT
+- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {userId}`
+- Path params: `courseId`, `sectionId`, `lessonId`, `contentId`
+- Body (raw JSON):
+```json
+{
+  "contentType": "VIDEO",
+  "title": "Updated Introduction Video",
+  "contentUrl": "https://example.com/video2.mp4",
+  "textContent": null,
+  "orderIndex": 1,
+  "status": "PUBLISHED"
+}
+```
+- Response: (same as above)
+
+5. Publish content
+- Method: POST
+- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}/publish`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {userId}`
+- Path params: `courseId`, `sectionId`, `lessonId`, `contentId`
+- Response: (same as above)
+
+6. Unpublish content
+- Method: POST
+- URL: `{{baseUrl}}/api/courses/id/{courseId}/sections/id/{sectionId}/lessons/id/{lessonId}/contents/id/{contentId}/unpublish`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {userId}`
+- Path params: `courseId`, `sectionId`, `lessonId`, `contentId`
+- Response: (same as above)
 
 ### Categories
 
@@ -764,42 +785,19 @@ Responsible for managing student enrollments, course progress, and learning prog
   - `X-User-Id: {userId}`
 - Response: (same as above)
 
-3. Lấy enrollments theo student ID
-- Method: GET
-- URL: `{{baseUrl}}/api/enrollments/student/id/{studentId}`
-- Headers: 
-  - `Authorization: Bearer {{accessToken}}`
-  - `X-User-Id: {userId}`
-- Response (raw JSON):
-```json
-[
-  {
-    "enrollmentId": "e5f6a7b8-c9d0-1234-ef56-789012345678",
-    "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "courseSlug": "introduction-to-java-programming",
-    "studentId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
-    "enrolledAt": "2025-12-13T13:46:52.048922",
-    "enrollmentStatus": "ACTIVE",
-    "paymentStatus": "PAID",
-    "createdAt": "2025-12-13T13:46:52.048922",
-    "updatedAt": "2025-12-13T13:46:52.048937"
-  }
-]
-```
-
-4. Lấy enrollments theo course ID
+3. Lấy enrollments theo course ID
 - Method: GET
 - URL: `{{baseUrl}}/api/courses/id/{courseId}/enrollments`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above)
 
-5. Lấy enrollments theo course ID và student ID
+4. Lấy enrollments theo course ID và student ID
 - Method: GET
 - URL: `{{baseUrl}}/api/courses/id/{courseId}/enrollments/student/id/{studentId}`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above)
 
-6. Lấy các khóa học của tôi
+5. Lấy các khóa học của tôi
 - Method: GET
 - URL: `{{baseUrl}}/api/enrollments/my-courses`
 - Headers: 
@@ -807,7 +805,7 @@ Responsible for managing student enrollments, course progress, and learning prog
   - `X-User-Id: {userId}`
 - Response: (same as above)
 
-7. Cập nhật enrollment
+6. Cập nhật enrollment
 - Method: PUT
 - URL: `{{baseUrl}}/api/enrollments/id/{enrollmentId}`
 - Headers: 
@@ -827,18 +825,10 @@ Responsible for managing student enrollments, course progress, and learning prog
 
 ### Course Progress
 
-1. Tạo course progress
-- Method: POST
-- URL: `{{baseUrl}}/api/course-progress`
+1. Lấy course progress theo ID
+- Method: GET
+- URL: `{{baseUrl}}/api/course-progress/id/{courseProgressId}`
 - Headers: `Authorization: Bearer {{accessToken}}`
-- Body (raw JSON):
-```json
-{
-  "enrollmentId": "e5f6a7b8-c9d0-1234-ef56-789012345678",
-  "lessonsCompleted": 5,
-  "totalLessons": 10
-}
-```
 - Response (raw JSON):
 ```json
 {
@@ -854,63 +844,20 @@ Responsible for managing student enrollments, course progress, and learning prog
 }
 ```
 
-2. Lấy course progress theo ID
-- Method: GET
-- URL: `{{baseUrl}}/api/course-progress/id/{courseProgressId}`
-- Headers: 
-  - `Authorization: Bearer {{accessToken}}`
-  - `X-User-Id: {userId}`
-- Response: (same as above)
-
-3. Lấy course progress theo enrollment ID
+2. Lấy course progress theo enrollment ID
 - Method: GET
 - URL: `{{baseUrl}}/api/course-progress/enrollment/id/{enrollmentId}`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Response: (same as above)
 
-4. Cập nhật course progress
-- Method: PUT
-- URL: `{{baseUrl}}/api/course-progress/id/{courseProgressId}`
+### Learning Progress
+
+1. Lấy learning progress theo ID
+- Method: GET
+- URL: `{{baseUrl}}/api/learning-progress/id/{learningProgressId}`
 - Headers: 
   - `Authorization: Bearer {{accessToken}}`
   - `X-User-Id: {userId}`
-- Body (raw JSON):
-```json
-{
-  "enrollmentId": "e5f6a7b8-c9d0-1234-ef56-789012345678",
-  "lessonsCompleted": 10,
-  "totalLessons": 10
-}
-```
-- Response (raw JSON):
-```json
-{
-  "courseProgressId": "f6a7b8c9-d0e1-2345-f678-901234567890",
-  "enrollmentId": "e5f6a7b8-c9d0-1234-ef56-789012345678",
-  "overallProgress": 100.0,
-  "lessonsCompleted": 10,
-  "totalLessons": 10,
-  "isCourseCompleted": true,
-  "courseCompletedAt": "2025-12-13T14:00:00.000000",
-  "createdAt": "2025-12-13T13:46:52.048922",
-  "updatedAt": "2025-12-13T14:00:00.000000"
-}
-```
-
-### Learning Progress
-
-1. Tạo learning progress
-- Method: POST
-- URL: `{{baseUrl}}/api/learning-progress`
-- Headers: `Authorization: Bearer {{accessToken}}`
-- Body (raw JSON):
-```json
-{
-  "enrollmentId": "e5f6a7b8-c9d0-1234-ef56-789012345678",
-  "lessonId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-  "isCompleted": false
-}
-```
 - Response (raw JSON):
 ```json
 {
@@ -923,18 +870,12 @@ Responsible for managing student enrollments, course progress, and learning prog
 }
 ```
 
-2. Lấy learning progress theo ID
+2. Lấy learning progress theo enrollment ID
 - Method: GET
-- URL: `{{baseUrl}}/api/learning-progress/id/{learningProgressId}`
+- URL: `{{baseUrl}}/api/learning-progress/enrollment/id/{enrollmentId}`
 - Headers: 
   - `Authorization: Bearer {{accessToken}}`
   - `X-User-Id: {userId}`
-- Response: (same as above)
-
-3. Lấy learning progress theo enrollment ID
-- Method: GET
-- URL: `{{baseUrl}}/api/learning-progress/enrollment/id/{enrollmentId}`
-- Headers: `Authorization: Bearer {{accessToken}}`
 - Response (raw JSON):
 ```json
 [
@@ -949,7 +890,7 @@ Responsible for managing student enrollments, course progress, and learning prog
 ]
 ```
 
-4. Lấy learning progress theo lesson ID và enrollment ID
+3. Lấy learning progress theo lesson ID và enrollment ID
 - Method: GET
 - URL: `{{baseUrl}}/api/learning-progress/lesson/id/{lessonId}/enrollment/id/{enrollmentId}`
 - Headers: 
@@ -957,20 +898,12 @@ Responsible for managing student enrollments, course progress, and learning prog
   - `X-User-Id: {userId}`
 - Response: (same as above, single object)
 
-5. Cập nhật learning progress
-- Method: PUT
-- URL: `{{baseUrl}}/api/learning-progress/id/{learningProgressId}`
+4. Đánh dấu lesson hoàn thành
+- Method: POST
+- URL: `{{baseUrl}}/api/learning-progress/lesson/id/{lessonId}/enrollment/id/{enrollmentId}/complete`
 - Headers: 
   - `Authorization: Bearer {{accessToken}}`
   - `X-User-Id: {userId}`
-- Body (raw JSON):
-```json
-{
-  "enrollmentId": "e5f6a7b8-c9d0-1234-ef56-789012345678",
-  "lessonId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-  "isCompleted": true
-}
-```
 - Response (raw JSON):
 ```json
 {
@@ -983,8 +916,393 @@ Responsible for managing student enrollments, course progress, and learning prog
 }
 ```
 
-6. Đánh dấu lesson hoàn thành
-- Method: POST
-- URL: `{{baseUrl}}/api/learning-progress/lesson/id/{lessonId}/enrollment/id/{enrollmentId}/complete`
-- Headers: `Authorization: Bearer {{accessToken}}`
+## Analytics service
+
+Responsible for tracking and analyzing platform metrics, instructor statistics, revenue analytics, and user growth metrics.
+
+**API sample:**
+
+### Instructor Analytics
+
+1. Lấy tổng quan thống kê của instructor
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/instructor/overview`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {instructorId}`
+- Response (raw JSON):
+```json
+{
+  "instructorId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
+  "totalCourses": 5,
+  "totalStudents": 120,
+  "totalRevenue": 15000000.00,
+  "averageCompletionRate": 75.5,
+  "createdAt": "2025-12-13T13:46:52.048922",
+  "updatedAt": "2025-12-13T14:00:00.000000"
+}
+```
+
+2. Lấy thống kê tất cả khóa học của instructor
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/instructor/courses`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {instructorId}`
+- Response (raw JSON):
+```json
+[
+  {
+    "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "totalStudents": 50,
+    "totalRevenue": 5000000.00,
+    "completionRate": 80.0,
+    "createdAt": "2025-12-13T13:46:52.048922",
+    "updatedAt": "2025-12-13T14:00:00.000000"
+  }
+]
+```
+
+3. Lấy thống kê của một khóa học cụ thể
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/instructor/courses/{courseId}`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {instructorId}`
+- Response: (same as above, single object)
+
+4. Lấy top khóa học theo doanh thu
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/instructor/courses/top-revenue`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {instructorId}`
 - Response: (same as above)
+
+5. Lấy top khóa học theo tỉ lệ hoàn thành
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/instructor/courses/top-completion`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {instructorId}`
+- Response: (same as above)
+
+6. Lấy thống kê theo ngày
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/instructor/daily?startDate=2025-12-01&endDate=2025-12-31`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {instructorId}`
+- Query params (optional): `startDate`, `endDate` (format: YYYY-MM-DD)
+- Response (raw JSON):
+```json
+[
+  {
+    "date": "2025-12-13",
+    "newEnrollments": 5,
+    "activeStudents": 10,
+    "dailyRevenue": 500000.00,
+    "courseCompletions": 2,
+    "createdAt": "2025-12-13T13:46:52.048922",
+    "updatedAt": "2025-12-13T14:00:00.000000"
+  }
+]
+```
+
+7. Lấy thống kê theo ngày cụ thể
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/instructor/daily/{date}`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {instructorId}`
+- Path param: `date` (format: YYYY-MM-DD)
+- Response: (same as above, single object)
+
+8. Tính lại tỉ lệ hoàn thành trung bình
+- Method: POST
+- URL: `{{baseUrl}}/api/analytics/instructor/overview/recalculate-completion-rate`
+- Headers: 
+  - `Authorization: Bearer {{accessToken}}`
+  - `X-User-Id: {instructorId}`
+- Response: Status 202 Accepted
+
+### Admin Analytics - Instructor
+
+1. Lấy thống kê của một instructor
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/instructors/{instructorId}/stats`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Response (raw JSON):
+```json
+{
+  "instructorId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
+  "totalCourses": 5,
+  "totalStudents": 120,
+  "averageCompletionRate": 75.5
+}
+```
+
+2. Lấy top instructors theo số học viên
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/instructors/top/students?limit=10`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: `limit` (default: 10)
+- Response (raw JSON):
+```json
+[
+  {
+    "instructorId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
+    "totalCourses": 5,
+    "totalStudents": 120,
+    "averageCompletionRate": 75.5
+  }
+]
+```
+
+3. Lấy top instructors theo số khóa học
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/instructors/top/courses?limit=10`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: `limit` (default: 10)
+- Response: (same as above)
+
+4. Lấy top instructors theo doanh thu
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/instructors/top/revenue?period=MONTHLY&endDate=2025-12-31&limit=10`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+  - `endDate` (format: YYYY-MM-DD)
+  - `limit` (default: 10)
+- Response (raw JSON):
+```json
+[
+  {
+    "instructorRevenueId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "instructorId": "30a2cc2f-7d29-4cd9-bd60-f26244a15a78",
+    "period": "MONTHLY",
+    "startDate": "2025-12-01",
+    "endDate": "2025-12-31",
+    "totalRevenue": 5000000.00,
+    "totalEnrollments": 50,
+    "totalCourses": 5,
+    "topPerformingCourses": [
+      {
+        "courseId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "courseTitle": "Introduction to Java Programming",
+        "enrollmentCount": 20,
+        "revenue": 2000000.00
+      }
+    ],
+    "createdAt": "2025-12-13T13:46:52.048922",
+    "updatedAt": "2025-12-13T14:00:00.000000"
+  }
+]
+```
+
+5. Lấy doanh thu của instructor trong một khoảng thời gian
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/instructors/{instructorId}/revenue?period=MONTHLY&startDate=2025-12-01&endDate=2025-12-31`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+  - `startDate` (format: YYYY-MM-DD)
+  - `endDate` (format: YYYY-MM-DD)
+- Response: (same as above, single object)
+
+6. Lấy lịch sử doanh thu của instructor
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/instructors/{instructorId}/revenue/history?period=MONTHLY`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+- Response: (same as above, array)
+
+### Admin Analytics - Platform
+
+1. Lấy tổng quan platform mới nhất
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/platform/overview/latest?period=MONTHLY`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+- Response (raw JSON):
+```json
+{
+  "overviewId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "totalUsers": 1000,
+  "totalCourses": 50,
+  "totalEnrollments": 500,
+  "totalRevenue": 50000000.00,
+  "averageCompletionRate": 70.5,
+  "startDate": "2025-12-01",
+  "endDate": "2025-12-31",
+  "createdAt": "2025-12-13T13:46:52.048922",
+  "updatedAt": "2025-12-13T14:00:00.000000"
+}
+```
+
+2. Lấy tổng quan platform cho một khoảng thời gian
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/platform/overview?period=MONTHLY&startDate=2025-12-01&endDate=2025-12-31`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+  - `startDate` (format: YYYY-MM-DD)
+  - `endDate` (format: YYYY-MM-DD)
+- Response: (same as above)
+
+3. Lấy lịch sử tổng quan platform
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/platform/overview/history?period=MONTHLY&limit=10`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+  - `limit` (default: 10)
+- Response: (same as above, array)
+
+4. Tạo tổng quan platform mới
+- Method: POST
+- URL: `{{baseUrl}}/api/analytics/admin/platform/overview/generate?period=MONTHLY&startDate=2025-12-01&endDate=2025-12-31`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+  - `startDate` (format: YYYY-MM-DD)
+  - `endDate` (format: YYYY-MM-DD)
+- Response: (same as above)
+
+5. Khởi tạo tổng quan cho kỳ hiện tại
+- Method: POST
+- URL: `{{baseUrl}}/api/analytics/admin/platform/overview/initialize?period=MONTHLY`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: `period` (DAILY, WEEKLY, MONTHLY, YEARLY)
+- Response: (same as above)
+
+### Admin Analytics - Revenue
+
+1. Lấy doanh thu theo ngày
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/revenue/daily/{date}`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Path param: `date` (format: YYYY-MM-DD)
+- Response (raw JSON):
+```json
+{
+  "date": "2025-12-13",
+  "totalRevenue": 5000000.00,
+  "totalTransactions": 50
+}
+```
+
+2. Lấy lịch sử doanh thu
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/revenue/history?startDate=2025-12-01&endDate=2025-12-31`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `startDate` (format: YYYY-MM-DD)
+  - `endDate` (format: YYYY-MM-DD)
+- Response (raw JSON):
+```json
+[
+  {
+    "date": "2025-12-13",
+    "totalRevenue": 5000000.00,
+    "totalTransactions": 50
+  }
+]
+```
+
+3. Lấy tóm tắt doanh thu
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/revenue/summary?startDate=2025-12-01&endDate=2025-12-31`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `startDate` (format: YYYY-MM-DD)
+  - `endDate` (format: YYYY-MM-DD)
+- Response (raw JSON):
+```json
+{
+  "totalRevenue": 150000000.00,
+  "averageDailyRevenue": 5000000.00,
+  "totalTransactions": 1500,
+  "highestRevenueDay": "2025-12-15",
+  "highestRevenueAmount": 10000000.00
+}
+```
+
+4. Tính lại doanh thu theo ngày
+- Method: POST
+- URL: `{{baseUrl}}/api/analytics/admin/revenue/daily/{date}/recalculate`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Path param: `date` (format: YYYY-MM-DD)
+- Response: Status 202 Accepted
+
+### Admin Analytics - User Growth
+
+1. Lấy thống kê tăng trưởng người dùng mới nhất
+- Method: GET
+- URL: `{{baseUrl}} `
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Response (raw JSON):
+```json
+{
+  "userGrowthAnalyticsId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "date": "2025-12-13",
+  "newUsersCount": 20,
+  "activeUsersCount": 500,
+  "totalUsers": 1000,
+  "retentionRate": 85.5,
+  "createdAt": "2025-12-13T13:46:52.048922",
+  "updatedAt": "2025-12-13T14:00:00.000000"
+}
+```
+
+2. Lấy thống kê tăng trưởng theo ngày
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/user-growth/{date}`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Path param: `date` (format: YYYY-MM-DD)
+- Response: (same as above)
+
+3. Lấy thống kê tăng trưởng theo khoảng thời gian
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/user-growth/period?startDate=2025-12-01&endDate=2025-12-31`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `startDate` (format: YYYY-MM-DD)
+  - `endDate` (format: YYYY-MM-DD)
+- Response: (same as above, array)
+
+4. Lấy tỉ lệ giữ chân trung bình
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/user-growth/retention/average?startDate=2025-12-01&endDate=2025-12-31`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Query params: 
+  - `startDate` (format: YYYY-MM-DD)
+  - `endDate` (format: YYYY-MM-DD)
+- Response (raw JSON):
+```json
+{
+  "averageRetentionRate": 85.5,
+  "startDate": "2025-12-01",
+  "endDate": "2025-12-31"
+}
+```
+
+5. Lấy tổng số người dùng hoạt động theo ngày
+- Method: GET
+- URL: `{{baseUrl}}/api/analytics/admin/user-growth/active-users/{date}`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Path param: `date` (format: YYYY-MM-DD)
+- Response (raw JSON):
+```json
+{
+  "date": "2025-12-13",
+  "totalActiveUsers": 500
+}
+```
+
+6. Tính lại tỉ lệ giữ chân theo ngày
+- Method: POST
+- URL: `{{baseUrl}}/api/analytics/admin/user-growth/{date}/calculate-retention`
+- Headers: `Authorization: Bearer {{accessToken}}`
+- Path param: `date` (format: YYYY-MM-DD)
+- Response: Status 202 Accepted

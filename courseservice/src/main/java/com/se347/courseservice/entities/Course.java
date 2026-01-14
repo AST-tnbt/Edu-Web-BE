@@ -1,9 +1,7 @@
 package com.se347.courseservice.entities;
 
 import com.se347.courseservice.enums.CourseLevel;
-import com.se347.courseservice.enums.ContentType;
 import com.se347.courseservice.entities.valueobjects.Money;
-import com.se347.courseservice.entities.valueobjects.Slug;
 import com.se347.courseservice.domains.events.CourseCreatedEvent;
 import com.se347.courseservice.domains.events.CourseUpdatedEvent;
 import com.se347.courseservice.domains.events.SectionAddedToCourseEvent;
@@ -27,11 +25,8 @@ public class Course extends AbstractAggregateRoot<Course> {
     @Id
     private UUID courseId;
 
-    @Embedded
-    @AttributeOverrides({
-        @AttributeOverride(name = "value", column = @Column(name = "course_slug", unique = true, nullable = false))
-    })
-    private Slug courseSlug;
+    @Column(name = "course_slug", unique = true, nullable = false)
+    private String courseSlug;
 
     @Column(nullable = false)
     private String title;
@@ -80,6 +75,7 @@ public class Course extends AbstractAggregateRoot<Course> {
     public static Course createNew(
         String title,
         String description,
+        String courseSlug,
         String thumbnailUrl,
         Money price,
         CourseLevel level,
@@ -97,7 +93,7 @@ public class Course extends AbstractAggregateRoot<Course> {
         // Create instance
         Course course = new Course();
         course.courseId = UUID.randomUUID();
-        course.courseSlug = Slug.fromTitle(title);
+        course.courseSlug = courseSlug;
         course.title = title;
         course.description = description;
         course.thumbnailUrl = thumbnailUrl;
@@ -113,7 +109,7 @@ public class Course extends AbstractAggregateRoot<Course> {
         course.registerEvent(CourseCreatedEvent.from(
             course.courseId,
             course.title,
-            course.courseSlug.getValue(),
+            course.courseSlug,
             course.instructorId,
             course.price.getAmount(),
             course.categoryName
@@ -128,7 +124,7 @@ public class Course extends AbstractAggregateRoot<Course> {
      * Business rules:
      * - Title cannot be empty
      * - Price must be positive
-     * - Slug is regenerated from new title
+     * - Slug remains unchanged (to preserve URL stability and avoid broken links)
      * 
      * Fires: CourseUpdatedEvent
      */
@@ -151,7 +147,6 @@ public class Course extends AbstractAggregateRoot<Course> {
         this.thumbnailUrl = thumbnailUrl;
         this.price = price;
         this.level = level;
-        this.courseSlug = Slug.fromTitle(title); // Regenerate slug
         this.updatedAt = LocalDateTime.now();
         
         // Register event
@@ -171,13 +166,13 @@ public class Course extends AbstractAggregateRoot<Course> {
      * @return newly created Section
      * @throws SectionInvariantViolationException if duplicate title
      */
-    public Section addSection(String title, String description, int orderIndex) {
+    public Section addSection(String title, String description, String sectionSlug, int orderIndex) {
         // Guards
         guardAgainstNullOrEmpty(title, "Section title");
         guardAgainstDuplicateSectionTitle(title);
         
         // Create section through aggregate
-        Section section = Section.createNew(title, description, orderIndex, this);
+        Section section = Section.createNew(title, description, sectionSlug, orderIndex, this);
         this.sections.add(section);
         this.updatedAt = LocalDateTime.now();
         
@@ -240,7 +235,7 @@ public class Course extends AbstractAggregateRoot<Course> {
 
     private Section findSectionBySectionSlug(String sectionSlug) {
         return this.sections.stream()
-            .filter(s -> s.getSectionSlug().getValue().equals(sectionSlug))
+            .filter(s -> s.getSectionSlug().equals(sectionSlug))
             .findFirst()
             .orElseThrow(() ->
                 new SectionException.SectionNotFoundException(sectionSlug)
@@ -253,10 +248,11 @@ public class Course extends AbstractAggregateRoot<Course> {
     public Lesson addLessonToSection(
         UUID sectionId,
         String title,
+        String lessonSlug,
         int orderIndex
     ) {
         Section section = findSectionById(sectionId);
-        Lesson lesson = section.addLesson(title, orderIndex);
+        Lesson lesson = section.addLesson(title, lessonSlug, orderIndex);
         registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
         return lesson;
     }
@@ -281,37 +277,22 @@ public class Course extends AbstractAggregateRoot<Course> {
         return lesson;
     }
 
-    public Content addContentToLesson(UUID sectionId, UUID lessonId, ContentType type, String title, String contentUrl, String textContent, int orderIndex) {
+    public Content addContentToLesson(UUID sectionId, UUID lessonId, String contentUrl, int orderIndex) {
         Section section = findSectionById(sectionId);
         Lesson lesson = section.findLessonById(lessonId);
-        Content content = lesson.addContent(type, title, contentUrl, textContent, orderIndex);
+        Content content = lesson.addContent(contentUrl, orderIndex);
         registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
         return content;
     }
 
-    public Content updateContentByLessonId(UUID sectionId, UUID lessonId, UUID contentId, String title, String contentUrl, String textContent, int orderIndex) {
+    public Content updateContentByLessonId(UUID sectionId, UUID lessonId, UUID contentId, String contentUrl, int orderIndex) {
         Section section = findSectionById(sectionId);
         Lesson lesson = section.findLessonById(lessonId);
-        Content content = lesson.updateContent(contentId, title, contentUrl, textContent, orderIndex);
+        Content content = lesson.updateContent(contentId, contentUrl, orderIndex);
         registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
         return content;
     }
 
-    public Content publishContentByLessonId(UUID sectionId, UUID lessonId, UUID contentId) {
-        Section section = findSectionById(sectionId);
-        Lesson lesson = section.findLessonById(lessonId);
-        Content content = lesson.publishContent(contentId);
-        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
-        return content;
-    }
-
-    public Content unpublishContentByLessonId(UUID sectionId, UUID lessonId, UUID contentId) {
-        Section section = findSectionById(sectionId);
-        Lesson lesson = section.findLessonById(lessonId);
-        Content content = lesson.unpublishContent(contentId);
-        registerEvent(CourseLessonChangedEvent.from(this.courseId, this.getTotalLessonsCount()));
-        return content;
-    }
 
     /**
      * Check if course is owned by instructor

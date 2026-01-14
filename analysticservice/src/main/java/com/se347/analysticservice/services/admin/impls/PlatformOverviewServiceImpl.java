@@ -12,6 +12,7 @@ import com.se347.analysticservice.services.admin.PlatformOverviewService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,11 +96,11 @@ public class PlatformOverviewServiceImpl implements PlatformOverviewService {
         PlatformOverview overview = createNewOverview(period, startDate, endDate);
         return repository.save(overview);
     }
-    
+
     @Override
-    @Transactional(readOnly = true)
-    public Optional<PlatformOverview> getLatestOverview(Period period) {
-        return repository.findLatestByPeriod(period);
+    @Transactional
+    public PlatformOverview getLatestOverview(Period period) {
+        return repository.findLatestByPeriod(period).orElse(null);
     }
     
     @Override
@@ -115,18 +116,6 @@ public class PlatformOverviewServiceImpl implements PlatformOverviewService {
             .stream()
             .limit(limit)
             .toList();
-    }
-    
-    @Override
-    @Transactional
-    public void recalculateOverview(UUID overviewId) {
-        log.info("Recalculating overview: id={}", overviewId);
-        
-        PlatformOverview overview = repository.findById(overviewId)
-            .orElseThrow(() -> new IllegalArgumentException("PlatformOverview not found: " + overviewId));
-        
-        updateOverviewMetrics(overview, overview.getStartDate(), overview.getEndDate());
-        repository.save(overview);
     }
     
     @Override

@@ -62,7 +62,6 @@ public class LessonController {
 
     @GetMapping("/courses/sections/id/{sectionId}/lessons")
     public ResponseEntity<List<LessonResponseDto>> getLessonsBySectionId(
-        @PathVariable UUID courseId, 
         @PathVariable UUID sectionId) {
         return ResponseEntity.ok(lessonService.getLessonsBySectionId(sectionId));
     }

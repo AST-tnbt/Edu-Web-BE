@@ -1,6 +1,7 @@
 package com.se347.courseservice.services.impl;
 
 import com.se347.courseservice.domains.CourseDomainService;
+import com.se347.courseservice.domains.SlugGenerateService;
 import com.se347.courseservice.dtos.CourseRequestDto;
 import com.se347.courseservice.dtos.CourseResponseDto;
 import com.se347.courseservice.services.CourseCommandService;
@@ -28,7 +29,7 @@ public class CourseCommandServiceImpl implements CourseCommandService {
 
     private final CourseRepository courseRepository;
     private final CourseDomainService courseDomainService;
-
+    private final SlugGenerateService slugGenerateService;
     @Transactional
     @Override
     public CourseResponseDto createCourse(CourseRequestDto request, UUID userId) {
@@ -40,11 +41,15 @@ public class CourseCommandServiceImpl implements CourseCommandService {
             throw new CourseException.CourseAlreadyExistsException(request.getTitle());
         }
         
+        // 3. Generate unique slug for course
+        String courseSlug = slugGenerateService.generateCourseSlug(request.getTitle());
+
         // 3. Tell aggregate to create itself (factory method with all validations)
         Money price = Money.of(request.getPrice());
         Course course = Course.createNew(
             request.getTitle(),
             request.getDescription(),
+            courseSlug,
             request.getThumbnailUrl(),
             price,
             request.getLevel(),
@@ -135,10 +140,14 @@ public class CourseCommandServiceImpl implements CourseCommandService {
         // 2. Authorization: ensure user owns this course
         course.ensureOwnedBy(userId);
         
+        // 3. Generate unique slug for section
+        String sectionSlug = slugGenerateService.generateSectionSlug(request.getTitle());
+
         // 3. Tell aggregate to add section (validation inside Course.addSection())
         Section section = course.addSection(
             request.getTitle(),
             request.getDescription(),
+            sectionSlug,
             request.getOrderIndex()
         );
         
@@ -193,7 +202,7 @@ public class CourseCommandServiceImpl implements CourseCommandService {
         
         // Find section by slug within aggregate
         Section section = course.getSections().stream()
-            .filter(s -> s.getSectionSlug().getValue().equals(sectionSlug))
+            .filter(s -> s.getSectionSlug().equals(sectionSlug))
             .findFirst()
             .orElseThrow(() -> new CourseException.SectionNotFoundException("Section with slug '" + sectionSlug + "' not found"));
         
@@ -219,7 +228,10 @@ public class CourseCommandServiceImpl implements CourseCommandService {
         // 2. Authorization check
         course.ensureOwnedBy(userId);
 
-        Lesson lesson = course.addLessonToSection(sectionId, request.getTitle(), request.getOrderIndex());
+        // 3. Generate unique slug for lesson
+        String lessonSlug = slugGenerateService.generateLessonSlug(request.getTitle());
+
+        Lesson lesson = course.addLessonToSection(sectionId, request.getTitle(), lessonSlug, request.getOrderIndex());
         
         // 4. Save Course aggregate (cascade saves lesson)
         courseRepository.save(course);
@@ -288,10 +300,7 @@ public class CourseCommandServiceImpl implements CourseCommandService {
         Content content = course.addContentToLesson(
                 sectionId, 
                 lessonId, 
-                request.getContentType(), 
-                request.getTitle(), 
                 request.getContentUrl(), 
-                request.getTextContent(), 
                 request.getOrderIndex());
         
         courseRepository.save(course);
@@ -314,9 +323,7 @@ public class CourseCommandServiceImpl implements CourseCommandService {
                 sectionId, 
                 lessonId, 
                 contentId, 
-                request.getTitle(), 
                 request.getContentUrl(), 
-                request.getTextContent(), 
                 request.getOrderIndex());
         
         courseRepository.save(course);
@@ -324,50 +331,11 @@ public class CourseCommandServiceImpl implements CourseCommandService {
         return mapToResponse(content);
     }
 
-    @Override
-    @Transactional
-    public ContentMetadataResponseDto publishContent(UUID courseId, UUID sectionId, UUID lessonId, UUID contentId, UUID userId) {
-        // 1. Load Course aggregate
-        Course course = courseRepository.findByIdWithSections(courseId)
-            .orElseThrow(() -> new CourseException.CourseNotFoundException(courseId.toString()));
-        
-        // 2. Authorization check
-        course.ensureOwnedBy(userId);
-        
-        Content content = course.publishContentByLessonId(
-                sectionId, 
-                lessonId, 
-                contentId);
-        
-        courseRepository.save(course);
-        
-        return mapToResponse(content);
-    }
-
-    @Override
-    @Transactional
-    public ContentMetadataResponseDto unpublishContent(UUID courseId, UUID sectionId, UUID lessonId, UUID contentId, UUID userId) {
-        // 1. Load Course aggregate
-        Course course = courseRepository.findByIdWithSections(courseId)
-            .orElseThrow(() -> new CourseException.CourseNotFoundException(courseId.toString()));
-        
-        // 2. Authorization check
-        course.ensureOwnedBy(userId);
-        
-        Content content = course.unpublishContentByLessonId(
-                sectionId, 
-                lessonId, 
-                contentId);
-        
-        courseRepository.save(course);
-        
-        return mapToResponse(content);
-    }
 
     private CourseResponseDto mapToResponse(Course course) {
         return CourseResponseDto.builder()
             .courseId(course.getCourseId())
-            .courseSlug(course.getCourseSlug().getValue()) // ← Value Object: need .getValue()
+            .courseSlug(course.getCourseSlug())
             .title(course.getTitle())
             .description(course.getDescription())
             .thumbnailUrl(course.getThumbnailUrl())
@@ -383,7 +351,7 @@ public class CourseCommandServiceImpl implements CourseCommandService {
     private SectionResponseDto mapToResponse(Section section) {
         return SectionResponseDto.builder()
             .sectionId(section.getSectionId())
-            .sectionSlug(section.getSectionSlug().getValue()) // ← Value Object: need .getValue()
+            .sectionSlug(section.getSectionSlug())
             .courseId(section.getCourse().getCourseId())
             .title(section.getTitle())
             .description(section.getDescription())
@@ -396,7 +364,7 @@ public class CourseCommandServiceImpl implements CourseCommandService {
     private LessonResponseDto mapToResponse(Lesson lesson) {
         return LessonResponseDto.builder()
             .lessonId(lesson.getLessonId())
-            .lessonSlug(lesson.getLessonSlug().getValue()) // ← Value Object
+            .lessonSlug(lesson.getLessonSlug())
             .title(lesson.getTitle())
             .sectionId(lesson.getSection().getSectionId())
             .orderIndex(lesson.getOrderIndex().getValue()) // ← Value Object
@@ -409,12 +377,8 @@ public class CourseCommandServiceImpl implements CourseCommandService {
         return ContentMetadataResponseDto.builder()
             .contentId(content.getContentId())
             .lessonId(content.getLesson().getLessonId())
-            .contentType(content.getType())
-            .title(content.getTitle())
             .contentUrl(content.getContentUrl())
-            .textContent(content.getTextContent())
             .orderIndex(content.getOrderIndex().getValue()) // Extract from Value Object
-            .status(content.getStatus())
             .createdAt(content.getCreatedAt())
             .updatedAt(content.getUpdatedAt())
             .build();

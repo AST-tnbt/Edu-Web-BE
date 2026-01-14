@@ -10,8 +10,7 @@ import com.se347.userservice.exceptions.ExceptionUtils;
 import com.se347.userservice.services.UserProfileService;
 import com.se347.userservice.dtos.UserCreatedEventDto;
 import com.se347.userservice.publisher.UserProfileEventPublisher;
-import com.se347.userservice.utils.SlugUtil;
-
+import com.se347.userservice.services.SlugGenerateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -27,7 +26,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     private final UserProfileRepository userProfileRepository;
     private final UserProfileEventPublisher userProfileEventPublisher;
-
+    private final SlugGenerateService slugGenerateService;
     @Override
     @Transactional
     public UserProfileResponseDto createProfile(UserProfileRequestDto request) {
@@ -41,7 +40,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         
         UserProfile profile = UserProfile.builder()
                 .userId(request.getUserId())
-                .userSlug(SlugUtil.toSlug(request.getFullName()))
+                .userSlug(slugGenerateService.generateSlug(request.getFullName()))
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .avatarUrl(request.getAvatarUrl())
@@ -70,7 +69,7 @@ public class UserProfileServiceImpl implements UserProfileService {
                 .orElseGet(() -> {
                     UserProfile profile = UserProfile.builder()
                             .userId(userCreatedEvent.getUserId())
-                            .userSlug(SlugUtil.toSlug("default-user"))
+                            .userSlug(slugGenerateService.generateSlug("default-user"))
                             .email(userCreatedEvent.getEmail())
                             .createdAt(userCreatedEvent.getCreatedAt())
                             .profileCompleted(false)
@@ -137,7 +136,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
         // Update user slug if full name changes
         if (request.getFullName() != null) {
-            profile.setUserSlug(SlugUtil.toSlug(request.getFullName()));
+            profile.setUserSlug(slugGenerateService.generateSlug(request.getFullName()));
         }
 
         profile.setAvatarUrl(request.getAvatarUrl());

@@ -304,7 +304,7 @@ services:
 
       # Application Rabbit settings - Auth Exchange
       - APP_RABBITMQ_EXCHANGE_AUTH=auth.exchange
-      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue.user
       - APP_RABBITMQ_ROUTING_KEY_USER_CREATED=user.created
 
       # Application Rabbit settings - User Profile Exchange
@@ -567,7 +567,7 @@ services:
 
       # Application Rabbit settings - Auth Events
       - APP_RABBITMQ_EXCHANGE_AUTH=auth.exchange
-      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue
+      - APP_RABBITMQ_QUEUE_USER_CREATED=user.created.queue.analytics
       - APP_RABBITMQ_QUEUE_USER_LOGIN=user.login.queue
       - APP_RABBITMQ_EXCHANGE_USER_PROFILE=user.profile.exchange
       - APP_RABBITMQ_QUEUE_USER_PROFILE_COMPLETED=user.profile.completed.queue

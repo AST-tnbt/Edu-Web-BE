@@ -22,7 +22,7 @@ import com.se347.courseservice.entities.Course;
  * - validateCourseCanBeEdited → Course.ensureOwnedBy()
  * - calculateTotalLessons → Course.getTotalLessonsCount()
  * - validateCourseStructure → Course.hasMinimumContent()
- * - generateCourseSlug → Slug.fromTitle()
+ * - generateCourseSlug → SlugGenerateService.generateCourseSlug()
  * 
  * WHAT MOVED TO REPOSITORIES:
  * - findCourseById → courseRepository.findById()

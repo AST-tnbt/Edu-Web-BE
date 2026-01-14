@@ -15,8 +15,6 @@ import java.util.UUID;
  * WRITE OPERATIONS:
  * - createContent() → CourseCommandService
  * - updateContent() → CourseCommandService
- * - publishContent() → CourseCommandService
- * - unpublishContent() → CourseCommandService
  */
 public interface ContentMetadataQueryService {
     

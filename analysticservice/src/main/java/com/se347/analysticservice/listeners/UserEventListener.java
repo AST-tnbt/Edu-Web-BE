@@ -3,7 +3,6 @@ package com.se347.analysticservice.listeners;
 import com.rabbitmq.client.Channel;
 import com.se347.analysticservice.dtos.events.user.UserLoginEvent;
 import com.se347.analysticservice.dtos.events.user.UserRegisteredEvent;
-import com.se347.analysticservice.services.admin.PlatformOverviewService;
 import com.se347.analysticservice.services.admin.UserGrowthAnalyticsService;
 
 import lombok.RequiredArgsConstructor;
@@ -13,13 +12,14 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class UserEventListener {
     
     private final UserGrowthAnalyticsService userGrowthAnalyticsService;
-    private final PlatformOverviewService platformOverviewService;
     @RabbitListener(
         queues = "${app.rabbitmq.queue.user-created}",
         containerFactory = "rabbitListenerContainerFactory"
@@ -42,7 +42,8 @@ public class UserEventListener {
             
             // Acknowledge success
             acknowledgeMessage(channel, deliveryTag, "Successfully processed");
-            
+            log.info("User registered event processed successfully");
+
         } catch (IllegalArgumentException e) {
             // Validation errors - reject without requeue (poison message)
             rejectMessage(channel, deliveryTag, false);

@@ -38,6 +38,4 @@ public interface CourseCommandService {
      */
     ContentMetadataResponseDto createContent(UUID courseId, UUID sectionId, UUID lessonId, ContentMetadataRequestDto request, UUID userId);
     ContentMetadataResponseDto updateContentById(UUID courseId, UUID sectionId, UUID lessonId, UUID contentId, ContentMetadataRequestDto request, UUID userId);
-    ContentMetadataResponseDto publishContent(UUID courseId, UUID sectionId, UUID lessonId, UUID contentId, UUID userId);
-    ContentMetadataResponseDto unpublishContent(UUID courseId, UUID sectionId, UUID lessonId, UUID contentId, UUID userId);
 }

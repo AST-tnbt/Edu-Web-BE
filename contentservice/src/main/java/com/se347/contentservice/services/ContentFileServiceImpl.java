@@ -118,6 +118,28 @@ public class ContentFileServiceImpl implements ContentFileService {
             if (!found) {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
             }
+            
+            // Set bucket policy to public read
+            String policy = """
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": "*"},
+                            "Action": ["s3:GetObject"],
+                            "Resource": ["arn:aws:s3:::%s/*"]
+                        }
+                    ]
+                }
+                """.formatted(bucketName);
+            
+            minioClient.setBucketPolicy(
+                SetBucketPolicyArgs.builder()
+                    .bucket(bucketName)
+                    .config(policy)
+                    .build()
+            );
         } catch (Exception e) {
             throw new FileStorageException("Failed to initialize MinIO bucket", e);
         }

@@ -72,4 +72,9 @@ public class CourseController {
     public ResponseEntity<Integer> getTotalLessonsByCourseId(@PathVariable UUID courseId) {
         return ResponseEntity.ok(courseQueryService.getToltalLessonsByCourseId(courseId));
     }
+
+    @GetMapping("/instructor/{instructorId}")
+    public ResponseEntity<List<CourseResponseDto>> getCoursesByInstructorId(@PathVariable UUID instructorId) {
+        return ResponseEntity.ok(courseQueryService.getCoursesByInstructorId(instructorId));
+    }
 }

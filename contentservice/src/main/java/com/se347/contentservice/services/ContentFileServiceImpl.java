@@ -8,6 +8,7 @@ import com.se347.contentservice.exception.FileStorageException;
 import com.se347.contentservice.exception.InvalidFileTypeException;
 import com.se347.contentservice.repositories.ContentFileRepository;
 import io.minio.*;
+import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ContentFileServiceImpl implements ContentFileService {

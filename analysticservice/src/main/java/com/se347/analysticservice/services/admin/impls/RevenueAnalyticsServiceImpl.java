@@ -1,5 +1,6 @@
 package com.se347.analysticservice.services.admin.impls;
 
+import com.se347.analysticservice.domains.services.revenue.DailyRevenueDomainService;
 import com.se347.analysticservice.domains.services.revenue.RevenueAggregationService;
 import com.se347.analysticservice.entities.admin.revenue.DailyRevenue;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
@@ -7,6 +8,8 @@ import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.repositories.DailyRevenueRepository;
 import com.se347.analysticservice.services.admin.RevenueAnalyticsService;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Isolation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,27 +20,62 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Application Service for Revenue Analytics.
+ * 
+ * DDD PATTERN: Application Service
+ * 
+ * RESPONSIBILITIES:
+ * - Orchestrate use cases (record revenue, generate daily revenue, etc.)
+ * - Handle transaction boundaries
+ * - Coordinate between repositories and domain services
+ * - Handle infrastructure concerns (locking, retry logic)
+ * 
+ * BUSINESS LOGIC:
+ * - Delegated to DailyRevenueDomainService (factory logic)
+ * - Delegated to RevenueAggregationService (aggregation queries)
+ * - Entity business methods (updateMetrics) are called on entities
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class RevenueAnalyticsServiceImpl implements RevenueAnalyticsService {
     
     private final DailyRevenueRepository repository;
+    private final DailyRevenueDomainService domainService;
     private final RevenueAggregationService aggregationService;
     
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public void recordRevenue(BigDecimal amount, LocalDate transactionDate) {
         log.debug("Recording revenue: amount={}, date={}", amount, transactionDate);
-        
-        DailyRevenue dailyRevenue = repository.findByDate(transactionDate)
-            .orElseGet(() -> createInitialDailyRevenue(transactionDate));
-        
+
+        // Find or create DailyRevenue with pessimistic lock
+        DailyRevenue dailyRevenue = repository
+            .findByDateWithLock(transactionDate)
+            .orElseGet(() -> {
+                // Create new record using domain service (contains business rules)
+                DailyRevenue newRevenue = domainService.createInitialDailyRevenue(transactionDate);
+                try {
+                    return repository.save(newRevenue);
+                } catch (DataIntegrityViolationException e) {
+                    // Race condition: another thread created it, retry with lock
+                    log.warn(
+                        "Duplicate key detected when creating DailyRevenue, retrying with lock: date={}",
+                        transactionDate
+                    );
+                    return repository.findByDateWithLock(transactionDate)
+                        .orElseThrow(() -> new IllegalStateException(
+                            "Failed to create or find DailyRevenue for date: " + transactionDate
+                        ));
+                }
+            });
+
+        // Update metrics using entity business method
         Money newTotalRevenue = dailyRevenue.getTotalRevenue().add(Money.of(amount));
         Count newTotalTransactions = dailyRevenue.getTotalTransactions().increment();
-        
+
         dailyRevenue.updateMetrics(newTotalRevenue, newTotalTransactions);
-        
         repository.save(dailyRevenue);
     }
     
@@ -53,12 +91,8 @@ public class RevenueAnalyticsServiceImpl implements RevenueAnalyticsService {
             return existing.get();
         }
         
-        DailyRevenue dailyRevenue = DailyRevenue.create(
-            date,
-            Money.zero(),
-            Count.zero()
-        );
-        
+        // Create using domain service (contains business rules)
+        DailyRevenue dailyRevenue = domainService.createInitialDailyRevenue(date);
         return repository.save(dailyRevenue);
     }
     
@@ -110,12 +144,5 @@ public class RevenueAnalyticsServiceImpl implements RevenueAnalyticsService {
             date, dailyRevenue.getTotalRevenue(), dailyRevenue.getTotalTransactions().getValue());
     }
     
-    private DailyRevenue createInitialDailyRevenue(LocalDate date) {
-        return DailyRevenue.create(
-            date,
-            Money.zero(),
-            Count.zero()
-        );
-    }
 }
 

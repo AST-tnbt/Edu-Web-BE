@@ -20,7 +20,7 @@ public interface InstructorCourseStatsRepository extends JpaRepository<Instructo
     @Query("SELECT ics FROM InstructorCourseStats ics WHERE ics.instructorId = :instructorId ORDER BY ics.totalRevenue.amount DESC")
     List<InstructorCourseStats> findByInstructorIdOrderByRevenueDesc(@Param("instructorId") UUID instructorId);
     
-    @Query("SELECT ics FROM InstructorCourseStats ics WHERE ics.instructorId = :instructorId ORDER BY ics.completionRate.value DESC")
+    @Query("SELECT ics FROM InstructorCourseStats ics WHERE ics.instructorId = :instructorId ORDER BY ics.completionRatePercent.value DESC")
     List<InstructorCourseStats> findByInstructorIdOrderByCompletionRateDesc(@Param("instructorId") UUID instructorId);
     
     boolean existsByInstructorIdAndCourseId(UUID instructorId, UUID courseId);

@@ -68,8 +68,12 @@ public class PaymentEventListener {
                         amount
                     );
                 } else {
-                    instructorOverviewService.recordRevenue(event.getInstructorId(), amount);
+                    log.error("[PAYMENT] CourseId is null in PaymentCompletedEvent - DeliveryTag: {}", deliveryTag);
+                    rejectMessage(channel, deliveryTag, false);
+                    return;
                 }
+
+                instructorOverviewService.recordRevenue(event.getInstructorId(), amount);
                 
                 instructorDailyStatsService.recordRevenue(
                     event.getInstructorId(), 

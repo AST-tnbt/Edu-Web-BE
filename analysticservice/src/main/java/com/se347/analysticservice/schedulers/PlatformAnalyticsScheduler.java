@@ -123,5 +123,8 @@ public class PlatformAnalyticsScheduler {
             log.error("Failed to initialize current period overviews", e);
         }
     }
+    
+    // NOTE: Synchronization is now handled by OverviewSynchronizationService (Domain Service)
+    // via event-driven approach. No scheduled recalculation needed.
 }
 

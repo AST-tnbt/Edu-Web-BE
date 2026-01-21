@@ -1,12 +1,11 @@
 package com.se347.analysticservice.services.instructor.impls;
 
-import com.se347.analysticservice.domains.services.shared.PercentageCalculationHelper;
-import com.se347.analysticservice.entities.instructor.InstructorCourseStats;
+import com.se347.analysticservice.domains.services.instructor.InstructorOverviewDomainService;
+import com.se347.analysticservice.domains.services.overview.OverviewSynchronizationService;
 import com.se347.analysticservice.entities.instructor.InstructorOverview;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
-import com.se347.analysticservice.repositories.InstructorCourseStatsRepository;
 import com.se347.analysticservice.repositories.InstructorOverviewRepository;
 import com.se347.analysticservice.services.instructor.InstructorOverviewService;
 
@@ -14,26 +13,42 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.dao.DataIntegrityViolationException;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
+/**
+ * Application Service for Instructor Overview.
+ * 
+ * DDD PATTERN: Application Service
+ * 
+ * RESPONSIBILITIES:
+ * - Orchestrate use cases (record course, enrollment, revenue, etc.)
+ * - Handle transaction boundaries
+ * - Coordinate between repositories and domain services
+ * - Handle infrastructure concerns (locking, retry logic)
+ * 
+ * BUSINESS LOGIC:
+ * - Delegated to InstructorOverviewDomainService (factory and calculation logic)
+ * - Delegated to OverviewSynchronizationService (cross-aggregate synchronization)
+ * - Entity business methods are called on entities
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class InstructorOverviewServiceImpl implements InstructorOverviewService {
     
     private final InstructorOverviewRepository overviewRepository;
-    private final InstructorCourseStatsRepository courseStatsRepository;
+    private final InstructorOverviewDomainService domainService;
+    private final OverviewSynchronizationService overviewSynchronizationService;
     
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public void recordCourse(UUID instructorId, UUID courseId) {
         log.debug("Recording course for instructor overview: instructorId={}, courseId={}", instructorId, courseId);
         
-        InstructorOverview overview = getOrCreate(instructorId);
+        InstructorOverview overview = getOrCreateWithLock(instructorId);
         
         overview.updateMetrics(
             overview.getTotalCourses().increment(),
@@ -46,11 +61,11 @@ public class InstructorOverviewServiceImpl implements InstructorOverviewService 
     }
     
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public void recordEnrollment(UUID instructorId, Count count) {
         log.debug("Recording enrollment for instructor overview: instructorId={}, count={}", instructorId, count.getValue());
         
-        InstructorOverview overview = getOrCreate(instructorId);
+        InstructorOverview overview = getOrCreateWithLock(instructorId);
         
         overview.updateMetrics(
             overview.getTotalCourses(),
@@ -63,11 +78,11 @@ public class InstructorOverviewServiceImpl implements InstructorOverviewService 
     }
     
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public void recordRevenue(UUID instructorId, Money amount) {
         log.debug("Recording revenue for instructor overview: instructorId={}, amount={}", instructorId, amount.getAmount());
         
-        InstructorOverview overview = getOrCreate(instructorId);
+        InstructorOverview overview = getOrCreateWithLock(instructorId);
         
         overview.updateMetrics(
             overview.getTotalCourses(),
@@ -86,20 +101,8 @@ public class InstructorOverviewServiceImpl implements InstructorOverviewService 
         
         InstructorOverview overview = getOrCreate(instructorId);
         
-        List<InstructorCourseStats> courseStatsList = courseStatsRepository.findByInstructorId(instructorId);
-        
-        if (courseStatsList.isEmpty()) {
-            overview.updateAverageCompletionRate(Percentage.zero());
-            overviewRepository.save(overview);
-            return;
-        }
-        
-        List<Percentage> completionRates = courseStatsList.stream()
-            .filter(cs -> cs.getCompletionRate() != null)
-            .map(InstructorCourseStats::getCompletionRate)
-            .collect(Collectors.toList());
-        
-        Percentage averageCompletionRate = PercentageCalculationHelper.calculateAverageFromPercentages(completionRates);
+        // Delegate to domain service (contains business rules for calculation)
+        Percentage averageCompletionRate = domainService.calculateAverageCompletionRate(instructorId);
         overview.updateAverageCompletionRate(averageCompletionRate);
         
         overviewRepository.save(overview);
@@ -130,20 +133,47 @@ public class InstructorOverviewServiceImpl implements InstructorOverviewService 
         overviewRepository.save(overview);
     }
     
-    @Override
+    /**
+     * Gets or creates InstructorOverview with pessimistic locking to prevent race conditions.
+     * Uses PESSIMISTIC_WRITE lock to ensure only one thread can create the record.
+     * Note: This method should be called from within a transaction with REPEATABLE_READ isolation.
+     */
+    private InstructorOverview getOrCreateWithLock(UUID instructorId) {
+        // Try to get existing record with PESSIMISTIC_WRITE lock
+        return overviewRepository.findByInstructorIdWithLock(instructorId)
+            .orElseGet(() -> {
+                // Create new record using domain service (contains business rules)
+                InstructorOverview newOverview = domainService.createInitialOverview(instructorId);
+                try {
+                    return overviewRepository.save(newOverview);
+                } catch (DataIntegrityViolationException e) {
+                    // Race condition: another thread created it, retry with lock
+                    log.warn(
+                        "Duplicate key detected when creating InstructorOverview, retrying with lock: instructorId={}",
+                        instructorId
+                    );
+                    return overviewRepository.findByInstructorIdWithLock(instructorId)
+                        .orElseThrow(() -> new IllegalStateException(
+                            "Failed to create or find InstructorOverview for instructorId: " + instructorId
+                        ));
+                }
+            });
+    }
+    
     @Transactional(readOnly = true)
     public InstructorOverview getOrCreate(UUID instructorId) {
         return overviewRepository.findByInstructorId(instructorId)
-            .orElseGet(() -> createInitialOverview(instructorId));
+            .orElseGet(() -> domainService.createInitialOverview(instructorId));
     }
     
-    private InstructorOverview createInitialOverview(UUID instructorId) {
-        return InstructorOverview.create(
-            instructorId,
-            Count.zero(),
-            Count.zero(),
-            Money.zero(),
-            Percentage.zero()
-        );
+    @Override
+    @Transactional
+    public void recalculateInstructorOverview(UUID instructorId) {
+        log.info("Recalculating instructor overview from related entities: instructorId={}", instructorId);
+        
+        // Delegate to domain service for synchronization
+        // DDD PATTERN: Domain Service handles cross-aggregate synchronization logic
+        overviewSynchronizationService.synchronizeInstructorOverview(instructorId);
     }
+    
 }

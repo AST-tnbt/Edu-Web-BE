@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -59,5 +61,10 @@ public interface UserGrowthAnalyticsRepository extends JpaRepository<UserGrowthA
      * @return true if exists, false otherwise
      */
     boolean existsByDate(LocalDate date);
+
+    // ===== method với PESSIMISTIC_WRITE lock =====
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT uga FROM UserGrowthAnalytics uga WHERE uga.date = :date")
+    Optional<UserGrowthAnalytics> findByDateWithLock(@Param("date") LocalDate date);
 }
 

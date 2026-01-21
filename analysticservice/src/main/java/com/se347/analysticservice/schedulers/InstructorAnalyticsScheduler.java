@@ -1,6 +1,7 @@
 package com.se347.analysticservice.schedulers;
 
 import com.se347.analysticservice.enums.Period;
+import com.se347.analysticservice.repositories.InstructorOverviewRepository;
 import com.se347.analysticservice.services.admin.InstructorRevenueGenerationService;
 
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -18,6 +20,7 @@ import java.util.UUID;
 public class InstructorAnalyticsScheduler {
     
     private final InstructorRevenueGenerationService revenueGenerationService;
+    private final InstructorOverviewRepository instructorOverviewRepository;
     
     @Scheduled(cron = "0 40 0 * * ?")
     public void generateDailyInstructorRevenue() {
@@ -111,8 +114,15 @@ public class InstructorAnalyticsScheduler {
         }
     }
     
+    // NOTE: Synchronization is now handled by OverviewSynchronizationService (Domain Service)
+    // via event-driven approach. No scheduled recalculation needed.
+    
     private List<UUID> getActiveInstructors() {
-        return List.of();
+        // Get all instructor IDs from InstructorOverview repository
+        return instructorOverviewRepository.findAll()
+            .stream()
+            .map(overview -> overview.getInstructorId())
+            .collect(Collectors.toList());
     }
 }
 

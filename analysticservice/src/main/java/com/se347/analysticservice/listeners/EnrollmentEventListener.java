@@ -1,11 +1,13 @@
 package com.se347.analysticservice.listeners;
 
 import com.rabbitmq.client.Channel;
-import com.se347.analysticservice.dtos.events.progress.CourseCompletedEvent;
-import com.se347.analysticservice.dtos.events.progress.CourseProgressUpdatedEvent;
+
 import com.se347.analysticservice.dtos.events.enrollment.EnrollmentCreatedEvent;
+import com.se347.analysticservice.dtos.events.enrollment.EnrollmentCompletedEvent;
+import com.se347.analysticservice.dtos.events.enrollment.UpdateOverallProgressEvent;
+import com.se347.analysticservice.domains.services.overview.OverviewSynchronizationService;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
-import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
+import com.se347.analysticservice.enums.Period;
 import com.se347.analysticservice.services.admin.PlatformOverviewService;
 import com.se347.analysticservice.services.instructor.InstructorCourseStatsService;
 import com.se347.analysticservice.services.instructor.InstructorDailyStatsService;
@@ -18,6 +20,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDate;
 
 @Component
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class EnrollmentEventListener {
     private final InstructorOverviewService instructorOverviewService;
     private final InstructorCourseStatsService instructorCourseStatsService;
     private final InstructorDailyStatsService instructorDailyStatsService;
+    private final OverviewSynchronizationService overviewSynchronizationService;
     
     /**
      * Handles EnrollmentCreatedEvent.
@@ -55,14 +59,31 @@ public class EnrollmentEventListener {
                 enrolledDate
             );
             
-            instructorOverviewService.recordEnrollment(event.getInstructorId(), Count.one());
+            instructorOverviewService.recordEnrollment(
+                event.getInstructorId(), 
+                Count.one()
+            );
+
             instructorCourseStatsService.recordEnrollment(
                 event.getInstructorId(), 
                 event.getCourseId(), 
                 Count.one()
             );
-            instructorDailyStatsService.recordEnrollment(event.getInstructorId(), enrolledDate);
-            instructorDailyStatsService.recordActiveStudent(event.getInstructorId(), enrolledDate);
+
+            instructorDailyStatsService.recordEnrollment(
+                event.getInstructorId(), 
+                enrolledDate
+            );
+
+            instructorDailyStatsService.recordActiveStudent(
+                event.getInstructorId(), 
+                enrolledDate
+            );
+            
+            // Synchronize overview entities after source entities are updated
+            // DDD PATTERN: Domain Service handles cross-aggregate synchronization
+            overviewSynchronizationService.synchronizeInstructorOverview(event.getInstructorId());
+            overviewSynchronizationService.synchronizeCurrentPeriodOverview(Period.DAILY);
             
             // Acknowledge success
             acknowledgeMessage(channel, deliveryTag);
@@ -77,25 +98,25 @@ public class EnrollmentEventListener {
     }
 
     /**
-     * Handles CourseCompletedEvent.
+     * Handles EnrollmentCompletedEvent.
      * Updates completion rate metrics when a student completes a course.
      */
     @RabbitListener(
-        queues = "${app.rabbitmq.queue.course-completed}",
+        queues = "${app.rabbitmq.queue.enrollment-completed}",
         containerFactory = "rabbitListenerContainerFactory"
     )
-    public void handleCourseCompleted(
-        CourseCompletedEvent event,
+    public void handleEnrollmentCompleted(
+        EnrollmentCompletedEvent event,
         Channel channel,
         @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
     ) {
         try {
             // Validate event
-            validateCourseCompletedEvent(event);
+            validateEnrollmentCompletedEvent(event);
             
-            var completedDate = event.getCompletedAt().toLocalDate();
+            LocalDate completedDate = event.getOccurredAt().toLocalDate();
             
-            platformOverviewService.recordCourseCompletion(
+            platformOverviewService.recordEnrollmentCompletion(
                 event.getStudentId(),
                 event.getCourseId(),
                 event.getInstructorId(),
@@ -103,24 +124,19 @@ public class EnrollmentEventListener {
                 completedDate
             );
             
-            instructorDailyStatsService.recordCourseCompletion(event.getInstructorId(), completedDate);
-            instructorDailyStatsService.recordActiveStudent(event.getInstructorId(), completedDate);
+            instructorDailyStatsService.recordCourseCompletion(
+                event.getInstructorId(),
+                completedDate
+            );
+
+            instructorDailyStatsService.recordActiveStudent(
+                event.getInstructorId(), 
+                completedDate
+            );
             
-            if (event.getCompletionRate() != null) {
-                instructorOverviewService.recordEnrollmentCompletionRateUpdate(
-                    event.getInstructorId(),
-                    event.getCourseId(),
-                    event.getEnrollmentId(),
-                    null,
-                    event.getCompletionRate()
-                );
-                
-                instructorCourseStatsService.updateCompletionRate(
-                    event.getInstructorId(),
-                    event.getCourseId(),
-                    Percentage.of(event.getCompletionRate())
-                );
-            }
+            // Synchronize overview entities after source entities are updated
+            overviewSynchronizationService.synchronizeInstructorOverview(event.getInstructorId());
+            overviewSynchronizationService.synchronizeCurrentPeriodOverview(Period.DAILY);
             
             // Acknowledge success
             acknowledgeMessage(channel, deliveryTag);
@@ -131,49 +147,30 @@ public class EnrollmentEventListener {
             rejectMessage(channel, deliveryTag, true);
         }
     }
-    
-    /**
-     * Handles CourseProgressUpdatedEvent.
-     * Updates average completion rate metrics for platform analytics.
-     */
+
     @RabbitListener(
-        queues = "${app.rabbitmq.queue.course-progress-updated}",
+        queues = "${app.rabbitmq.queue.update-overall-progress}",
         containerFactory = "rabbitListenerContainerFactory"
     )
-    public void handleCourseProgressUpdated(
-        CourseProgressUpdatedEvent event,
+    public void handleUpdateOverallProgress(
+        UpdateOverallProgressEvent event,
         Channel channel,
         @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag
     ) {
         try {
             // Validate event
-            validateCourseProgressUpdatedEvent(event);
+            validateUpdateOverallProgressEvent(event);
             
-            var updatedDate = event.getUpdatedAt().toLocalDate();
-            
-            platformOverviewService.recordProgressUpdate(
-                event.getStudentId(),
-                event.getCourseId(),
-                event.getInstructorId(),
-                event.getCurrentCompletionRate(),
-                updatedDate
+            instructorCourseStatsService.updateOverallProgress(
+                event.getInstructorId(), 
+                event.getCourseId(), 
+                event.getEnrollmentId(), 
+                event.getNewOverallProgress()
             );
             
-            instructorDailyStatsService.recordActiveStudent(event.getInstructorId(), updatedDate);
-            
-            instructorOverviewService.recordEnrollmentCompletionRateUpdate(
-                event.getInstructorId(),
-                event.getCourseId(),
-                event.getEnrollmentId(),
-                event.getPreviousCompletionRate(),
-                event.getCurrentCompletionRate()
-            );
-            
-            instructorCourseStatsService.updateCompletionRate(
-                event.getInstructorId(),
-                event.getCourseId(),
-                Percentage.of(event.getCurrentCompletionRate())
-            );
+            // Synchronize overview entities after source entities are updated
+            // DDD PATTERN: Domain Service handles cross-aggregate synchronization
+            overviewSynchronizationService.synchronizeInstructorOverview(event.getInstructorId());
             
             // Acknowledge success
             acknowledgeMessage(channel, deliveryTag);
@@ -184,9 +181,34 @@ public class EnrollmentEventListener {
             rejectMessage(channel, deliveryTag, true);
         }
     }
-    
+
     // ==================== Validation Methods ====================
-    
+
+    private void validateUpdateOverallProgressEvent(UpdateOverallProgressEvent event) {
+        if (event == null) {
+            throw new IllegalArgumentException("UpdateOverallProgressEvent cannot be null");
+        }
+        if (event.getEnrollmentId() == null) {
+            throw new IllegalArgumentException("EnrollmentId cannot be null in UpdateOverallProgressEvent");
+        }
+        if (event.getCourseId() == null) {
+            throw new IllegalArgumentException("CourseId cannot be null in UpdateOverallProgressEvent");
+        }
+        if (event.getStudentId() == null) {
+            throw new IllegalArgumentException("StudentId cannot be null in UpdateOverallProgressEvent");
+        }
+        if (event.getInstructorId() == null) {
+            throw new IllegalArgumentException("InstructorId cannot be null in UpdateOverallProgressEvent");
+        }
+        if (event.getUpdatedAt() == null) {
+            throw new IllegalArgumentException("UpdatedAt cannot be null in UpdateOverallProgressEvent");
+        }
+        double progress = event.getNewOverallProgress();
+        if (progress < 0.0 || progress > 100.0) {
+            throw new IllegalArgumentException("newOverallProgress must be between 0 and 100 in UpdateOverallProgressEvent");
+        }
+    }
+
     private void validateEnrollmentCreatedEvent(EnrollmentCreatedEvent event) {
         if (event == null) {
             throw new IllegalArgumentException("EnrollmentCreatedEvent cannot be null");
@@ -208,9 +230,9 @@ public class EnrollmentEventListener {
         }
     }
     
-    private void validateCourseCompletedEvent(CourseCompletedEvent event) {
+    private void validateEnrollmentCompletedEvent(EnrollmentCompletedEvent event) {
         if (event == null) {
-            throw new IllegalArgumentException("CourseCompletedEvent cannot be null");
+            throw new IllegalArgumentException("EnrollmentCompletedEvent cannot be null");
         }
         if (event.getStudentId() == null) {
             throw new IllegalArgumentException("StudentId cannot be null in CourseCompletedEvent");
@@ -221,26 +243,8 @@ public class EnrollmentEventListener {
         if (event.getInstructorId() == null) {
             throw new IllegalArgumentException("InstructorId cannot be null in CourseCompletedEvent");
         }
-        if (event.getCompletedAt() == null) {
-            throw new IllegalArgumentException("CompletedAt cannot be null in CourseCompletedEvent");
-        }
-    }
-    
-    private void validateCourseProgressUpdatedEvent(CourseProgressUpdatedEvent event) {
-        if (event == null) {
-            throw new IllegalArgumentException("CourseProgressUpdatedEvent cannot be null");
-        }
-        if (event.getStudentId() == null) {
-            throw new IllegalArgumentException("StudentId cannot be null in CourseProgressUpdatedEvent");
-        }
-        if (event.getCourseId() == null) {
-            throw new IllegalArgumentException("CourseId cannot be null in CourseProgressUpdatedEvent");
-        }
-        if (event.getCurrentCompletionRate() == null) {
-            throw new IllegalArgumentException("CurrentCompletionRate cannot be null in CourseProgressUpdatedEvent");
-        }
-        if (event.getUpdatedAt() == null) {
-            throw new IllegalArgumentException("UpdatedAt cannot be null in CourseProgressUpdatedEvent");
+        if (event.getOccurredAt() == null) {
+            throw new IllegalArgumentException("OccurredAt cannot be null in EnrollmentCompletedEvent");
         }
     }
 

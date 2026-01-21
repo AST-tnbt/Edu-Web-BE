@@ -27,5 +27,5 @@ public interface InstructorOverviewService {
         Double newEnrollmentRate
     );
     
-    InstructorOverview getOrCreate(UUID instructorId);
+    void recalculateInstructorOverview(UUID instructorId);
 }

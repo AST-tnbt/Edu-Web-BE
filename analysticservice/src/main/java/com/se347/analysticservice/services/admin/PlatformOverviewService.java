@@ -30,7 +30,7 @@ public interface PlatformOverviewService {
         LocalDate paymentDate
     );
     
-    void recordCourseCompletion(
+    void recordEnrollmentCompletion(
         UUID studentId,
         UUID courseId,
         UUID instructorId,
@@ -64,4 +64,6 @@ public interface PlatformOverviewService {
     
     
     PlatformOverview initializeCurrentPeriodOverview(Period period);
+    
+    void recalculateCurrentPeriodOverview(Period period);
 }

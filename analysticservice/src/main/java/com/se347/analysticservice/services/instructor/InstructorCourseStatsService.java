@@ -13,6 +13,8 @@ public interface InstructorCourseStatsService {
     
     void recordEnrollment(UUID instructorId, UUID courseId, Count count);
     
+    void updateOverallProgress(UUID instructorId, UUID courseId, UUID enrollmentId, double newOverallProgress);
+    
     void recordRevenue(UUID instructorId, UUID courseId, Money amount);
     
     void updateCompletionRate(UUID instructorId, UUID courseId, Percentage completionRate);

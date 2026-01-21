@@ -1,5 +1,6 @@
 package com.se347.enrollmentservice.entities;
 
+import com.se347.enrollmentservice.domains.events.UpdateOverallProgressEvent;
 import com.se347.enrollmentservice.entities.valueobjects.Percentage;
 
 import jakarta.persistence.*;
@@ -107,6 +108,20 @@ public class CourseProgress {
         if (this.lessonsCompleted >= this.totalLessons && !this.isAllLessonsCompleted) {
             this.markAllLessonsAsCompleted();
         }
+    }
+    
+    /**
+     * Get the UpdateOverallProgressEvent for the current progress state.
+     * This event should be registered by the Enrollment aggregate root.
+     */
+    public UpdateOverallProgressEvent createUpdateOverallProgressEvent() {
+        return UpdateOverallProgressEvent.now(
+            this.enrollment.getEnrollmentId(),
+            this.enrollment.getCourseId(),
+            this.enrollment.getStudentId(),
+            this.enrollment.getInstructorId(),
+            this.getProgressPercentage()
+        );
     }
 
     /**

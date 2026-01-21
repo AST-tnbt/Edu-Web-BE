@@ -8,10 +8,7 @@ import com.se347.enrollmentservice.services.CourseProgressQueryService;
 import com.se347.enrollmentservice.dtos.CourseProgressResponseDto;
 import com.se347.enrollmentservice.repositories.CourseProgressRepository;
 import com.se347.enrollmentservice.entities.CourseProgress;
-import com.se347.enrollmentservice.entities.Enrollment;
 import com.se347.enrollmentservice.exceptions.CourseProgressException;
-import com.se347.enrollmentservice.domains.EnrollmentAuthorizationDomainService;
-import com.se347.enrollmentservice.exceptions.ForbiddenException;
 
 import lombok.RequiredArgsConstructor;
 import java.util.UUID;
@@ -21,7 +18,6 @@ import java.util.UUID;
 public class CourseProgressQueryServiceImpl implements CourseProgressQueryService {
 
     private final CourseProgressRepository courseProgressRepository;
-    private final EnrollmentAuthorizationDomainService enrollmentAuthorizationDomainService;
 
     // ========== Public API ==========
 
@@ -41,22 +37,6 @@ public class CourseProgressQueryServiceImpl implements CourseProgressQueryServic
             .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException("Course progress not found with enrollment ID: " + enrollmentId));
 
         return mapToResponse(courseProgress);
-    }
-
-    // ========== Private Helper Methods ==========
-
-    private void authorizeAccess(CourseProgress courseProgress, UUID userId) {
-        Enrollment enrollment = courseProgress.getEnrollment();
-
-        try {
-            enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, userId);
-        } catch (ForbiddenException studentEx) {
-            try {
-                enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(enrollment.getCourseId(), userId);
-            } catch (ForbiddenException instructorEx) {
-                throw new ForbiddenException("User " + userId + " cannot access course progress " + courseProgress.getCourseProgressId());
-            }
-        }
     }
 
     // ========== Mapping ==========

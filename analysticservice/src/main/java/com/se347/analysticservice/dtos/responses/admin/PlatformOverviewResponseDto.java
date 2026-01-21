@@ -17,9 +17,11 @@ import java.util.UUID;
 public class PlatformOverviewResponseDto {
     private UUID overviewId;
     private Long totalUsers;
-    private Long totalCourses;
     private Long totalEnrollments;
     private BigDecimal totalRevenue;
+    private BigDecimal revenueByPeriod;
+    private Long newUsersCount;
+    private Long newEnrollmentsCount;
     private Double averageCompletionRate;
     private LocalDate startDate;
     private LocalDate endDate;

@@ -57,7 +57,7 @@ Signup successful for user: example@gmail.com
     "refreshToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlQGdtYWlsLmNvbSIsImlhdCI6MTc2MDE0OTQ3MCwiZXhwIjoxNzYwNTgxNDcwfQ.um6ljpblLhK8IPxFY8uDpYt__GUS7hhNmE6Ie5rKwsw",
     "tokenType": "Bearer",
     "email": "example@gmail.com",
-    "role": "STUDENT",
+    "role": "ADMIN",
     "firstLogin": true
 }
 ```

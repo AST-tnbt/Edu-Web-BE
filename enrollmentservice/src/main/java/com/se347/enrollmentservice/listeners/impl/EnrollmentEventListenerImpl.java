@@ -2,6 +2,8 @@ package com.se347.enrollmentservice.listeners.impl;
 
 import com.se347.enrollmentservice.listeners.EnrollmentEventListener;
 import com.se347.enrollmentservice.domains.events.EnrollmentCreatedEvent;
+import com.se347.enrollmentservice.domains.events.EnrollmentCompletedEvent;
+import com.se347.enrollmentservice.domains.events.UpdateOverallProgressEvent;
 import com.se347.enrollmentservice.publishers.EnrollmentPublisher;
 
 import org.springframework.stereotype.Service;
@@ -16,5 +18,15 @@ public class EnrollmentEventListenerImpl implements EnrollmentEventListener {
     @Override
     public void handleEnrollmentCreatedEvent(EnrollmentCreatedEvent event) {
         enrollmentPublisher.publishEnrollmentCreatedEvent(event);
+    }
+
+    @Override
+    public void handleEnrollmentCompletedEvent(EnrollmentCompletedEvent event) {
+        enrollmentPublisher.publishEnrollmentCompletedEvent(event);
+    }
+
+    @Override
+    public void handleUpdateOverallProgressEvent(UpdateOverallProgressEvent event) {
+        enrollmentPublisher.publishUpdateOverallProgressEvent(event);
     }
 }

@@ -1,7 +1,6 @@
 package com.se347.enrollmentservice.clients.impl;
 
 import com.se347.enrollmentservice.clients.CourseServiceClient;
-import com.se347.enrollmentservice.dtos.CourseInfoDto;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -2,6 +2,7 @@ package com.se347.enrollmentservice.entities;
 
 import com.se347.enrollmentservice.domains.events.*;
 import com.se347.enrollmentservice.domains.events.EnrollmentCreatedEvent;
+import com.se347.enrollmentservice.domains.events.EnrollmentCompletedEvent;
 import com.se347.enrollmentservice.domains.events.UpdateTotalLessonsEvent;
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
 import jakarta.persistence.*;
@@ -151,16 +152,8 @@ public class Enrollment extends AbstractAggregateRoot {
         // Update overall course progress
         courseProgress.incrementCompletedLessons();
         
-        // Raise domain event
-        registerEvent(LessonCompletedEvent.now(
-            this.enrollmentId,
-            this.courseId,
-            this.studentId,
-            lessonId,
-            courseProgress.getLessonsCompleted(),
-            courseProgress.getTotalLessons(),
-            courseProgress.getProgressPercentage()
-        ));
+        // Register event for overall progress update (to be published to RabbitMQ)
+        registerEvent(courseProgress.createUpdateOverallProgressEvent());
         
         // Check if course is now completed
         if (courseProgress.isAllLessonsCompleted() && this.enrollmentStatus != EnrollmentStatus.COMPLETED) {
@@ -233,10 +226,11 @@ public class Enrollment extends AbstractAggregateRoot {
         this.enrollmentStatus = EnrollmentStatus.COMPLETED;
         
         // Raise domain event
-        registerEvent(CourseCompletedEvent.now(
+        registerEvent(EnrollmentCompletedEvent.now(
             this.enrollmentId,
             this.courseId,
             this.studentId,
+            this.instructorId,
             this.courseProgress.getAllLessonsCompletedAt()
         ));
     }

@@ -44,6 +44,18 @@ public class RabbitConfig {
     @Value("${app.rabbitmq.routing-key.enrollment-created}")
     private String enrollmentCreatedRoutingKey;
 
+    @Value("${app.rabbitmq.queue.enrollment-completed}")
+    private String enrollmentCompletedQueueName;
+
+    @Value("${app.rabbitmq.routing-key.enrollment-completed}")
+    private String enrollmentCompletedRoutingKey;
+
+    @Value("${app.rabbitmq.queue.update-overall-progress}")
+    private String updateOverallProgressQueueName;
+
+    @Value("${app.rabbitmq.routing-key.update-overall-progress}")
+    private String updateOverallProgressRoutingKey;
+
     @Bean
     public TopicExchange enrollmentPaymentExchange() {
         return new TopicExchange(paymentExchangeName, true, false);
@@ -90,6 +102,26 @@ public class RabbitConfig {
     @Bean
     public Binding bindingEnrollmentCreated(Queue enrollmentCreatedQueue, TopicExchange enrollmentExchange) {
         return BindingBuilder.bind(enrollmentCreatedQueue).to(enrollmentExchange).with(enrollmentCreatedRoutingKey);
+    }
+
+    @Bean
+    public Queue enrollmentCompletedQueue() {
+        return new Queue(enrollmentCompletedQueueName, true);
+    }
+
+    @Bean
+    public Binding bindingEnrollmentCompleted(Queue enrollmentCompletedQueue, TopicExchange enrollmentExchange) {
+        return BindingBuilder.bind(enrollmentCompletedQueue).to(enrollmentExchange).with(enrollmentCompletedRoutingKey);
+    }
+
+    @Bean
+    public Queue updateOverallProgressQueue() {
+        return new Queue(updateOverallProgressQueueName, true);
+    }
+
+    @Bean
+    public Binding bindingUpdateOverallProgress(Queue updateOverallProgressQueue, TopicExchange enrollmentExchange) {
+        return BindingBuilder.bind(updateOverallProgressQueue).to(enrollmentExchange).with(updateOverallProgressRoutingKey);
     }
 
     @Bean

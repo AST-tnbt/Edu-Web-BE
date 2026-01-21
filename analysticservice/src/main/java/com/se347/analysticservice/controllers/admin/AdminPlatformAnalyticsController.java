@@ -77,9 +77,11 @@ public class AdminPlatformAnalyticsController {
         return PlatformOverviewResponseDto.builder()
             .overviewId(overview.getPlatformOverviewId())
             .totalUsers(overview.getTotalUsers().getValue())
-            .totalCourses(overview.getTotalActiveCourses().getValue())
             .totalEnrollments(overview.getTotalEnrollments().getValue())
             .totalRevenue(overview.getTotalRevenue().getAmount())
+            .revenueByPeriod(overview.getRevenueByPeriod().getAmount())
+            .newUsersCount(overview.getNewUsersCount().getValue())
+            .newEnrollmentsCount(overview.getNewEnrollmentsCount().getValue())
             .averageCompletionRate(overview.getAverageCompletionRate() != null 
                 ? overview.getAverageCompletionRate().getValue() 
                 : 0.0)

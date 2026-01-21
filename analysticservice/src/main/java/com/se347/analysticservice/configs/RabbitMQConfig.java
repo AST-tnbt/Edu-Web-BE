@@ -62,18 +62,18 @@ public class RabbitMQConfig {
     
     @Value("${app.rabbitmq.routing-key.enrollment-created:enrollment-created}")
     private String enrollmentCreatedRoutingKey;
-    
-    @Value("${app.rabbitmq.queue.course-completed}")
-    private String courseCompletedQueueName;
-    
-    @Value("${app.rabbitmq.routing-key.course-completed:course-completed}")
-    private String courseCompletedRoutingKey;
-    
-    @Value("${app.rabbitmq.queue.course-progress-updated}")
-    private String courseProgressUpdatedQueueName;
 
-    @Value("${app.rabbitmq.routing-key.course-progress-updated:course-progress-updated}")
-    private String courseProgressUpdatedRoutingKey;
+    @Value("${app.rabbitmq.queue.enrollment-completed}")
+    private String enrollmentCompletedQueueName;
+
+    @Value("${app.rabbitmq.routing-key.enrollment-completed:enrollment-completed}")
+    private String enrollmentCompletedRoutingKey;
+    
+    @Value("${app.rabbitmq.queue.update-overall-progress}")
+    private String updateOverallProgressQueueName;
+
+    @Value("${app.rabbitmq.routing-key.update-overall-progress:update-overall-progress}")
+    private String updateOverallProgressRoutingKey;
 
     @Bean
     public TopicExchange authExchange() {
@@ -153,28 +153,28 @@ public class RabbitMQConfig {
     }
     
     @Bean
-    public Queue courseCompletedQueue() {
-        return new Queue(courseCompletedQueueName, true);
-    }
-    
-    @Bean
     public Binding bindingEnrollmentCreated(Queue enrollmentCreatedQueue, TopicExchange enrollmentExchange) {
         return BindingBuilder.bind(enrollmentCreatedQueue).to(enrollmentExchange).with(enrollmentCreatedRoutingKey);
     }
     
     @Bean
-    public Binding bindingCourseCompleted(Queue courseCompletedQueue, TopicExchange enrollmentExchange) {
-        return BindingBuilder.bind(courseCompletedQueue).to(enrollmentExchange).with(courseCompletedRoutingKey);
+    public Queue enrollmentCompletedQueue() {
+        return new Queue(enrollmentCompletedQueueName, true);
     }
     
     @Bean
-    public Queue courseProgressUpdatedQueue() {
-        return new Queue(courseProgressUpdatedQueueName, true);
+    public Binding bindingEnrollmentCompleted(Queue enrollmentCompletedQueue, TopicExchange enrollmentExchange) {
+        return BindingBuilder.bind(enrollmentCompletedQueue).to(enrollmentExchange).with(enrollmentCompletedRoutingKey);
     }
     
     @Bean
-    public Binding bindingCourseProgressUpdated(Queue courseProgressUpdatedQueue, TopicExchange enrollmentExchange) {
-        return BindingBuilder.bind(courseProgressUpdatedQueue).to(enrollmentExchange).with(courseProgressUpdatedRoutingKey);
+    public Queue updateOverallProgressQueue() {
+        return new Queue(updateOverallProgressQueueName, true);
+    }
+    
+    @Bean
+    public Binding bindingUpdateOverallProgress(Queue updateOverallProgressQueue, TopicExchange enrollmentExchange) {
+        return BindingBuilder.bind(updateOverallProgressQueue).to(enrollmentExchange).with(updateOverallProgressRoutingKey);
     }
 
     @Bean

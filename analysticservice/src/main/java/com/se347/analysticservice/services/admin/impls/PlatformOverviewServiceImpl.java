@@ -126,6 +126,46 @@ public class PlatformOverviewServiceImpl implements PlatformOverviewService {
     }
     
     @Override
+    @Transactional(readOnly = true)
+    public List<PlatformOverview> getChartData(Period period) {
+        log.info("Getting chart data for period: {}", period);
+        
+        LocalDate today = LocalDate.now();
+        
+        switch (period) {
+            case MONTHLY:
+                // For monthly chart: get 30 DAILY overviews of the most recent month
+                LocalDate monthStart = today.withDayOfMonth(1);
+                LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
+                log.info("Monthly chart: fetching DAILY overviews from {} to {}", monthStart, monthEnd);
+                return repository.findByPeriodAndDateRange(Period.DAILY, monthStart, monthEnd);
+                
+            case WEEKLY:
+                // For weekly chart: get 7 DAILY overviews of the most recent week
+                LocalDate weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1);
+                LocalDate weekEnd = weekStart.plusDays(6);
+                log.info("Weekly chart: fetching DAILY overviews from {} to {}", weekStart, weekEnd);
+                return repository.findByPeriodAndDateRange(Period.DAILY, weekStart, weekEnd);
+                
+            case YEARLY:
+                // For yearly chart: get 12 MONTHLY overviews of the most recent year
+                LocalDate yearStart = today.withDayOfYear(1);
+                LocalDate yearEnd = today.withDayOfYear(today.lengthOfYear());
+                log.info("Yearly chart: fetching MONTHLY overviews from {} to {}", yearStart, yearEnd);
+                return repository.findByPeriodAndDateRange(Period.MONTHLY, yearStart, yearEnd);
+                
+            case DAILY:
+                // For daily chart: get the most recent DAILY overview
+                PlatformOverview latest = repository.findLatestByPeriod(Period.DAILY).orElse(null);
+                return latest != null ? List.of(latest) : List.of();
+                
+            default:
+                log.warn("Unsupported period for chart data: {}", period);
+                return List.of();
+        }
+    }
+    
+    @Override
     @Transactional
     public PlatformOverview initializeCurrentPeriodOverview(Period period) {
         log.info("Initializing current period overview: period={}", period);

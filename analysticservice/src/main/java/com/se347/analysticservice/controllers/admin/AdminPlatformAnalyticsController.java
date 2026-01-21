@@ -54,6 +54,18 @@ public class AdminPlatformAnalyticsController {
         return ResponseEntity.ok(overviews);
     }
 
+    @GetMapping("/overview/chart")
+    public ResponseEntity<List<PlatformOverviewResponseDto>> getChartData(
+        @RequestParam Period period
+    ) {
+        List<PlatformOverviewResponseDto> chartData = platformOverviewService
+            .getChartData(period)
+            .stream()
+            .map(this::toOverviewDto)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(chartData);
+    }
+
     @PostMapping("/overview/generate")
     public ResponseEntity<PlatformOverviewResponseDto> generatePlatformOverview(
         @RequestParam Period period,

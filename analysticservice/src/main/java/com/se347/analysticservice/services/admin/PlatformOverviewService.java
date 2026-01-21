@@ -62,6 +62,17 @@ public interface PlatformOverviewService {
     
     List<PlatformOverview> getOverviewHistory(Period period, int limit);
     
+    /**
+     * Gets chart data for the most recent period.
+     * - For MONTHLY: returns 30 DAILY overviews of the most recent month
+     * - For WEEKLY: returns 7 DAILY overviews of the most recent week
+     * - For YEARLY: returns 12 MONTHLY overviews of the most recent year
+     * - For DAILY: returns the most recent DAILY overview
+     * 
+     * @param period The period type for the chart
+     * @return List of PlatformOverview records suitable for charting
+     */
+    List<PlatformOverview> getChartData(Period period);
     
     PlatformOverview initializeCurrentPeriodOverview(Period period);
     

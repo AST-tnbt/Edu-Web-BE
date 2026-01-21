@@ -43,16 +43,19 @@ public class EnrollmentController {
     }
 
     @GetMapping("/courses/id/{courseId}/enrollments")
-    public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByCourseId(@PathVariable UUID courseId) {
-        return ResponseEntity.ok(enrollmentQueryService.getEnrollmentsByCourseId(courseId));
+    public ResponseEntity<List<EnrollmentResponseDto>> getEnrollmentsByCourseId(
+            @PathVariable UUID courseId,
+            @RequestHeader("X-User-Id") UUID userId) {
+        return ResponseEntity.ok(enrollmentQueryService.getEnrollmentsByCourseId(courseId, userId));
     }
 
     @GetMapping("/courses/id/{courseId}/enrollments/student/id/{studentId}")
     public ResponseEntity<EnrollmentResponseDto> getEnrollmentByCourseIdAndStudentId(
             @PathVariable UUID courseId, 
-            @PathVariable UUID studentId
+            @PathVariable UUID studentId,
+            @RequestHeader("X-User-Id") UUID userId
         ) {
-        return ResponseEntity.ok(enrollmentQueryService.getEnrollmentByCourseIdAndStudentId(courseId, studentId));
+        return ResponseEntity.ok(enrollmentQueryService.getEnrollmentByCourseIdAndStudentId(courseId, studentId, userId));
     }
 
     @GetMapping("/enrollments/my-courses")

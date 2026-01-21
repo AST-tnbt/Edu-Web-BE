@@ -9,7 +9,6 @@ import com.se347.enrollmentservice.repositories.LearningProgressRepository;
 import com.se347.enrollmentservice.entities.LearningProgress;
 import com.se347.enrollmentservice.entities.Enrollment;
 import com.se347.enrollmentservice.exceptions.LearningProgressException;
-import com.se347.enrollmentservice.domains.EnrollmentAuthorizationDomainService;
 import com.se347.enrollmentservice.exceptions.ForbiddenException;
 
 import java.util.UUID;
@@ -23,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 public class LearningProgressQueryServiceImpl implements LearningProgressQueryService {
     
     private final LearningProgressRepository learningProgressRepository;
-    private final EnrollmentAuthorizationDomainService enrollmentAuthorizationDomainService;
 
     // ========== Public API ==========
 
@@ -76,13 +74,18 @@ public class LearningProgressQueryServiceImpl implements LearningProgressQuerySe
     private void authorizeAccess(LearningProgress learningProgress, UUID userId) {
             Enrollment enrollment = learningProgress.getEnrollment();
         try {
-            enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, userId);
+            if (!enrollment.getStudentId().equals(userId)) {
+                throw new ForbiddenException(
+                    "User " + userId + " cannot access learning progress " + learningProgress.getLearningProgressId() + ": user is not the student"
+                );
+            }
         } catch (ForbiddenException studentEx) {
             try {
-                enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(
-                    enrollment.getCourseId(), 
-                    userId
-                );
+                if (!enrollment.getInstructorId().equals(userId)) {
+                    throw new ForbiddenException(
+                        "User " + userId + " cannot access learning progress " + learningProgress.getLearningProgressId() + ": user is not the instructor"
+                    );
+                }
             } catch (ForbiddenException instructorEx) {
                 throw new ForbiddenException(
                     "User " + userId + " cannot access learning progress " + learningProgress.getLearningProgressId()

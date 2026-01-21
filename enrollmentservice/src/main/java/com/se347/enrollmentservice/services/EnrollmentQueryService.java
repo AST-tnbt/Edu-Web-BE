@@ -8,9 +8,9 @@ public interface EnrollmentQueryService {
     EnrollmentResponseDto getEnrollmentById(UUID enrollmentId, UUID userId);
     List<EnrollmentResponseDto> getEnrollmentsByStudentId(UUID studentId);
     boolean isEnrollmentExists(UUID courseId, UUID studentId);
-    List<EnrollmentResponseDto> getEnrollmentsByCourseId(UUID courseId);
+    List<EnrollmentResponseDto> getEnrollmentsByCourseId(UUID courseId, UUID userId);
     boolean isEnrollmentEmpty(UUID courseId);
-    EnrollmentResponseDto getEnrollmentByCourseIdAndStudentId(UUID courseId, UUID studentId);
+    EnrollmentResponseDto getEnrollmentByCourseIdAndStudentId(UUID courseId, UUID studentId, UUID userId);
     
     /**
      * Internal method for system/event processing - no authorization check

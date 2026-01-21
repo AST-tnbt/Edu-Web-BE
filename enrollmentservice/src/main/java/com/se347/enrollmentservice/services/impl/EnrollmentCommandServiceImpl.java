@@ -13,10 +13,9 @@ import com.se347.enrollmentservice.entities.LearningProgress;
 import com.se347.enrollmentservice.repositories.EnrollmentRepository;
 import com.se347.enrollmentservice.dtos.LearningProgressResponseDto;
 import com.se347.enrollmentservice.enums.EnrollmentStatus;
-import com.se347.enrollmentservice.domains.EnrollmentAuthorizationDomainService;
 import com.se347.enrollmentservice.exceptions.CourseProgressException;
 import com.se347.enrollmentservice.clients.CourseServiceClient;
-
+import com.se347.enrollmentservice.exceptions.ForbiddenException;
 import lombok.RequiredArgsConstructor;
 import java.util.UUID;
 
@@ -26,7 +25,6 @@ public class EnrollmentCommandServiceImpl implements EnrollmentCommandService {
 
     private final EnrollmentRepository enrollmentRepository;
     private final CourseServiceClient courseServiceClient;
-    private final EnrollmentAuthorizationDomainService enrollmentAuthorizationDomainService;
     
     // ========== Public API ==========
 
@@ -55,7 +53,11 @@ public class EnrollmentCommandServiceImpl implements EnrollmentCommandService {
             .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException("Enrollment not found with ID: " + enrollmentId));
 
 
-        enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(enrollment.getCourseId(), userId);
+        if (!enrollment.getInstructorId().equals(userId)) {
+            throw new ForbiddenException(
+                "User " + userId + " cannot update enrollment status " + enrollmentId + ": user is not the instructor"
+            );
+        }
         // Update status through domain service
         enrollment.suspend();
         enrollment.updateEnrollmentStatus(newStatus);
@@ -91,7 +93,11 @@ public class EnrollmentCommandServiceImpl implements EnrollmentCommandService {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
             .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException("Enrollment not found with ID: " + enrollmentId));
 
-        enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, userId);
+        if (!enrollment.getStudentId().equals(userId)) {
+            throw new ForbiddenException(
+                "User " + userId + " cannot access learning progress " + enrollmentId + ": user is not the student"
+            );
+        }
         LearningProgress learningProgress = enrollment.getOrCreateLessonProgress(lessonId);
         learningProgress.recordAccess();
         enrollmentRepository.save(enrollment);
@@ -106,7 +112,11 @@ public class EnrollmentCommandServiceImpl implements EnrollmentCommandService {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
             .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException("Enrollment not found with ID: " + enrollmentId));
 
-        enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, userId);
+        if (!enrollment.getStudentId().equals(userId)) {
+            throw new ForbiddenException(
+                "User " + userId + " cannot mark lesson as completed " + enrollmentId + ": user is not the student"
+            );
+        }
         LearningProgress learningProgress = enrollment.markLessonAsCompleted(lessonId);
         enrollmentRepository.save(enrollment);
         return mapToResponse(learningProgress);
@@ -120,7 +130,11 @@ public class EnrollmentCommandServiceImpl implements EnrollmentCommandService {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
             .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException("Enrollment not found with ID: " + enrollmentId));
 
-        enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, userId);
+        if (!enrollment.getStudentId().equals(userId)) {
+            throw new ForbiddenException(
+                "User " + userId + " cannot record lesson access " + enrollmentId + ": user is not the student"
+            );
+        }
         LearningProgress learningProgress = enrollment.recordLessonAccess(lessonId);
         enrollmentRepository.save(enrollment);
         return mapToResponse(learningProgress);

@@ -22,6 +22,11 @@ public abstract class EnrollmentException extends RuntimeException {
         }
     }
     
+    public static class InternalServerException extends EnrollmentException {
+        public InternalServerException(String message, Throwable cause) {
+            super("Internal server error: " + message, cause);
+        }
+    }
 
     public static class UnauthorizedAccessException extends EnrollmentException {
         public UnauthorizedAccessException(String message) {

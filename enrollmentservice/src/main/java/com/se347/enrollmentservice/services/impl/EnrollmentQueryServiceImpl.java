@@ -6,6 +6,7 @@ import com.se347.enrollmentservice.dtos.EnrollmentResponseDto;
 import com.se347.enrollmentservice.domains.EnrollmentAuthorizationDomainService;
 import com.se347.enrollmentservice.entities.Enrollment;
 import com.se347.enrollmentservice.exceptions.EnrollmentException;
+import com.se347.enrollmentservice.exceptions.ForbiddenException;
 import java.util.UUID;
 import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,22 +25,57 @@ public class EnrollmentQueryServiceImpl implements EnrollmentQueryService {
     @Transactional(readOnly = true)
     public EnrollmentResponseDto getEnrollmentById(UUID enrollmentId, UUID userId) {
 
+        if (enrollmentId == null) {
+            throw new EnrollmentException.InvalidRequestException("Enrollment ID cannot be null");
+        }
+
+        if (userId == null) {
+            throw new EnrollmentException.InvalidRequestException("User ID cannot be null");
+        }
+
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
             .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException("Enrollment not found with ID: " + enrollmentId));
 
-        enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, userId);
-        enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(enrollment.getCourseId(), userId);
+        // Allow access if user is either the student OR the instructor
+        try {
+            enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, userId);
+        } catch (ForbiddenException studentEx) {
+            // If not student, check if user is the instructor
+            try {
+                if (enrollment.getInstructorId() != null) {
+                    enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(enrollment.getCourseId(), userId);
+                } else {
+                    throw new ForbiddenException(
+                        "User " + userId + " cannot access enrollment " + enrollmentId
+                    );
+                }
+            } catch (ForbiddenException instructorEx) {
+                throw new ForbiddenException(
+                    "User " + userId + " cannot access enrollment " + enrollmentId
+                );
+            }
+        }
+        
         return mapToResponse(enrollment);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<EnrollmentResponseDto> getEnrollmentsByStudentId(UUID studentId) {
+        if (studentId == null) {
+            throw new EnrollmentException.InvalidRequestException("Student ID cannot be null");
+        }
+        
         List<Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
         
-        Enrollment enrollment = enrollments.stream().findFirst()
-            .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException("No enrollments found for student ID: " + studentId));
-        enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, studentId);
+        if (enrollments.isEmpty()) {
+            return List.of();
+        }
+        
+        // Verify authorization: ensure all enrollments belong to the student
+        for (Enrollment enrollment : enrollments) {
+            enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, studentId);
+        }
 
         return enrollments.stream()
             .map(this::mapToResponse)
@@ -60,11 +96,21 @@ public class EnrollmentQueryServiceImpl implements EnrollmentQueryService {
     @Override
     @Transactional(readOnly = true)
     public List<EnrollmentResponseDto> getEnrollmentsByCourseId(UUID courseId) {
+        if (courseId == null) {
+            throw new EnrollmentException.InvalidRequestException("Course ID cannot be null");
+        }
+        
         List<Enrollment> enrollments = enrollmentRepository.findByCourseId(courseId);
 
-        Enrollment enrollment = enrollments.stream().findFirst()
-            .orElseThrow(() -> new EnrollmentException.EnrollmentNotFoundException("No enrollments found for course ID: " + courseId));
-        enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(courseId, enrollment.getStudentId());
+        if (enrollments.isEmpty()) {
+            return List.of();
+        }
+        
+        // Get instructor ID from first enrollment to verify authorization
+        UUID instructorId = enrollments.get(0).getInstructorId();
+        if (instructorId != null) {
+            enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(courseId, instructorId);
+        }
         
         return enrollments.stream()
             .map(this::mapToResponse)
@@ -74,10 +120,25 @@ public class EnrollmentQueryServiceImpl implements EnrollmentQueryService {
     @Override
     @Transactional(readOnly = true)
     public EnrollmentResponseDto getEnrollmentByCourseIdAndStudentId(UUID courseId, UUID studentId) {
+        if (courseId == null) {
+            throw new EnrollmentException.InvalidRequestException("Course ID cannot be null");
+        }
+        if (studentId == null) {
+            throw new EnrollmentException.InvalidRequestException("Student ID cannot be null");
+        }
+        
         Enrollment enrollment = enrollmentRepository.findByCourseIdAndStudentId(courseId, studentId);
+        
+        if (enrollment == null) {
+            throw new EnrollmentException.EnrollmentNotFoundException(
+                "Enrollment not found for course ID: " + courseId + " and student ID: " + studentId
+            );
+        }
 
         enrollmentAuthorizationDomainService.ensureStudentOwnsEnrollment(enrollment, studentId);
-        enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(courseId, enrollment.getInstructorId());
+        if (enrollment.getInstructorId() != null) {
+            enrollmentAuthorizationDomainService.ensureInstructorOwnsCourse(courseId, enrollment.getInstructorId());
+        }
 
         return mapToResponse(enrollment);
     }
@@ -88,6 +149,10 @@ public class EnrollmentQueryServiceImpl implements EnrollmentQueryService {
         // Internal method for system/event processing - no authorization check
         // Used by RabbitMQ listeners and internal services where authorization
         // has already been verified at the source (e.g., Course Service)
+        if (courseId == null) {
+            throw new EnrollmentException.InvalidRequestException("Course ID cannot be null");
+        }
+        
         List<Enrollment> enrollments = enrollmentRepository.findByCourseId(courseId);
         
         return enrollments.stream()

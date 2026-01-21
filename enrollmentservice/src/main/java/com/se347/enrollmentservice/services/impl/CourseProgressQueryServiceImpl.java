@@ -24,6 +24,10 @@ public class CourseProgressQueryServiceImpl implements CourseProgressQueryServic
     @Override
     @Transactional(readOnly = true)
     public CourseProgressResponseDto getCourseProgressById(UUID courseProgressId) {
+        if (courseProgressId == null) {
+            throw new CourseProgressException.CourseProgressNotFoundException("Course progress ID cannot be null");
+        }
+        
         CourseProgress courseProgress = courseProgressRepository.findByCourseProgressId(courseProgressId)
             .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException("Course progress not found with ID: " + courseProgressId));
 
@@ -33,6 +37,10 @@ public class CourseProgressQueryServiceImpl implements CourseProgressQueryServic
     @Override
     @Transactional(readOnly = true)
     public CourseProgressResponseDto getCourseProgressByEnrollmentId(UUID enrollmentId) {
+        if (enrollmentId == null) {
+            throw new CourseProgressException.CourseProgressNotFoundException("Enrollment ID cannot be null");
+        }
+        
         CourseProgress courseProgress = courseProgressRepository.findByEnrollmentId(enrollmentId)
             .orElseThrow(() -> new CourseProgressException.CourseProgressNotFoundException("Course progress not found with enrollment ID: " + enrollmentId));
 

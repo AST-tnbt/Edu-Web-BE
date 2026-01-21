@@ -3,6 +3,8 @@ package com.se347.courseservice.controllers;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.se347.courseservice.services.CourseQueryService;
 import com.se347.courseservice.services.CourseCommandService;
@@ -24,11 +26,13 @@ public class CourseController {
     private final CourseCommandService courseService;
     private final CourseQueryService courseQueryService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CourseResponseDto> createCourse(
-        @RequestBody CourseRequestDto request,
+        @RequestPart("data") CourseRequestDto request,
+        @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail,
         @RequestHeader("X-User-Id") UUID userId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(courseService.createCourse(request, userId));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(courseService.createCourse(request, thumbnail, userId));
     }
 
     @GetMapping("/id/{courseId}")

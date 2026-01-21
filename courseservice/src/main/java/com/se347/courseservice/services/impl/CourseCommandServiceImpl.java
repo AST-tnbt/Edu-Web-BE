@@ -5,6 +5,7 @@ import com.se347.courseservice.domains.SlugGenerateService;
 import com.se347.courseservice.dtos.CourseRequestDto;
 import com.se347.courseservice.dtos.CourseResponseDto;
 import com.se347.courseservice.services.CourseCommandService;
+import com.se347.courseservice.services.FileStorageService;
 import com.se347.courseservice.repositories.CourseRepository;
 import com.se347.courseservice.entities.Course;
 import com.se347.courseservice.entities.Section;
@@ -19,6 +20,7 @@ import com.se347.courseservice.entities.Content;
 import com.se347.courseservice.entities.valueobjects.Money;
 import com.se347.courseservice.exceptions.CourseException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,37 +32,48 @@ public class CourseCommandServiceImpl implements CourseCommandService {
     private final CourseRepository courseRepository;
     private final CourseDomainService courseDomainService;
     private final SlugGenerateService slugGenerateService;
+    private final FileStorageService fileStorageService;
+    
     @Transactional
     @Override
-    public CourseResponseDto createCourse(CourseRequestDto request, UUID userId) {
-        // 1. Cross-aggregate validation: ensure category exists
+    public CourseResponseDto createCourse(CourseRequestDto request, MultipartFile thumbnail, UUID userId) {
+        // 1. Upload thumbnail if provided
+        String thumbnailUrl = null;
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            thumbnailUrl = fileStorageService.uploadThumbnail(thumbnail);
+        } else if (request.getThumbnailUrl() != null && !request.getThumbnailUrl().isEmpty()) {
+            // Fallback to URL from request if no file provided
+            thumbnailUrl = request.getThumbnailUrl();
+        }
+        
+        // 2. Cross-aggregate validation: ensure category exists
         courseDomainService.ensureCategoryExists(request.getCategoryName());
         
-        // 2. Business rule: course title must be unique
+        // 3. Business rule: course title must be unique
         if (!courseDomainService.isTitleUnique(request.getTitle())) {
             throw new CourseException.CourseAlreadyExistsException(request.getTitle());
         }
         
-        // 3. Generate unique slug for course
+        // 4. Generate unique slug for course
         String courseSlug = slugGenerateService.generateCourseSlug(request.getTitle());
 
-        // 3. Tell aggregate to create itself (factory method with all validations)
+        // 5. Tell aggregate to create itself (factory method with all validations)
         Money price = Money.of(request.getPrice());
         Course course = Course.createNew(
             request.getTitle(),
             request.getDescription(),
             courseSlug,
-            request.getThumbnailUrl(),
+            thumbnailUrl,
             price,
             request.getLevel(),
             request.getCategoryName(),
             userId
         );
         
-        // 4. Save aggregate root (will publish domain events automatically)
+        // 6. Save aggregate root (will publish domain events automatically)
         courseRepository.save(course);
 
-        // 5. Map to DTO for presentation layer
+        // 7. Map to DTO for presentation layer
         return mapToResponse(course);
     }
 

@@ -8,6 +8,7 @@ import com.se347.courseservice.dtos.LessonRequestDto;
 import com.se347.courseservice.dtos.LessonResponseDto;
 import com.se347.courseservice.dtos.ContentMetadataRequestDto;
 import com.se347.courseservice.dtos.ContentMetadataResponseDto;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 
 public interface CourseCommandService {
@@ -15,7 +16,7 @@ public interface CourseCommandService {
     /*
     Course
      */
-    CourseResponseDto createCourse(CourseRequestDto request, UUID userId);
+    CourseResponseDto createCourse(CourseRequestDto request, MultipartFile thumbnail, UUID userId);
     CourseResponseDto updateCourseById(UUID courseId, CourseRequestDto request, UUID userId);
     CourseResponseDto updateCourseByCourseSlug(String courseSlug, CourseRequestDto request, UUID userId);
 

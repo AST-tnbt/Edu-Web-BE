@@ -149,6 +149,7 @@ public class HmacValidationFilter extends OncePerRequestFilter {
         return path.startsWith("/actuator/") ||
                path.startsWith("/api/auth/login") ||
                path.startsWith("/api/auth/signup") ||
+               path.equals("/api/courses") ||
                path.startsWith("/api/auth/refresh");
     }
 

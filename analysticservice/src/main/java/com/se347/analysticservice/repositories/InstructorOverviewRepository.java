@@ -25,6 +25,9 @@ public interface InstructorOverviewRepository extends JpaRepository<InstructorOv
     @Query("SELECT io FROM InstructorOverview io ORDER BY io.totalCourses.value DESC")
     List<InstructorOverview> findAllOrderByTotalCoursesDesc();
 
+    @Query("SELECT io FROM InstructorOverview io ORDER BY io.totalRevenue.amount DESC")
+    List<InstructorOverview> findAllOrderByTotalRevenueDesc();
+
     // ===== method với PESSIMISTIC_WRITE lock =====
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT io FROM InstructorOverview io WHERE io.instructorId = :instructorId")

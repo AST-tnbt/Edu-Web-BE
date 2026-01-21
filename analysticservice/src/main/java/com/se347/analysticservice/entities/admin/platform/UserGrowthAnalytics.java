@@ -1,7 +1,5 @@
 package com.se347.analysticservice.entities.admin.platform;
 
-import com.se347.analysticservice.domains.events.platform.UserGrowthMetricsUpdatedEvent;
-import com.se347.analysticservice.domains.events.platform.UserGrowthRecordedEvent;
 import com.se347.analysticservice.entities.AbstractAggregateRoot;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
 import com.se347.analysticservice.entities.shared.valueobjects.Percentage;
@@ -67,48 +65,6 @@ public class UserGrowthAnalytics extends AbstractAggregateRoot<UserGrowthAnalyti
     
     // ==================== Business Methods ====================
     
-    /**
-     * Calculates user growth rate compared to previous day.
-     * Example: If yesterday had 1000 users and today has 1100, growth rate = 10%
-     */
-    public Percentage calculateGrowthRate(Count previousDayTotalUsers) {
-        return Percentage.growthRate(previousDayTotalUsers.getValue(), totalUsers.getValue());
-    }
-    
-    /**
-     * Calculates what percentage of total users are active today.
-     * Example: If 1000 total users and 200 active today = 20% engagement
-     */
-    public Percentage calculateEngagementRate() {
-        if (totalUsers.isZero()) {
-            return Percentage.zero();
-        }
-        return activeUsersCount.percentageOf(totalUsers);
-    }
-    
-    /**
-     * Checks if growth target is met.
-     * Example: Check if we got at least 100 new users today
-     */
-    public boolean isGrowthTargetMet(Count targetNewUsers) {
-        return newUsersCount.isGreaterThanOrEqual(targetNewUsers);
-    }
-    
-    /**
-     * Checks if retention rate meets threshold.
-     * Example: Check if at least 70% of users are retained
-     */
-    public boolean isRetentionHealthy(Percentage threshold) {
-        return retentionRate.isGreaterThan(threshold);
-    }
-    
-    /**
-     * Checks if platform is growing (more new users than yesterday).
-     */
-    public boolean isGrowing(Count yesterdayNewUsers) {
-        return newUsersCount.isGreaterThan(yesterdayNewUsers);
-    }
-
     public static UserGrowthAnalytics create(LocalDate date, Count newUsersCount, Count activeUsersCount, Count totalUsers, Percentage retentionRate) {
         
         if (date == null) throw new IllegalArgumentException("Date cannot be null");
@@ -126,17 +82,8 @@ public class UserGrowthAnalytics extends AbstractAggregateRoot<UserGrowthAnalyti
         userGrowthAnalytics.retentionRate = retentionRate;
         userGrowthAnalytics.onCreate();
         
-        // Register domain event (now ID is available)
-        userGrowthAnalytics.registerEvent(
-            UserGrowthRecordedEvent.now(
-                userGrowthAnalytics.userGrowthAnalyticsId,
-                date,
-                newUsersCount.getValue(),
-                activeUsersCount.getValue(),
-                totalUsers.getValue(),
-                retentionRate.getValue()
-            )
-        );
+        // Domain event removed - not actively used
+        // userGrowthAnalytics.registerEvent(UserGrowthRecordedEvent.now(...));
         
         return userGrowthAnalytics;
     }
@@ -152,15 +99,8 @@ public class UserGrowthAnalytics extends AbstractAggregateRoot<UserGrowthAnalyti
         this.totalUsers = this.totalUsers.increment();
         this.onUpdate();
         
-        // Register domain event
-        this.registerEvent(
-            UserGrowthMetricsUpdatedEvent.now(
-                this.userGrowthAnalyticsId,
-                this.newUsersCount.getValue(),
-                this.activeUsersCount.getValue(),
-                this.totalUsers.getValue()
-            )
-        );
+        // Domain event removed - not actively used
+        // this.registerEvent(UserGrowthMetricsUpdatedEvent.now(...));
     }
     
     /**
@@ -171,15 +111,8 @@ public class UserGrowthAnalytics extends AbstractAggregateRoot<UserGrowthAnalyti
         this.activeUsersCount = this.activeUsersCount.increment();
         this.onUpdate();
         
-        // Register domain event
-        this.registerEvent(
-            UserGrowthMetricsUpdatedEvent.now(
-                this.userGrowthAnalyticsId,
-                this.newUsersCount.getValue(),
-                this.activeUsersCount.getValue(),
-                this.totalUsers.getValue()
-            )
-        );
+        // Domain event removed - not actively used
+        // this.registerEvent(UserGrowthMetricsUpdatedEvent.now(...));
     }
     
     /**

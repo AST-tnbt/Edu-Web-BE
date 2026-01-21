@@ -50,7 +50,7 @@ public class InstructorCourseStats extends AbstractAggregateRoot<InstructorCours
 
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "completion_rate"))
-    private Percentage completionRate;
+    private Percentage completionRatePercent;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -95,7 +95,7 @@ public class InstructorCourseStats extends AbstractAggregateRoot<InstructorCours
         stats.courseId = courseId;
         stats.totalStudents = totalStudents;
         stats.totalRevenue = totalRevenue;
-        stats.completionRate = completionRate != null ? completionRate : Percentage.zero();
+        stats.completionRatePercent = completionRate != null ? completionRate : Percentage.zero();
         stats.onCreate();
 
         return stats;
@@ -124,8 +124,16 @@ public class InstructorCourseStats extends AbstractAggregateRoot<InstructorCours
             throw new IllegalArgumentException("Completion rate cannot be null");
         }
 
-        this.completionRate = completionRate;
+        this.completionRatePercent = this.completionRatePercent.add(completionRate);
         this.onUpdate();
+    }
+
+    /**
+     * Backward-compatible getter to avoid breaking older code/DTOs.
+     * Prefer {@link #getCompletionRatePercent()} for clarity.
+     */
+    public Percentage getCompletionRate() {
+        return completionRatePercent;
     }
 }
 

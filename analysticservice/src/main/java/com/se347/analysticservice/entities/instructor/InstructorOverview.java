@@ -51,7 +51,7 @@ public class InstructorOverview extends AbstractAggregateRoot<InstructorOverview
 
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "average_completion_rate"))
-    private Percentage averageCompletionRate;
+    private Percentage averageCompletionRatePercent;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -96,7 +96,7 @@ public class InstructorOverview extends AbstractAggregateRoot<InstructorOverview
         overview.totalCourses = totalCourses;
         overview.totalStudents = totalStudents;
         overview.totalRevenue = totalRevenue;
-        overview.averageCompletionRate = averageCompletionRate != null ? averageCompletionRate : Percentage.zero();
+        overview.averageCompletionRatePercent = averageCompletionRate != null ? averageCompletionRate : Percentage.zero();
         overview.onCreate();
 
         return overview;
@@ -121,7 +121,7 @@ public class InstructorOverview extends AbstractAggregateRoot<InstructorOverview
         this.totalCourses = totalCourses;
         this.totalStudents = totalStudents;
         this.totalRevenue = totalRevenue;
-        this.averageCompletionRate = averageCompletionRate != null ? averageCompletionRate : Percentage.zero();
+        this.averageCompletionRatePercent = averageCompletionRate != null ? averageCompletionRate : Percentage.zero();
         this.onUpdate();
     }
 
@@ -130,7 +130,7 @@ public class InstructorOverview extends AbstractAggregateRoot<InstructorOverview
             throw new IllegalArgumentException("Average completion rate cannot be null");
         }
 
-        this.averageCompletionRate = averageCompletionRate;
+        this.averageCompletionRatePercent = averageCompletionRate;
         this.onUpdate();
     }
 
@@ -149,7 +149,7 @@ public class InstructorOverview extends AbstractAggregateRoot<InstructorOverview
             previousEnrollmentRate = 0.0;
         }
         
-        double currentInstructorAverage = this.averageCompletionRate.getValue();
+        double currentInstructorAverage = this.averageCompletionRatePercent.getValue();
         long totalCourses = this.totalCourses.getValue();
         
         if (totalCourses == 0) {
@@ -173,8 +173,12 @@ public class InstructorOverview extends AbstractAggregateRoot<InstructorOverview
         double newTotalCourseRates = estimatedTotalCourseRates - estimatedCourseAverage + newCourseAverage;
         double newInstructorAverage = newTotalCourseRates / totalCourses;
         
-        this.averageCompletionRate = Percentage.of(Math.max(0.0, Math.min(100.0, newInstructorAverage)));
+        this.averageCompletionRatePercent = Percentage.of(Math.max(0.0, Math.min(100.0, newInstructorAverage)));
         this.onUpdate();
+    }
+
+    public Percentage getAverageCompletionRate() {
+        return averageCompletionRatePercent;
     }
 }
 

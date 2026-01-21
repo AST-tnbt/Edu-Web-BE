@@ -1,6 +1,5 @@
 package com.se347.analysticservice.entities.admin.revenue;
 
-import com.se347.analysticservice.domains.events.revenue.InstructorRevenueCalculatedEvent;
 import com.se347.analysticservice.entities.AbstractAggregateRoot;
 import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
@@ -115,19 +114,8 @@ public class InstructorRevenue extends AbstractAggregateRoot<InstructorRevenue> 
         revenue.topPerformingCourses = new ArrayList<>();
         revenue.onCreate();
         
-        // Register domain event (now ID is available)
-        revenue.registerEvent(
-            InstructorRevenueCalculatedEvent.now(
-                revenue.instructorRevenueId,
-                instructorId,
-                period,
-                startDate,
-                endDate,
-                totalRevenue.getAmount(),
-                totalEnrollments.getValue(),
-                totalCourses.getValue()
-            )
-        );
+        // Domain event removed - not actively used
+        // revenue.registerEvent(InstructorRevenueCalculatedEvent.now(...));
         
         return revenue;
     }

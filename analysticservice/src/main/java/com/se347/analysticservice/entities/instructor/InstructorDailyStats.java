@@ -53,7 +53,7 @@ public class InstructorDailyStats extends AbstractAggregateRoot<InstructorDailyS
 
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "course_completions", nullable = false))
-    private Count courseCompletions;
+    private Count courseCompletionsCount;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -106,7 +106,7 @@ public class InstructorDailyStats extends AbstractAggregateRoot<InstructorDailyS
         stats.newEnrollments = newEnrollments;
         stats.activeStudents = activeStudents;
         stats.dailyRevenue = dailyRevenue;
-        stats.courseCompletions = courseCompletions;
+        stats.courseCompletionsCount = courseCompletions;
         stats.onCreate();
 
         return stats;
@@ -132,8 +132,12 @@ public class InstructorDailyStats extends AbstractAggregateRoot<InstructorDailyS
     }
 
     public void recordCourseCompletion() {
-        this.courseCompletions = this.courseCompletions.increment();
+        this.courseCompletionsCount = this.courseCompletionsCount.increment();
         this.onUpdate();
+    }
+
+    public Count getCourseCompletions() {
+        return courseCompletionsCount;
     }
 }
 

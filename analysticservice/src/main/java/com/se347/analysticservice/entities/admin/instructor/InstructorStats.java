@@ -19,7 +19,7 @@ public class InstructorStats {
     private UUID instructorId;
     private Count totalCourses;
     private Count totalStudents;
-    private Percentage averageCompletionRate;
+    private Percentage averageCompletionRatePercent;
 
     /**
      * Creates a projection from InstructorOverview for admin reporting.
@@ -42,6 +42,14 @@ public class InstructorStats {
             totalStudents,
             averageCompletionRate
         );
+    }
+
+    /**
+     * Backward-compatible getter to avoid breaking older code/DTOs.
+     * Prefer {@link #getAverageCompletionRatePercent()} for clarity.
+     */
+    public Percentage getAverageCompletionRate() {
+        return averageCompletionRatePercent;
     }
 }
 

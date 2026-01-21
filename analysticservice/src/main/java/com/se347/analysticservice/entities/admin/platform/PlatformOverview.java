@@ -1,7 +1,5 @@
 package com.se347.analysticservice.entities.admin.platform;
 
-import com.se347.analysticservice.domains.events.platform.PlatformMetricsUpdatedEvent;
-import com.se347.analysticservice.domains.events.platform.PlatformOverviewCreatedEvent;
 import com.se347.analysticservice.entities.AbstractAggregateRoot;
 import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
@@ -13,12 +11,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * PlatformOverview Aggregate Root - Provides high-level platform metrics for a given period.
- * Simplified to use primitive value objects directly without complex composite VOs.
- * 
- * Represents a snapshot of platform health and growth for admin dashboard.
- */
 @Entity
 @Table(
     name = "platform_overview", indexes = {
@@ -56,11 +48,6 @@ public class PlatformOverview extends AbstractAggregateRoot<PlatformOverview> {
     @AttributeOverride(name = "value", column = @Column(name = "total_users", nullable = false))
     private Count totalUsers;
     
-    // Total active courses
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "total_active_courses", nullable = false))
-    private Count totalActiveCourses;
-    
     // Total enrollments
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "total_enrollments", nullable = false))
@@ -70,10 +57,10 @@ public class PlatformOverview extends AbstractAggregateRoot<PlatformOverview> {
     @Embedded
     @AttributeOverride(name = "amount", column = @Column(name = "total_revenue", nullable = false))
     private Money totalRevenue;
-    
-    // Average course completion rate
+
+    // Average completion rate
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "avg_completion_rate"))
+    @AttributeOverride(name = "value", column = @Column(name = "avg_retention_rate", nullable = false))
     private Percentage averageCompletionRate;
     
     // ==================== Growth Metrics (New in this period) ====================
@@ -83,33 +70,16 @@ public class PlatformOverview extends AbstractAggregateRoot<PlatformOverview> {
     @AttributeOverride(name = "value", column = @Column(name = "new_users_count", nullable = false))
     private Count newUsersCount;
     
-    // New courses in this period
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "new_courses_count", nullable = false))
-    private Count newCoursesCount;
-    
     // New enrollments in this period
     @Embedded
     @AttributeOverride(name = "value", column = @Column(name = "new_enrollments_count", nullable = false))
     private Count newEnrollmentsCount;
     
-    // ==================== Comparison to Previous Period ====================
-    
-    // User growth rate compared to previous period
+    // Revenue by period
     @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "user_growth_rate"))
-    private Percentage userGrowthRate;
-    
-    // Revenue growth rate compared to previous period
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "revenue_growth_rate"))
-    private Percentage revenueGrowthRate;
-    
-    // Enrollment growth rate compared to previous period
-    @Embedded
-    @AttributeOverride(name = "value", column = @Column(name = "enrollment_growth_rate"))
-    private Percentage enrollmentGrowthRate;
-    
+    @AttributeOverride(name = "amount", column = @Column(name = "revenue_by_period", nullable = false))
+    private Money revenueByPeriod;
+
     // ==================== Audit Fields ====================
     
     @Column(nullable = false)
@@ -139,17 +109,12 @@ public class PlatformOverview extends AbstractAggregateRoot<PlatformOverview> {
         LocalDate startDate,
         LocalDate endDate,
         Count totalUsers,
-        Count totalActiveCourses,
-        Count totalInstructors,
         Count totalEnrollments,
         Money totalRevenue,
+        Money revenueByPeriod,
         Percentage averageCompletionRate,
         Count newUsersCount,
-        Count newCoursesCount,
-        Count newEnrollmentsCount,
-        Percentage userGrowthRate,
-        Percentage revenueGrowthRate,
-        Percentage enrollmentGrowthRate
+        Count newEnrollmentsCount
     ) {
         // Validation
         if (period == null) throw new IllegalArgumentException("Period cannot be null");
@@ -166,27 +131,16 @@ public class PlatformOverview extends AbstractAggregateRoot<PlatformOverview> {
         overview.startDate = startDate;
         overview.endDate = endDate;
         overview.totalUsers = totalUsers;
-        overview.totalActiveCourses = totalActiveCourses;
         overview.totalEnrollments = totalEnrollments;
         overview.totalRevenue = totalRevenue;
+        overview.revenueByPeriod = revenueByPeriod;
         overview.averageCompletionRate = averageCompletionRate;
         overview.newUsersCount = newUsersCount;
-        overview.newCoursesCount = newCoursesCount;
         overview.newEnrollmentsCount = newEnrollmentsCount;
-        overview.userGrowthRate = userGrowthRate;
-        overview.revenueGrowthRate = revenueGrowthRate;
-        overview.enrollmentGrowthRate = enrollmentGrowthRate;
         overview.onCreate();
         
-        // Register domain event (now ID is available)
-        overview.registerEvent(
-            PlatformOverviewCreatedEvent.now(
-                overview.platformOverviewId,
-                period,
-                startDate,
-                endDate
-            )
-        );
+        // Domain event removed - not actively used
+        // overview.registerEvent(PlatformOverviewCreatedEvent.now(...));
         
         return overview;
     }
@@ -227,14 +181,14 @@ public class PlatformOverview extends AbstractAggregateRoot<PlatformOverview> {
      * Checks if platform is growing (positive user growth).
      */
     public boolean isGrowing() {
-        return userGrowthRate != null && userGrowthRate.isPositive();
+        return newUsersCount != null && !newUsersCount.isZero();
     }
     
     /**
      * Checks if revenue is growing.
      */
     public boolean isRevenueGrowing() {
-        return revenueGrowthRate != null && revenueGrowthRate.isPositive();
+        return revenueByPeriod != null && revenueByPeriod.isGreaterThanOrEqual(Money.zero());
     }
     
     /**
@@ -259,39 +213,23 @@ public class PlatformOverview extends AbstractAggregateRoot<PlatformOverview> {
      */
     public void updateMetrics(
         Count totalUsers,
-        Count totalActiveCourses,
-        Count totalInstructors,
         Count totalEnrollments,
         Money totalRevenue,
+        Money revenueByPeriod,
         Percentage averageCompletionRate,
         Count newUsersCount,
-        Count newCoursesCount,
-        Count newEnrollmentsCount,
-        Percentage userGrowthRate,
-        Percentage revenueGrowthRate,
-        Percentage enrollmentGrowthRate
+        Count newEnrollmentsCount
     ) {
         this.totalUsers = totalUsers;
-        this.totalActiveCourses = totalActiveCourses;
         this.totalEnrollments = totalEnrollments;
         this.totalRevenue = totalRevenue;
+        this.revenueByPeriod = revenueByPeriod;
         this.averageCompletionRate = averageCompletionRate;
         this.newUsersCount = newUsersCount;
-        this.newCoursesCount = newCoursesCount;
         this.newEnrollmentsCount = newEnrollmentsCount;
-        this.userGrowthRate = userGrowthRate;
-        this.revenueGrowthRate = revenueGrowthRate;
-        this.enrollmentGrowthRate = enrollmentGrowthRate;
         this.onUpdate();
         
-        // Register domain event
-        this.registerEvent(
-            PlatformMetricsUpdatedEvent.now(
-                this.platformOverviewId,
-                totalUsers.getValue(),
-                totalActiveCourses.getValue(),
-                totalEnrollments.getValue()
-            )
-        );
+        // Domain event removed - not actively used
+        // this.registerEvent(PlatformMetricsUpdatedEvent.now(...));
     }
 }

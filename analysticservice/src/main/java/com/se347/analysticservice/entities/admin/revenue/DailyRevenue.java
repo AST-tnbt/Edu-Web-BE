@@ -1,7 +1,5 @@
 package com.se347.analysticservice.entities.admin.revenue;
 
-import com.se347.analysticservice.domains.events.revenue.DailyRevenueCreatedEvent;
-import com.se347.analysticservice.domains.events.revenue.DailyRevenueUpdatedEvent;
 import com.se347.analysticservice.entities.AbstractAggregateRoot;
 import com.se347.analysticservice.entities.shared.valueobjects.Money;
 import com.se347.analysticservice.entities.shared.valueobjects.Count;
@@ -71,15 +69,8 @@ public class DailyRevenue extends AbstractAggregateRoot<DailyRevenue> {
         dailyRevenue.totalTransactions = totalTransactions;
         dailyRevenue.onCreate();
         
-        // Register domain event (now ID is available)
-        dailyRevenue.registerEvent(
-            DailyRevenueCreatedEvent.now(
-                dailyRevenue.dailyRevenueId,
-                date,
-                totalRevenue.getAmount(),
-                totalTransactions.getValue()
-            )
-        );
+        // Domain event removed - not actively used
+        // dailyRevenue.registerEvent(DailyRevenueCreatedEvent.now(...));
         
         return dailyRevenue;
     }
@@ -111,14 +102,8 @@ public class DailyRevenue extends AbstractAggregateRoot<DailyRevenue> {
         this.totalTransactions = totalTransactions;
         this.onUpdate();
         
-        // Register domain event
-        this.registerEvent(
-            DailyRevenueUpdatedEvent.now(
-                this.dailyRevenueId,
-                totalRevenue.getAmount(),
-                totalTransactions.getValue()
-            )
-        );
+        // Domain event removed - not actively used
+        // this.registerEvent(DailyRevenueUpdatedEvent.now(...));
         
         return this;
     }
